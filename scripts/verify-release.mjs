@@ -12,7 +12,7 @@ import { createDisplayClient, DISPLAY_DEFAULTS } from '../public/display.js';
 
 const execFileAsync = promisify(execFile);
 const directory = path.resolve(process.argv[2] ?? '');
-if (!process.argv[2]) throw new Error('Pass a clean, extracted portable app directory.');
+if (!process.argv[2]) throw new Error('Pass a clean, extracted application directory.');
 const recordPath = path.join(directory, '.server-process.json');
 const root = process.env.SystemRoot ?? process.env.SYSTEMROOT;
 const powershell = path.join(root, 'System32/WindowsPowerShell/v1.0/powershell.exe');
@@ -124,7 +124,7 @@ try {
   await invoke(['-Stop']);
   await assert.rejects(fetch(restartedBase + '/api/health', { signal: AbortSignal.timeout(1500) }));
   assert.equal(await fetch(`http://127.0.0.1:${blockedPort}`).then(response => response.text()), 'another application');
-  console.log(JSON.stringify({ portableLaunch: 'passed', systemNodeRequired: false, occupiedPort: 'handled', sameProcessOnRelaunch: true, installedGames: games.games.length, includingUninstalled: expanded.games.length, estimatedSizes: expanded.games.filter(game => game.installed === false && game.installSize?.bytes > 0).length, onlineSizeAndPersistentCache: onlineCheck ? 'passed' : 'not requested', libraryStatus: expanded.ownedLibrary.status, switchingModes: 'passed', exclusionsSurviveRestartAndPortChange: true, displaySettingsSurviveRestartAndPortChange: true, emptyBrowserStorage: 'handled', staleImport: 'ignored', cleanStop: true }, null, 2));
+  console.log(JSON.stringify({ applicationLaunch: 'passed', systemNodeRequired: false, occupiedPort: 'handled', sameProcessOnRelaunch: true, installedGames: games.games.length, includingUninstalled: expanded.games.length, estimatedSizes: expanded.games.filter(game => game.installed === false && game.installSize?.bytes > 0).length, onlineSizeAndPersistentCache: onlineCheck ? 'passed' : 'not requested', libraryStatus: expanded.ownedLibrary.status, switchingModes: 'passed', exclusionsSurviveRestartAndPortChange: true, displaySettingsSurviveRestartAndPortChange: true, emptyBrowserStorage: 'handled', staleImport: 'ignored', cleanStop: true }, null, 2));
 } finally {
   await invoke(['-Stop']).catch(() => {});
   occupied.closeAllConnections();

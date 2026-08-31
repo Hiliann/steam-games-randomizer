@@ -5,7 +5,14 @@ export const demoGames = Object.freeze([
   { title: 'Тихая гавань', description: 'Медленный ритм. Время для себя.' },
 ]);
 
-export function createDemoPicker(random = Math.random) {
+export const englishDemoGames = Object.freeze([
+  { title: 'Northern Light', description: 'A little journey. A whole evening.' },
+  { title: 'Beyond Orbit', description: 'A new planet. One more reason to stay.' },
+  { title: 'Quiet Harbor', description: 'A slower pace. A moment for yourself.' },
+]);
+
+export function createDemoPicker(random = Math.random, language = 'ru') {
+  const games = language === 'en' ? englishDemoGames : demoGames;
   let last = 0;
   let remaining = [1, 2];
   return () => {
@@ -14,12 +21,12 @@ export function createDemoPicker(random = Math.random) {
     const index = candidates[Math.floor(random() * candidates.length)];
     remaining.splice(remaining.indexOf(index), 1);
     last = index;
-    return { ...demoGames[index], number: index + 1 };
+    return { ...games[index], number: index + 1 };
   };
 }
 
 if (typeof document !== 'undefined') {
-  const pick = createDemoPicker();
+  const pick = createDemoPicker(Math.random, document.documentElement.lang);
   const button = document.getElementById('demo-draw');
   button.disabled = false;
   button.addEventListener('click', () => {

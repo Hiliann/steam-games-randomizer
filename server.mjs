@@ -9,7 +9,7 @@ import { createDisplayStore, MAX_DISPLAY_BYTES } from './lib/display-settings.mj
 import { createOnlineSizeService } from './lib/online-sizes.mjs';
 
 const base = path.dirname(fileURLToPath(import.meta.url));
-export const APP_VERSION = '1.4.0';
+export const APP_VERSION = '1.4.1';
 export function getInstanceId(directory = base) {
   const resolved = path.resolve(directory);
   return createHash('sha256').update(process.platform === 'win32' ? resolved.toLowerCase() : resolved).digest('hex').slice(0, 24);

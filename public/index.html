@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#111410">
   <meta name="description" content="Выбери, во что поиграть сегодня. Локальный рандомизатор установленных игр и библиотеки аккаунта Steam.">
-  <title>Play Next — Steam Games Randomizer</title>
+  <title>Play Next - Steam Games Randomizer</title>
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/responsive.css">
@@ -33,7 +33,7 @@
     </header>
 
     <main>
-      <section class="page-intro" aria-labelledby="page-title"><div><p class="eyebrow">МЕНЬШЕ ВЫБОРА. БОЛЬШЕ ИГРЫ.</p><h1 id="page-title">Во что играем сегодня<span>?</span></h1></div><div class="installed-summary"><strong id="installed-count">—</strong><span>игр установлено<br><small id="library-count">Ищем библиотеки Steam…</small></span></div></section>
+      <section class="page-intro" aria-labelledby="page-title"><div><p class="eyebrow">МЕНЬШЕ ВЫБОРА. БОЛЬШЕ ИГРЫ.</p><h1 id="page-title">Во что играем сегодня<span>?</span></h1></div><div class="installed-summary"><strong id="installed-count">-</strong><span>игр установлено<br><small id="library-count">Ищем библиотеки Steam…</small></span></div></section>
 
       <div id="error-banner" class="banner" role="alert" hidden></div>
       <div id="storage-banner" class="banner" role="status" hidden>Браузер запретил сохранение настроек: история и настройки страницы могут сброситься. Исключения сохраняются отдельно в папке приложения.</div>
@@ -47,7 +47,7 @@
           <span id="cover-caption" class="cover-caption"></span>
         </article>
 
-        <aside class="draw-panel"><div class="panel-heading"><span class="small-label">ДОВЕРЬСЯ СЛУЧАЮ</span><svg class="icon accent-icon"><use href="#i-shuffle"/></svg></div><h2>Твоя библиотека.<br>Один счастливчик.</h2><p class="panel-description">Знакомая любимая или давно забытая —<br class="desktop-only"> пусть сегодня решит случай.</p>
+        <aside class="draw-panel"><div class="panel-heading"><span class="small-label">ДОВЕРЬСЯ СЛУЧАЮ</span><svg class="icon accent-icon"><use href="#i-shuffle"/></svg></div><h2>Твоя библиотека.<br>Один счастливчик.</h2><p class="panel-description">Знакомая любимая или давно забытая -<br class="desktop-only"> пусть сегодня решит случай.</p>
           <button id="draw-button" class="button button-primary" disabled><svg class="icon"><use href="#i-shuffle"/></svg><span id="draw-label">Выбрать игру</span><span class="key-hint" aria-hidden="true">↵</span></button><p class="keyboard-note">или нажми <kbd>Пробел</kbd></p>
           <div class="draw-settings"><label class="switch-row" for="no-repeats"><span>Без повторов<small>Все игры получат свой шанс</small></span><span class="switch"><input id="no-repeats" type="checkbox" checked><span class="switch-track"></span></span></label><div class="cycle-meta"><span id="cycle-label">В этом круге ещё не было игр</span><button id="reset-cycle" class="text-button">Сбросить круг</button></div><progress id="cycle-progress" value="0" max="1" aria-label="Прогресс текущего круга"></progress><p id="pool-note" class="pool-note">Проверяем, что уже установлено.</p></div>
         </aside>
@@ -55,9 +55,9 @@
 
       <section class="history-section" aria-labelledby="history-title"><div class="section-line"><h2 id="history-title"><svg class="icon"><use href="#i-clock"/></svg>Недавно выпадали</h2><button id="clear-history" class="text-button" hidden>Очистить историю</button></div><div id="history-list" class="history-list"><p class="history-empty">Здесь появятся твои находки. Первый ход за тобой.</p></div></section>
 
-      <section class="library-section" aria-labelledby="library-title"><div class="library-heading"><div><p class="eyebrow" id="library-kicker">ВСЁ УЖЕ НА ТВОЁМ КОМПЬЮТЕРЕ</p><h2 id="library-title">Твоя библиотека <span id="library-total" class="count-pill">—</span></h2></div><button id="refresh-button" class="button button-quiet"><svg class="icon"><use href="#i-refresh"/></svg>Обновить список</button></div>
+      <section class="library-section" aria-labelledby="library-title"><div class="library-heading"><div><p class="eyebrow" id="library-kicker">ВСЁ УЖЕ НА ТВОЁМ КОМПЬЮТЕРЕ</p><h2 id="library-title">Твоя библиотека <span id="library-total" class="count-pill">-</span></h2></div><button id="refresh-button" class="button button-quiet"><svg class="icon"><use href="#i-refresh"/></svg>Обновить список</button></div>
         <div class="library-scope"><label class="scope-toggle" for="include-uninstalled"><input id="include-uninstalled" type="checkbox" aria-describedby="scope-note"><span>Показывать неустановленные игры<small>Они тоже будут участвовать в случайном выборе</small></span></label><p id="scope-note" class="scope-note" role="status">Сейчас выбираем только из установленных игр.</p></div>
-        <p id="online-size-note" class="online-size-note" hidden>«Место» — объём по требованиям в Steam Store, не размер скачивания. Подгружается из интернета по мере просмотра карточек. «≈» — запасная оценка из локального Steam.</p>
+        <p id="online-size-note" class="online-size-note" hidden>«Место» - объём по требованиям в Steam Store, не размер скачивания. Подгружается из интернета по мере просмотра карточек. «≈» - запасная оценка из локального Steam.</p>
         <div class="library-toolbar"><div class="filter-tabs" role="group" aria-label="Фильтр библиотеки"><button class="filter-tab active" data-filter="included" aria-pressed="true">Участвуют <span id="included-count">0</span></button><button class="filter-tab" data-filter="all" aria-pressed="false">Все <span id="all-count">0</span></button><button class="filter-tab" data-filter="excluded" aria-pressed="false">Исключены <span id="excluded-count">0</span></button></div><label class="search-box"><svg class="icon"><use href="#i-search"/></svg><input id="search-input" type="search" placeholder="Найти игру…" aria-label="Поиск по названию игры" autocomplete="off"></label></div>
         <div class="library-help"><p>Убери галочку под игрой, чтобы она не участвовала в розыгрыше.</p><span id="search-note" hidden>Поиск не меняет список для розыгрыша</span></div>
         <div id="game-grid" class="game-grid" aria-busy="true"></div>
@@ -76,7 +76,7 @@
       <label class="switch-row" for="showUninstalledSize"><span>Размер неустановленных игр<small>Рядом с «Не установлена» на большой обложке и в списке библиотеки</small></span><span class="switch"><input id="showUninstalledSize" type="checkbox" checked disabled aria-describedby="size-explanation"><span class="switch-track"></span></span></label>
       <label class="switch-row" for="showInstalledBadge"><span>Плашка установленной игры<small>Диск и занятое место в верхнем углу большой обложки</small></span><span class="switch"><input id="showInstalledBadge" type="checkbox" disabled><span class="switch-track"></span></span></label>
     </div>
-    <p id="size-explanation" class="privacy-note">Размеры неустановленных игр запрашиваются из Steam Store. «Место» — требуемый объём на диске по данным издателя, не размер скачивания. Ссылка Steam рядом с размером открывает источник. Данные сохраняются на 7 дней и остаются доступны без интернета. Запасной вариант «≈» — оценка основной игры из локального Steam без DLC. Если оба источника не содержат размера, покажем «Размер не указан». Выключи этот переключатель, чтобы скрыть размеры и остановить новые интернет-запросы.</p>
+    <p id="size-explanation" class="privacy-note">Размеры неустановленных игр запрашиваются из Steam Store. «Место» - требуемый объём на диске по данным издателя, не размер скачивания. Ссылка Steam рядом с размером открывает источник. Данные сохраняются на 7 дней и остаются доступны без интернета. Запасной вариант «≈» - оценка основной игры из локального Steam без DLC. Если оба источника не содержат размера, покажем «Размер не указан». Выключи этот переключатель, чтобы скрыть размеры и остановить новые интернет-запросы.</p>
     <p class="privacy-note">В Steam Store передаётся только публичный номер запрашиваемой игры; сервис также видит IP-адрес соединения. Аккаунт, лицензии, пути к файлам и исключения не отправляются. Сохранённые размеры находятся в папке data приложения и не входят в ZIP для друзей.</p>
     <p id="display-status" class="dialog-intro display-status" role="status">Загружаем настройки…</p>
     <button id="retry-display" class="button button-quiet" hidden>Повторить загрузку</button>

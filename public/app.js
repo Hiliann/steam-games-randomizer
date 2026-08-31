@@ -240,7 +240,7 @@ function renderHero() {
     $('spotlight-tag').textContent = 'ТВОЯ СЛЕДУЮЩАЯ ИГРА';
     $('hero-kicker').textContent = scoped.length ? 'БИБЛИОТЕКА ПОЛНА ВОЗМОЖНОСТЕЙ' : 'НАЧНЁМ С ТВОЕЙ БИБЛИОТЕКИ';
     $('hero-title').textContent = scoped.length ? 'Вечер свободен. Игра найдётся.' : 'Твоя следующая игра уже где-то рядом.';
-    $('hero-description').textContent = scoped.length ? 'Нажми «Выбрать игру» — мы найдём, во что погрузиться сегодня.' : 'Если Steam установлен в необычной папке, укажи её в разделе «Библиотеки».';
+    $('hero-description').textContent = scoped.length ? 'Нажми «Выбрать игру» - мы найдём, во что погрузиться сегодня.' : 'Если Steam установлен в необычной папке, укажи её в разделе «Библиотеки».';
     $('play-button').removeAttribute('href');
     $('cover-caption').textContent = game ? `На обложке: ${game.name}` : '';
   }
@@ -390,7 +390,7 @@ async function draw() {
   busy = false;
   $('spotlight').classList.remove('is-drawing');
   renderCounts(); renderHero(); renderHistory(); renderGrid();
-  toast(result.newCycle ? `Новый круг. Сегодня — ${result.game.name}` : `Твой выбор: ${result.game.name}`);
+  toast(result.newCycle ? `Новый круг. Сегодня - ${result.game.name}` : `Твой выбор: ${result.game.name}`);
   if (matchMedia('(max-width: 640px)').matches) {
     $('spotlight').scrollIntoView({ behavior: reducedMotion ? 'instant' : 'smooth', block: 'start' });
   }

@@ -28,7 +28,7 @@ test('Steam HTML storage parsing excludes RAM, graphics memory and HTML scripts'
   for (const value of [undefined, null, [], '', { minimum: 'x'.repeat(128001) }]) assert.equal(parseStorageRequirement(value), null);
 });
 test('storage parsing supports older labels, units, decimals, ranges and safer larger requirement', () => {
-  for (const [text, bytes] of [['Hard Drive: 500 MB free', 500 * 1024 ** 2], ['Disk space: 1.5 GB', 1.5 * GB], ['Storage: 1,024 MB', GB], ['Storage: 1,5 GB', 1.5 * GB], ['Storage: 20–30 GB available', 30 * GB], ['HDD: 0.5 TB free', 512 * GB], ['Место на диске: 10 ГБ', 10 * GB]]) assert.equal(parseStorageRequirement({ minimum: text }), bytes, text);
+  for (const [text, bytes] of [['Hard Drive: 500 MB free', 500 * 1024 ** 2], ['Disk space: 1.5 GB', 1.5 * GB], ['Storage: 1,024 MB', GB], ['Storage: 1,5 GB', 1.5 * GB], ['Storage: 20\u201330 GB available', 30 * GB], ['HDD: 0.5 TB free', 512 * GB], ['Место на диске: 10 ГБ', 10 * GB]]) assert.equal(parseStorageRequirement({ minimum: text }), bytes, text);
   assert.equal(parseStorageRequirement({ ...storage(100), recommended: '<li>Storage: 120 GB available</li>' }), 120 * GB);
   for (const text of ['Storage: -1 GB', 'Storage: 0 GB', 'Storage: TBD', 'Storage: 999999999999999 GB']) assert.equal(parseStorageRequirement({ minimum: text }), null);
 });

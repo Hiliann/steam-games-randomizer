@@ -39,7 +39,7 @@ test('local health, page and scripts are served with restrictive security header
   assert.equal(styles.headers.get('cache-control'), 'no-cache');
 });
 
-test('portable copy identity is stable, private and different for distinct folders', async () => {
+test('application copy identity is stable, private and different for distinct folders', async () => {
   assert.equal(getInstanceId(), getInstanceId());
   assert.notEqual(getInstanceId('/first-copy'), getInstanceId('/second-copy'));
   assert.match(getInstanceId('/private-user-path'), /^[0-9a-f]{24}$/);

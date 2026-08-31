@@ -54,7 +54,7 @@ test('packageinfo old and current versions expose only requested package AppIDs'
   }
 });
 
-test('appinfo versions 27–29 resolve Unicode names, types and string tables', () => {
+test('appinfo versions 27-29 resolve Unicode names, types and string tables', () => {
   for (const version of [0x07564427, 0x07564428, 0x07564429]) {
     const result = parseAppInfo(appCache([[10, 'Игра 日本語'], [20, 'DLC', 'DLC'], [30, 'Unowned']], version), new Set(['10', '20']));
     assert.equal(result.get('10').name, 'Игра 日本語');

@@ -14,7 +14,7 @@ if (-not $ChecksumFile) { $ChecksumFile = Join-Path $sourceDirectory 'downloads\
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $sourceDirectory 'dist' }
 $OutputDirectory = [IO.Path]::GetFullPath($OutputDirectory)
 $package = Get-Content -LiteralPath (Join-Path $sourceDirectory 'package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-$releaseName = "PlayNext-Portable-$($package.version)-win-x64"
+$releaseName = "PlayNext-$($package.version)-win-x64"
 $packageDirectory = Join-Path $OutputDirectory $releaseName
 $zipPath = Join-Path $OutputDirectory "$releaseName.zip"
 if ((Test-Path -LiteralPath $packageDirectory) -or (Test-Path -LiteralPath $zipPath)) { throw 'This release already exists. Choose an empty output directory; existing releases are never overwritten.' }
@@ -65,7 +65,7 @@ if ($RuntimeDirectory) {
 # cached covers, settings, source archives and any other machine-specific files.
 $releaseFiles = @(
     'package.json', 'server.mjs', 'start.ps1', 'Start.cmd', 'Stop.cmd',
-    'README.md', 'READ ME FIRST.txt', 'THIRD_PARTY_NOTICES.md',
+    'README.md', 'README.en.md', 'READ ME FIRST.txt', 'THIRD_PARTY_NOTICES.md',
     'lib\steam.mjs', 'lib\owned.mjs', 'lib\steam-cache.mjs', 'lib\exclusions.mjs', 'public\index.html', 'public\app.js', 'public\exclusions.js',
     'lib\install-size.mjs', 'lib\display-settings.mjs', 'public\display.js',
     'lib\online-sizes.mjs', 'public\online-sizes.js',

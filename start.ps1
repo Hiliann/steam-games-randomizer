@@ -63,16 +63,16 @@ try {
     $bundledNode = Join-Path $appDirectory 'runtime\node.exe'
     $nodeExecutable = $null
     if (Test-Path -LiteralPath $bundledNode) {
-        if (-not [Environment]::Is64BitOperatingSystem) { throw 'This portable package requires 64-bit Windows.' }
+        if (-not [Environment]::Is64BitOperatingSystem) { throw 'Play Next requires 64-bit Windows.' }
         $nodeExecutable = $bundledNode
     } else {
-        # Source checkouts may use an installed Node; portable releases always use runtime/node.exe.
+        # Source checkouts may use an installed Node; releases always use runtime/node.exe.
         $nodeCommand = Get-Command node.exe -ErrorAction SilentlyContinue
         if ($nodeCommand) { $nodeExecutable = $nodeCommand.Source }
     }
-    if (-not $nodeExecutable) { throw 'runtime\node.exe is missing. Extract the complete portable ZIP, or install Node.js 22+ for the source version.' }
+    if (-not $nodeExecutable) { throw 'runtime\node.exe is missing. Extract the complete application ZIP, or install Node.js 22+ for the source version.' }
     $versionText = & $nodeExecutable --version
-    if ($LASTEXITCODE -ne 0 -or $versionText -notmatch '^v(\d+)\.' -or [int]$Matches[1] -lt 22) { throw 'Could not run Node.js 22+. Use the complete Windows x64 portable package.' }
+    if ($LASTEXITCODE -ne 0 -or $versionText -notmatch '^v(\d+)\.' -or [int]$Matches[1] -lt 22) { throw 'Could not run Node.js 22+. Use the complete Windows x64 application package.' }
 
     # Bind attempts, not a network scan: an occupied local port is left untouched.
     for ($offset = 0; $offset -lt 10 -and ($preferredPort + $offset) -le 65535; $offset++) {

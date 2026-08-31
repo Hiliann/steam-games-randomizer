@@ -1,0 +1,174 @@
+/* Responsive layout extends the existing theme without changing its palette. */
+html { scrollbar-gutter: stable; }
+.app-shell { width: 100%; }
+main, section, article, aside, .page-intro > div, .library-heading > div,
+.topbar-right, .selection-layout > *, .library-toolbar > * { min-width: 0; }
+.button { border-radius: 9px; }
+.game-grid { --library-columns: 6; grid-template-columns: repeat(var(--library-columns), minmax(0, 1fr)); }
+.game-art { aspect-ratio: 2 / 3; }
+.game-card h3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+  min-height: 2.9em;
+}
+.game-meta, .cycle-meta { flex-wrap: wrap; }
+.history-list { max-width: 100%; }
+.history-item { flex: 0 0 auto; }
+.history-item .history-index { flex-shrink: 0; }
+.spotlight { scroll-margin-top: 18px; }
+.spotlight-body h2 { overflow-wrap: anywhere; }
+.dialog-intro, .scan-notes, .path-error, .privacy-note { overflow-wrap: anywhere; }
+.path-input-row > input { flex: 1; }
+.library-path > div { min-width: 0; }
+.topbar-right { gap: 8px; }
+.hero-badges { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; min-width: 0; }
+.hero-badges .disk-tag { white-space: normal; text-align: center; }
+.spotlight-top { align-items: flex-start; gap: 12px; }
+.display-options { display: grid; gap: 8px; }
+.display-options .switch-row { gap: 20px; padding: 14px 0; font-size: 14px; line-height: 1.5; border-bottom: 1px solid var(--border); min-height: 60px; }
+.display-options .switch-row > span:first-child { min-width: 0; }
+.display-options .switch-row small { font-size: 12px; line-height: 1.6; margin-top: 4px; }
+.display-options .switch { flex-shrink: 0; }
+.display-status { margin-bottom: 12px; }
+.game-size { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 3px 6px; }
+.size-source { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.hero-badges .size-source { margin: 0; }
+.online-size-note { color: var(--muted); font-size: 11px; line-height: 1.7; margin: 10px 2px 0; }
+dialog {
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overscroll-behavior: contain;
+}
+
+@media (min-width: 1600px) {
+  .app-shell { max-width: 1660px; }
+  .game-grid { --library-columns: 7; }
+}
+
+@media (max-width: 1199px) {
+  .game-grid { --library-columns: 5; }
+  .selection-layout { grid-template-columns: minmax(0, 1.4fr) minmax(295px, 1fr); }
+  .draw-panel { padding: 24px; }
+}
+
+@media (max-width: 900px) {
+  .selection-layout { grid-template-columns: minmax(0, 1fr); }
+  .game-grid { --library-columns: 4; }
+  .spotlight { min-height: 350px; }
+  .draw-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 24px; }
+  .panel-heading, .draw-panel h2, .panel-description { grid-column: 1; }
+  .draw-panel > .button-primary { grid-column: 2; grid-row: 1 / 3; align-self: center; margin-top: 0; }
+  .keyboard-note { grid-column: 2; grid-row: 3; }
+  .draw-settings { grid-column: 1 / -1; }
+  .library-toolbar { flex-wrap: wrap; gap: 12px; }
+  .search-box { flex: 1 1 220px; max-width: none; }
+}
+
+@media (max-width: 640px) {
+  .topbar-right .button { min-width: 44px; min-height: 44px; }
+  .topbar-right .button > span { display: none; }
+  .hero-badges { column-gap: 5px; row-gap: 4px; }
+  .spotlight-top { flex-wrap: wrap; }
+  .hero-badges { margin-left: auto; }
+  .app-shell { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+  .page-intro { align-items: flex-start; flex-direction: column; gap: 12px; padding: 22px 0; }
+  h1 { font-size: clamp(26px, 6.4vw, 36px); letter-spacing: -1px; }
+  .page-intro .eyebrow { font-size: 9px; }
+  .installed-summary { gap: 9px; }
+  .installed-summary > strong { font-size: 24px; letter-spacing: -.5px; }
+  .installed-summary > span { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 11px; }
+  .installed-summary br { display: none; }
+  .installed-summary small { font-size: 11px; }
+  .selection-layout { display: flex; flex-direction: column; gap: 14px; }
+  .draw-panel { order: -1; display: flex; padding: 18px; }
+  .draw-panel .panel-heading, .draw-panel h2, .panel-description, .keyboard-note { display: none; }
+  .draw-panel > .button-primary { width: 100%; min-height: 52px; margin: 0; font-size: 15px; }
+  .draw-settings { width: 100%; margin-top: 16px; padding-top: 13px; }
+  .switch-row { min-height: 44px; font-size: 13px; }
+  .switch-row small { font-size: 11px; }
+  .cycle-meta { margin-top: 8px; font-size: 11px; row-gap: 0; }
+  .cycle-meta .text-button { min-height: 40px; }
+  .pool-note { font-size: 11px; }
+  .spotlight { min-height: 290px; }
+  .spotlight-body { padding: 20px 22px 40px; }
+  .spotlight-body h2 { font-size: clamp(27px, 7vw, 39px); }
+  .spotlight-body p:not(.eyebrow) { font-size: 12px; }
+  .cover-caption { left: 22px; right: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hero-actions { gap: 10px; }
+  .hero-actions .button { min-height: 46px; }
+  .hero-skip { min-height: 44px; font-size: 11px; text-align: left; }
+  .library-heading { align-items: center; }
+  .library-heading h2 { font-size: 23px; }
+  .library-heading .button { min-width: 44px; min-height: 44px; }
+  .library-toolbar { flex-direction: column; align-items: stretch; }
+  .filter-tabs { width: 100%; gap: 2px; }
+  .filter-tab { flex: 1; min-height: 42px; padding: 8px 5px; font-size: 12px; }
+  .filter-tab span { margin-left: 3px; }
+  .search-box { flex: none; width: 100%; height: 46px; }
+  input[type="search"], .path-input-row input { font-size: 16px; }
+  .library-help { flex-direction: column; font-size: 11px; }
+  .game-grid { --library-columns: 3; gap: 18px 12px; }
+  .game-card h3 { font-size: 12px; }
+  .game-meta { font-size: 10px; }
+  .game-toggle { min-height: 44px; font-size: 12px; margin-top: 0; width: 100%; }
+  .game-toggle input { width: 18px; height: 18px; flex-shrink: 0; }
+  .history-item { min-height: 44px; font-size: 12px; }
+  .section-line h2 { font-size: 12px; }
+  .text-button { font-size: 11px; min-height: 40px; }
+  .library-bottom { flex-wrap: wrap; font-size: 11px; }
+  .library-bottom > span { max-width: 100%; }
+  footer { font-size: 11px; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+  dialog { width: calc(100% - 24px); padding: 20px; border-radius: 15px; }
+  .dialog-intro { font-size: 13px; }
+  .dialog-heading .icon-button { width: 44px; height: 44px; }
+  .library-path .icon-button { width: 40px; height: 40px; }
+  .path-input-row { flex-direction: column; }
+  .path-input-row input, .path-input-row .button { min-height: 46px; }
+  .privacy-note, .scan-notes { font-size: 11px; }
+  .toast { bottom: max(16px, env(safe-area-inset-bottom)); }
+}
+
+@media (max-width: 480px) {
+  .game-grid { --library-columns: 2; gap: 20px 12px; }
+  .library-heading h2 { font-size: 21px; }
+  .hero-actions { align-items: stretch; flex-direction: column; }
+  .hero-actions .button { justify-content: center; }
+  .hero-skip { text-align: center; }
+}
+
+@media (max-width: 380px) {
+  .app-shell { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+  .topbar { gap: 8px; }
+  #libraries-button { min-width: 44px; min-height: 44px; }
+  #libraries-button > span { display: none; }
+  .filter-tab { font-size: 11px; padding: 8px 3px; }
+  .filter-tab span { font-size: 9px; margin-left: 2px; }
+  .spotlight-tag { font-size: 7px; letter-spacing: .5px; }
+  .spotlight-top { padding: 14px; gap: 6px; }
+  .spotlight-body { padding-left: 18px; padding-right: 18px; }
+  .disk-tag { font-size: 9px; padding: 4px; }
+  .game-placeholder span { font-size: 13px; }
+}
+
+@media (pointer: coarse) {
+  .button, .icon-button, .history-item, .game-toggle { min-height: 44px; }
+  .game-toggle { padding-block: 8px; }
+  .filter-tab { min-height: 44px; }
+  .switch { width: 42px; height: 26px; }
+  .switch-track::before { width: 20px; height: 20px; }
+  .switch input:checked + .switch-track::before { transform: translateX(16px); }
+}
+/* Library scope is a native, keyboard-accessible checkbox with a touch target. */
+.library-scope { display: flex; align-items: center; gap: 20px; margin-top: 20px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.scope-toggle { display: flex; align-items: center; gap: 12px; min-height: 44px; flex: 1 1 45%; cursor: pointer; font-size: 13px; line-height: 1.5; }
+.scope-toggle input { width: 18px; height: 18px; margin: 0; flex-shrink: 0; accent-color: var(--accent); }
+.scope-toggle small { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; }
+.scope-note { flex: 1 1 55%; min-width: 0; font-size: 11px; line-height: 1.7; color: var(--muted); overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .library-scope { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px; }
+  .scope-toggle { font-size: 12px; }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "steam-games-randomizer",
+  "version": "1.4.0",
+  "private": true,
+  "type": "module",
+  "description": "A private, offline-first randomizer for installed and locally licensed Steam games.",
+  "engines": { "node": ">=22.2.0" },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test",
+    "portable": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-portable.ps1",
+    "check": "node --check server.mjs && node --check lib/steam.mjs && node --check lib/owned.mjs && node --check lib/steam-cache.mjs && node --check lib/install-size.mjs && node --check lib/online-sizes.mjs && node --check lib/exclusions.mjs && node --check lib/display-settings.mjs && node --check public/app.js && node --check public/randomizer.js && node --check public/exclusions.js && node --check public/display.js && node --check public/online-sizes.js"
+  }
+}

@@ -1,0 +1,14 @@
+node_modules/
+*.log
+.DS_Store
+.server-process.json
+.server-*.log
+runtime/
+dist/
+downloads/
+data/
+.env
+.env.*
+!.env.example
+*.pem
+*.key

@@ -1,0 +1,113 @@
+param([switch]$Stop, [switch]$NoBrowser, [int]$Port = 0)
+$ErrorActionPreference = 'Stop'
+$appDirectory = [IO.Path]::GetFullPath($PSScriptRoot)
+$serverPath = Join-Path $appDirectory 'server.mjs'
+$pidPath = Join-Path $appDirectory '.server-process.json'
+$originalPort = $env:PORT
+$preferredPort = if ($Port) { $Port } elseif ($env:PORT) { [int]$env:PORT } else { 3210 }
+$sha = [Security.Cryptography.SHA256]::Create()
+try { $hashBytes = $sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($appDirectory.ToLowerInvariant())) }
+finally { $sha.Dispose() }
+$instanceId = (-join ($hashBytes | ForEach-Object { $_.ToString('x2') })).Substring(0, 24)
+
+function Get-AppHealth([int]$CheckPort) {
+    try { return Invoke-RestMethod -Uri "http://127.0.0.1:$CheckPort/api/health" -TimeoutSec 1 }
+    catch { return $null }
+}
+
+function Get-MatchingProcess($Record) {
+    if (-not $Record -or -not $Record.processId -or -not $Record.createdAt) { return $null }
+    $running = Get-CimInstance Win32_Process -Filter "ProcessId = $([int]$Record.processId)" -ErrorAction SilentlyContinue
+    if (-not $running -or $running.Name -ne 'node.exe' -or -not $running.CommandLine) { return $null }
+    if (-not $running.CommandLine.Contains('"' + $serverPath + '"')) { return $null }
+    if ($running.CreationDate.ToUniversalTime().ToString('o') -ne $Record.createdAt) { return $null }
+    return $running
+}
+
+function Show-App([int]$ReadyPort) {
+    $url = "http://127.0.0.1:$ReadyPort"
+    if (-not $NoBrowser) { Start-Process -FilePath $url }
+    Write-Host "Play Next is ready: $url"
+    Write-Host 'Use Stop.cmd to stop this copy. No installation or administrator rights are needed.'
+}
+
+try {
+    if ($preferredPort -lt 1024 -or $preferredPort -gt 65535) { throw 'Choose a port between 1024 and 65535.' }
+    $record = $null
+    if (Test-Path -LiteralPath $pidPath) {
+        try { $record = Get-Content -LiteralPath $pidPath -Raw | ConvertFrom-Json }
+        catch { Write-Host 'Ignoring an invalid saved process record.' }
+    }
+    $matchingProcess = Get-MatchingProcess $record
+    if ($Stop) {
+        if ($matchingProcess) {
+            Stop-Process -Id ([int]$record.processId)
+            Wait-Process -Id ([int]$record.processId) -Timeout 5 -ErrorAction SilentlyContinue
+            Write-Host 'Play Next stopped.'
+        } else { Write-Host 'This copy is not running. No other processes were stopped.' }
+        if (Test-Path -LiteralPath $pidPath) { Remove-Item -LiteralPath $pidPath }
+        exit 0
+    }
+
+    if (-not (Test-Path -LiteralPath $serverPath)) { throw 'Extract the entire ZIP into a normal folder before starting Play Next.' }
+    if ($matchingProcess) {
+        $savedPort = if ($record.port) { [int]$record.port } else { $preferredPort }
+        $health = Get-AppHealth $savedPort
+        if ($health.app -eq 'steam-games-randomizer' -and (-not $health.instanceId -or $health.instanceId -eq $instanceId)) {
+            Show-App $savedPort
+            exit 0
+        }
+        throw 'This copy is still running but is not responding. Run Stop.cmd, then Start.cmd again.'
+    }
+
+    $bundledNode = Join-Path $appDirectory 'runtime\node.exe'
+    $nodeExecutable = $null
+    if (Test-Path -LiteralPath $bundledNode) {
+        if (-not [Environment]::Is64BitOperatingSystem) { throw 'This portable package requires 64-bit Windows.' }
+        $nodeExecutable = $bundledNode
+    } else {
+        # Source checkouts may use an installed Node; portable releases always use runtime/node.exe.
+        $nodeCommand = Get-Command node.exe -ErrorAction SilentlyContinue
+        if ($nodeCommand) { $nodeExecutable = $nodeCommand.Source }
+    }
+    if (-not $nodeExecutable) { throw 'runtime\node.exe is missing. Extract the complete portable ZIP, or install Node.js 22+ for the source version.' }
+    $versionText = & $nodeExecutable --version
+    if ($LASTEXITCODE -ne 0 -or $versionText -notmatch '^v(\d+)\.' -or [int]$Matches[1] -lt 22) { throw 'Could not run Node.js 22+. Use the complete Windows x64 portable package.' }
+
+    # Bind attempts, not a network scan: an occupied local port is left untouched.
+    for ($offset = 0; $offset -lt 10 -and ($preferredPort + $offset) -le 65535; $offset++) {
+        $candidatePort = $preferredPort + $offset
+        $env:PORT = [string]$candidatePort
+        $errorLog = Join-Path $appDirectory '.server-error.log'
+        $outputLog = Join-Path $appDirectory '.server-output.log'
+        $process = Start-Process -FilePath $nodeExecutable -ArgumentList ('"' + $serverPath + '"') -WorkingDirectory $appDirectory -WindowStyle Hidden -RedirectStandardError $errorLog -RedirectStandardOutput $outputLog -PassThru
+        $ready = $false
+        for ($attempt = 0; $attempt -lt 25; $attempt++) {
+            Start-Sleep -Milliseconds 120
+            $process.Refresh()
+            if ($process.HasExited) { break }
+            $health = Get-AppHealth $candidatePort
+            if ($health.app -eq 'steam-games-randomizer' -and $health.instanceId -eq $instanceId) { $ready = $true; break }
+        }
+        if ($ready) {
+            try {
+                $identity = Get-CimInstance Win32_Process -Filter "ProcessId = $($process.Id)"
+                @{ processId = $process.Id; createdAt = $identity.CreationDate.ToUniversalTime().ToString('o'); port = $candidatePort; instanceId = $instanceId } | ConvertTo-Json | Set-Content -LiteralPath $pidPath -Encoding UTF8
+            } catch {
+                if (-not $process.HasExited) { $process.Kill() }
+                throw 'The app folder is not writable. Move the extracted folder to Desktop or Documents and try again.'
+            }
+            Show-App $candidatePort
+            exit 0
+        }
+        if (-not $process.HasExited) { $process.Kill(); throw 'The server did not respond. See .server-error.log in the app folder.' }
+        $errorText = Get-Content -LiteralPath $errorLog -Raw -ErrorAction SilentlyContinue
+        if ($errorText -notmatch 'already in use|EADDRINUSE') { throw "Could not start Play Next. $errorText" }
+        $existing = Get-AppHealth $candidatePort
+        if ($existing.app -eq 'steam-games-randomizer' -and $existing.instanceId -eq $instanceId) { Show-App $candidatePort; exit 0 }
+    }
+    throw 'No free local port was available. Close the other copy, or run start.ps1 -Port 3310.'
+} catch {
+    Write-Host $_.Exception.Message -ForegroundColor Red
+    exit 1
+} finally { $env:PORT = $originalPort }

@@ -65,6 +65,7 @@ dialog {
   .keyboard-note { grid-column: 2; grid-row: 3; }
   .draw-settings { grid-column: 1 / -1; }
   .library-toolbar { flex-wrap: wrap; gap: 12px; }
+  .library-tools { flex: 1 1 100%; }
   .search-box { flex: 1 1 220px; max-width: none; }
 }
 
@@ -105,6 +106,9 @@ dialog {
   .library-heading h2 { font-size: 23px; }
   .library-heading .button { min-width: 44px; min-height: 44px; }
   .library-toolbar { flex-direction: column; align-items: stretch; }
+  .library-tools { width: 100%; flex-direction: column; align-items: stretch; }
+  .category-filter { flex: none; width: 100%; }
+  .category-filter select { height: 46px; font-size: 16px; }
   .filter-tabs { width: 100%; gap: 2px; }
   .filter-tab { flex: 1; min-height: 42px; padding: 8px 5px; font-size: 12px; }
   .filter-tab span { margin-left: 3px; }
@@ -116,6 +120,7 @@ dialog {
   .game-meta { font-size: 10px; }
   .game-toggle { min-height: 44px; font-size: 12px; margin-top: 0; width: 100%; }
   .game-toggle input { width: 18px; height: 18px; flex-shrink: 0; }
+  .card-category-button { min-width: 34px; min-height: 34px; justify-content: center; }
   .history-item { min-height: 44px; font-size: 12px; }
   .section-line h2 { font-size: 12px; }
   .text-button { font-size: 11px; min-height: 40px; }
@@ -128,6 +133,9 @@ dialog {
   .library-path .icon-button { width: 40px; height: 40px; }
   .path-input-row { flex-direction: column; }
   .path-input-row input, .path-input-row .button { min-height: 46px; }
+  .category-manage-row { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .category-manage-row > .button { grid-column: 2; }
+  .category-manage-row > .icon-button { grid-column: 3; grid-row: 1 / 3; width: 44px; height: 44px; }
   .privacy-note, .scan-notes { font-size: 11px; }
   .toast { bottom: max(16px, env(safe-area-inset-bottom)); }
 }
@@ -155,7 +163,7 @@ dialog {
 }
 
 @media (pointer: coarse) {
-  .button, .icon-button, .history-item, .game-toggle { min-height: 44px; }
+  .button, .icon-button, .history-item, .game-toggle, .card-category-button { min-height: 44px; }
   .game-toggle { padding-block: 8px; }
   .filter-tab { min-height: 44px; }
   .switch { width: 42px; height: 26px; }

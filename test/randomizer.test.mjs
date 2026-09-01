@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanState, gamesInScope, gameAction, eligibleGames, drawGame, randomIndex } from '../public/randomizer.js';
+import { cleanState, cleanDrawState, gamesInScope, gameAction, eligibleGames, drawGame, randomIndex, matchesMode } from '../public/randomizer.js';
 
 const games = [{ id: '10', name: 'One' }, { id: '20', name: 'Two' }, { id: '30', name: 'Three' }];
 
@@ -94,4 +94,28 @@ test('removing an installation does not block the remaining bag', () => {
   const result = drawGame(games.slice(0, 2), cleanState({ seen: ['10', '20', '30'], current: '30' }), () => 0);
   assert.equal(result.newCycle, true);
   assert.equal(result.game.id, '10');
+});
+
+test('modes filter the draw pool without changing probabilities', () => {
+  const library = [
+    { id: '10', name: 'Installed new', installed: true, lastPlayed: 0 },
+    { id: '20', name: 'Installed recent', installed: true, lastPlayed: 2_000_000_000 },
+    { id: '30', name: 'Uninstalled', installed: false },
+  ];
+  const assignments = { '10': ['favorite'], '30': ['favorite'] };
+  assert.deepEqual(eligibleGames(library, cleanState({ mode: 'installed', includeUninstalled: true }), assignments).map(game => game.id), ['10', '20']);
+  assert.deepEqual(eligibleGames(library, cleanState({ mode: 'uninstalled', includeUninstalled: true }), assignments).map(game => game.id), ['30']);
+  assert.deepEqual(eligibleGames(library, cleanState({ mode: 'unplayed', includeUninstalled: true }), assignments).map(game => game.id), ['10', '30']);
+  assert.deepEqual(eligibleGames(library, cleanState({ mode: 'category:favorite', includeUninstalled: true }), assignments).map(game => game.id), ['10', '30']);
+  assert.equal(matchesMode(library[0], 'dormant', assignments, 2_000_000_000), true);
+  assert.equal(matchesMode(library[1], 'dormant', assignments, 2_000_000_000), false);
+  assert.equal(drawGame(library, cleanState({ mode: 'category:favorite', includeUninstalled: true }), () => 1, undefined, assignments).game.id, '30');
+});
+
+test('draw state accepts only supported modes and Steam IDs', () => {
+  assert.equal(cleanDrawState({ mode: 'category:favorite' }).mode, 'category:favorite');
+  for (const mode of ['category:../file', 'weighted', '', null]) assert.equal(cleanDrawState({ mode }).mode, 'all');
+  assert.deepEqual(cleanDrawState({ seen: ['10', '4294967296', '1'.repeat(20)] }).seen, ['10']);
+  assert.equal(cleanDrawState({ current: '4294967296' }).current, null);
+  assert.deepEqual(cleanDrawState({ history: [{ id: '4294967296', at: '2026-09-01T00:00:00Z' }] }).history, []);
 });

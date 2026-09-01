@@ -1,5 +1,23 @@
 # Изменения
 
+## 1.5.0
+
+- Добавлены сохраняемые категории игр с назначением прямо из карточки.
+- Категории можно использовать как фильтр библиотеки или отдельный режим случайного выбора.
+- Добавлены режимы для установленных, неустановленных, ещё не запускавшихся и не запускавшихся 90 дней игр.
+- Категории, история, текущий круг и выбранный режим теперь сохраняются в `data/profile.json` и не зависят от браузера или локального порта.
+- Вероятность всех подходящих игр остаётся одинаковой. Статистика и изменение веса отдельных игр не добавлялись.
+- Интерфейс категорий и новых фильтров адаптирован для узких окон и сенсорного управления.
+
+### English
+
+- Added saved game categories that can be assigned directly from each game card.
+- Categories work as either a library filter or a randomization mode.
+- Added modes for installed, uninstalled, never-played and 90-day dormant games.
+- Categories, pick history, the current round and the selected mode are now stored in `data/profile.json`, independent of the browser and local port.
+- Every eligible game keeps the same probability. Statistics and per-game probability weights were intentionally not added.
+- Category management and the new filters adapt to narrow windows and touch input.
+
 ## 1.4.1
 
 - Добавлены английское описание проекта и английская страница сайта с переключением RU/EN.

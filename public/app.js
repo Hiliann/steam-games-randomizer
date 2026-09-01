@@ -1,7 +1,8 @@
-import { STORAGE_KEY, cleanState, gamesInScope, gameAction, eligibleGames, drawGame } from './randomizer.js';
+import { STORAGE_KEY, cleanState, cleanDrawState, gamesInScope, gameAction, eligibleGames, drawGame } from './randomizer.js';
 import { createExclusionsClient } from './exclusions.js';
 import { DISPLAY_DEFAULTS, createDisplayClient, formatSize, uninstalledSize, sizeDescription, sizeSourceUrl, heroBadges } from './display.js';
 import { createOnlineSizesClient } from './online-sizes.js';
+import { createProfileClient } from './profile.js';
 
 const $ = id => document.getElementById(id);
 // Bypass covers cached by older versions that did not resolve nested Steam assets.
@@ -18,13 +19,20 @@ let exclusionsReady = false;
 let savingExclusion = false;
 const exclusionsClient = createExclusionsClient();
 const displayClient = createDisplayClient();
+const profileClient = createProfileClient();
 let displaySettings = { ...DISPLAY_DEFAULTS };
 let displayReady = false;
 let displayPending = false;
 let displayMessage = 'Загружаем настройки…';
+let profile = { initialized: false, revision: 0, categories: [], assignments: {}, draw: cleanDrawState(state) };
+let profileReady = false;
+let profilePending = false;
+let categoryFilter = 'all';
+let categoryGameId = null;
 let previewId = state.current;
 let toastTimer;
 const scopedGames = () => gamesInScope(games, state);
+const eligible = () => eligibleGames(games, state, profile.assignments);
 let heroGameId = null;
 let cacheWarningShown = false;
 const onlineSizes = createOnlineSizesClient({ onUpdate(id, result) {
@@ -84,6 +92,57 @@ function renderHeroBadges(game) {
 function save() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
   catch { $('storage-banner').hidden = false; }
+}
+function drawSnapshot(value = state) {
+  return cleanDrawState({ mode: value.mode, noRepeats: value.noRepeats, seen: value.seen, history: value.history, current: value.current });
+}
+function applyProfile(next) {
+  profile = next;
+  const browserOnly = { excluded: state.excluded, includeUninstalled: state.includeUninstalled, customPaths: state.customPaths };
+  state = cleanState({ ...state, ...next.draw, ...browserOnly });
+  previewId = state.current;
+  save();
+}
+function profileFailure(error, prefix = 'Не удалось загрузить категории и историю.') {
+  profileReady = false;
+  const detail = error instanceof TypeError ? 'Проверь, что приложение запущено.' : error.message;
+  $('error-banner').textContent = `${prefix} ${detail} Нажми «Обновить список», чтобы перечитать данные.`;
+  $('error-banner').hidden = false;
+}
+async function loadProfile() {
+  if (profilePending) return false;
+  profilePending = true;
+  renderCounts();
+  try {
+    applyProfile(await profileClient.load(drawSnapshot()));
+    profileReady = true;
+    return true;
+  } catch (error) {
+    profileFailure(error);
+    return false;
+  } finally {
+    profilePending = false;
+    renderCounts(); renderHero(); renderHistory(); renderGrid();
+    if ($('categories-dialog').open) renderCategoriesDialog();
+  }
+}
+async function updateDraw(update, successMessage) {
+  if (!profileReady || profilePending || busy || scanning) return false;
+  const next = cleanState({ ...state, ...update });
+  profilePending = true;
+  renderCounts(); renderHistory();
+  try {
+    applyProfile(await profileClient.replaceDraw(profile.revision, drawSnapshot(next)));
+    $('error-banner').hidden = true;
+    if (successMessage) toast(successMessage);
+    return true;
+  } catch (error) {
+    profileFailure(error, 'Не удалось подтвердить сохранение истории или режима выбора.');
+    return false;
+  } finally {
+    profilePending = false;
+    renderCounts(); renderHero(); renderHistory(); renderGrid();
+  }
 }
 async function loadExclusions() {
   exclusionsReady = false;
@@ -170,15 +229,73 @@ function artwork(game, kind = 'cover') {
   img.addEventListener('error', () => { img.hidden = true; });
   return img;
 }
+function gameCategories(gameId) {
+  const ids = new Set(profile.assignments[gameId] ?? []);
+  return profile.categories.filter(category => ids.has(category.id));
+}
+function categoryBadge(category) {
+  const badge = element('span', `category-badge category-${category.color}`, category.name);
+  badge.title = `Категория: ${category.name}`;
+  return badge;
+}
+function renderCategoryBadges(container, gameId) {
+  const categories = gameCategories(gameId);
+  container.replaceChildren(...categories.map(categoryBadge));
+  container.hidden = !categories.length;
+}
+function modeLabel(mode = state.mode) {
+  if (mode === 'installed') return 'Только установленные';
+  if (mode === 'uninstalled') return 'Только неустановленные';
+  if (mode === 'unplayed') return 'Ещё не запускались';
+  if (mode === 'dormant') return 'Не запускались 90 дней';
+  if (mode.startsWith('category:')) return profile.categories.find(category => category.id === mode.slice(9))?.name ?? 'Категория';
+  return 'Все участвующие';
+}
+function renderCategorySelectors() {
+  const drawValue = state.mode;
+  const drawOptions = [
+    ['all', 'Все участвующие'],
+    ['installed', 'Только установленные'],
+    ['uninstalled', 'Только неустановленные'],
+    ['unplayed', 'Ещё не запускались'],
+    ['dormant', 'Не запускались 90 дней'],
+  ];
+  const drawFragment = document.createDocumentFragment();
+  for (const [value, label] of drawOptions) {
+    const option = element('option', '', label); option.value = value; drawFragment.append(option);
+  }
+  if (profile.categories.length) {
+    const group = document.createElement('optgroup'); group.label = 'Категории';
+    for (const category of profile.categories) {
+      const option = element('option', '', category.name); option.value = `category:${category.id}`; group.append(option);
+    }
+    drawFragment.append(group);
+  }
+  $('draw-mode').replaceChildren(drawFragment);
+  $('draw-mode').value = [...$('draw-mode').options].some(option => option.value === drawValue) ? drawValue : 'all';
+
+  const filterFragment = document.createDocumentFragment();
+  const all = element('option', '', 'Все категории'); all.value = 'all'; filterFragment.append(all);
+  for (const category of profile.categories) {
+    const option = element('option', '', category.name); option.value = category.id; filterFragment.append(option);
+  }
+  if (categoryFilter !== 'all' && !profile.categories.some(category => category.id === categoryFilter)) categoryFilter = 'all';
+  $('category-filter').replaceChildren(filterFragment);
+  $('category-filter').value = categoryFilter;
+  $('draw-mode').disabled = !profileReady || profilePending || busy || scanning;
+  $('category-filter').disabled = !profileReady || profilePending || scanning;
+}
 function renderCounts() {
-  const eligible = eligibleGames(games, state);
-  const played = eligible.filter(game => state.seen.includes(game.id)).length;
+  const drawingPool = eligible();
+  const played = drawingPool.filter(game => state.seen.includes(game.id)).length;
   const scoped = scopedGames();
+  const excluded = new Set(state.excluded);
+  const participating = scoped.filter(game => !excluded.has(game.id));
   $('installed-count').textContent = snapshot?.installedCount ?? games.filter(game => game.installed !== false).length;
   const count = snapshot?.libraries.filter(library => library.available && library.count).length ?? 0;
   $('library-count').textContent = `Библиотек: ${count}`;
   $('library-total').textContent = scoped.length;
-  $('included-count').textContent = eligible.length;
+  $('included-count').textContent = participating.length;
   $('all-count').textContent = scoped.length;
   $('excluded-count').textContent = scoped.length - eligible.length;
   $('include-uninstalled').checked = state.includeUninstalled;
@@ -186,19 +303,20 @@ function renderCounts() {
   $('library-kicker').textContent = state.includeUninstalled ? 'НА КОМПЬЮТЕРЕ И В ТВОЁМ STEAM' : 'ВСЁ УЖЕ НА ТВОЁМ КОМПЬЮТЕРЕ';
   renderScopeNote();
   $('no-repeats').checked = state.noRepeats;
-  $('no-repeats').disabled = busy;
-  $('draw-button').disabled = busy || scanning || savingExclusion || !exclusionsReady || !eligible.length;
+  $('no-repeats').disabled = !profileReady || profilePending || busy || scanning;
+  $('draw-button').disabled = !profileReady || profilePending || busy || scanning || savingExclusion || !exclusionsReady || !drawingPool.length;
   $('refresh-button').disabled = busy || scanning || savingExclusion;
   $('exclusions-status').textContent = savingExclusion ? 'Сохраняем исключения…' : exclusionsReady ? 'Исключения сохранены в приложении' : 'Исключения ещё не загружены';
-  $('reset-cycle').disabled = busy || !state.seen.length;
-  $('cycle-label').textContent = state.noRepeats ? `Выпало ${played} из ${eligible.length} в этом круге` : 'Повторы разрешены';
-  $('cycle-progress').max = Math.max(1, eligible.length);
+  $('reset-cycle').disabled = !profileReady || profilePending || busy || !state.seen.length;
+  $('cycle-label').textContent = state.noRepeats ? `Выпало ${played} из ${drawingPool.length} в этом круге` : 'Повторы разрешены';
+  $('cycle-progress').max = Math.max(1, drawingPool.length);
   $('cycle-progress').value = state.noRepeats ? played : 0;
   $('cycle-progress').hidden = !state.noRepeats;
   $('reset-cycle').hidden = !state.noRepeats;
-  $('pool-note').textContent = !scoped.length ? 'Добавь библиотеку, чтобы начать.' : !eligible.length ? 'Все игры исключены. Верни хотя бы одну.' : state.noRepeats && played === eligible.length ? 'Следующий выбор начнёт новый круг.' : `В розыгрыше: ${eligible.length}. У каждой игры равный шанс.`;
+  $('pool-note').textContent = !profileReady ? 'Загружаем сохранённые категории и историю.' : !scoped.length ? 'Добавь библиотеку, чтобы начать.' : !drawingPool.length ? `В режиме «${modeLabel()}» нет подходящих игр.` : state.noRepeats && played === drawingPool.length ? 'Следующий выбор начнёт новый круг.' : `${modeLabel()}: ${drawingPool.length}. У каждой игры равный шанс.`;
   $('draw-label').textContent = busy ? 'Выбираем…' : state.current ? 'Предложить другую' : 'Выбрать игру';
   $('online-size-note').hidden = !state.includeUninstalled || !displaySettings.showUninstalledSize;
+  renderCategorySelectors();
 }
 function renderScopeNote() {
   const info = snapshot?.ownedLibrary;
@@ -223,6 +341,7 @@ function renderHero() {
     if (image.getAttribute('src') !== url) { image.hidden = true; image.src = url; }
   } else { image.removeAttribute('src'); image.hidden = true; }
   renderHeroBadges(game);
+  renderCategoryBadges($('hero-categories'), game?.id);
   requestOnlineSize(game, true);
   $('play-button').hidden = !selected;
   $('exclude-current').hidden = !selected || state.excluded.includes(selected.id);
@@ -280,7 +399,7 @@ function renderGrid() {
   const term = $('search-input').value.trim().toLocaleLowerCase('ru');
   const excluded = new Set(state.excluded);
   const scoped = scopedGames();
-  const visible = scoped.filter(game => (filter === 'all' || (filter === 'excluded' ? excluded.has(game.id) : !excluded.has(game.id))) && game.name.toLocaleLowerCase('ru').includes(term));
+  const visible = scoped.filter(game => (filter === 'all' || (filter === 'excluded' ? excluded.has(game.id) : !excluded.has(game.id))) && (categoryFilter === 'all' || (profile.assignments[game.id] ?? []).includes(categoryFilter)) && game.name.toLocaleLowerCase('ru').includes(term));
   const fragment = document.createDocumentFragment();
   for (const game of visible) {
     const isExcluded = excluded.has(game.id);
@@ -309,7 +428,17 @@ function renderGrid() {
     });
     checkbox.id = `toggle-${game.id}`;
     toggle.append(checkbox, element('span', '', isExcluded ? 'Исключена' : 'Участвует'));
-    card.append(art, title, meta, toggle);
+    const categoryRow = element('div', 'card-category-row');
+    const badges = element('div', 'category-badges card-category-badges');
+    renderCategoryBadges(badges, game.id);
+    const editCategories = element('button', 'card-category-button');
+    editCategories.type = 'button'; editCategories.title = `Категории: ${game.name}`;
+    editCategories.setAttribute('aria-label', `Изменить категории игры ${game.name}`);
+    editCategories.disabled = !profileReady || profilePending;
+    editCategories.append(icon('tag'), element('span', '', 'Категории'));
+    editCategories.addEventListener('click', () => openCategories(game.id));
+    categoryRow.append(badges, editCategories);
+    card.append(art, title, meta, categoryRow, toggle);
     fragment.append(card);
   }
   $('game-grid').replaceChildren(fragment);
@@ -323,12 +452,12 @@ function renderGrid() {
   }
   $('game-grid').setAttribute('aria-busy', String(scanning));
   $('empty-state').hidden = !!visible.length;
-  $('search-note').hidden = !term;
+  $('search-note').hidden = !term && categoryFilter === 'all';
   $('visible-count').textContent = `Показано ${visible.length} из ${scoped.length} игр`;
   if (!visible.length) {
-    $('empty-title').textContent = !scoped.length ? 'Игры пока не найдены' : term ? 'Ничего не нашлось' : filter === 'excluded' ? 'Все игры в деле' : 'Все игры исключены';
-    $('empty-description').textContent = !scoped.length ? state.includeUninstalled ? 'Открой библиотеку в Steam онлайн и обнови список. При необходимости укажи папку клиента Steam.' : 'Укажи папку Steam или SteamLibrary. Сейчас учитываем только установки на диске.' : term ? 'Попробуй другое название или переключись на вкладку «Все».' : filter === 'excluded' ? 'Исключённые игры появятся здесь. Сейчас каждая может выпасть.' : 'Открой вкладку «Исключены» и верни игры в розыгрыш.';
-    $('empty-action').textContent = !scoped.length ? 'Указать папку' : term ? 'Сбросить поиск' : 'Показать все игры';
+    $('empty-title').textContent = !scoped.length ? 'Игры пока не найдены' : term || categoryFilter !== 'all' ? 'Ничего не нашлось' : filter === 'excluded' ? 'Все игры в деле' : 'Все игры исключены';
+    $('empty-description').textContent = !scoped.length ? state.includeUninstalled ? 'Открой библиотеку в Steam онлайн и обнови список. При необходимости укажи папку клиента Steam.' : 'Укажи папку Steam или SteamLibrary. Сейчас учитываем только установки на диске.' : term || categoryFilter !== 'all' ? 'Сбрось поиск или выбери другую категорию.' : filter === 'excluded' ? 'Исключённые игры появятся здесь. Сейчас каждая может выпасть.' : 'Открой вкладку «Исключены» и верни игры в розыгрыш.';
+    $('empty-action').textContent = !scoped.length ? 'Указать папку' : term || categoryFilter !== 'all' ? 'Сбросить фильтры' : 'Показать все игры';
   }
 }
 function renderHistory() {
@@ -358,17 +487,88 @@ function setFilter(value) {
   renderGrid();
 }
 
+function renderCategoriesDialog() {
+  const game = games.find(item => item.id === categoryGameId);
+  $('categories-intro').textContent = game ? `Настрой категории для «${game.name}» или измени сами подборки.` : 'Создавай подборки для настроения, компании или свободного времени. Категории сохраняются в папке приложения.';
+  $('game-category-editor').hidden = !game;
+  $('category-game-name').textContent = game?.name ?? '';
+  const options = document.createDocumentFragment();
+  if (game) for (const category of profile.categories) {
+    const label = element('label', 'category-option');
+    const input = document.createElement('input');
+    input.type = 'checkbox'; input.checked = (profile.assignments[game.id] ?? []).includes(category.id);
+    input.disabled = !profileReady || profilePending;
+    input.addEventListener('change', () => setGameCategory(game.id, category.id, input.checked));
+    label.append(input, categoryBadge(category));
+    options.append(label);
+  }
+  if (game && !profile.categories.length) options.append(element('p', 'category-empty', 'Сначала создай первую категорию ниже.'));
+  $('game-category-options').replaceChildren(options);
+
+  const list = document.createDocumentFragment();
+  for (const category of profile.categories) {
+    const row = element('form', 'category-manage-row');
+    const marker = categoryBadge(category);
+    marker.textContent = '';
+    marker.setAttribute('aria-hidden', 'true');
+    const input = document.createElement('input');
+    input.value = category.name; input.maxLength = 32; input.required = true;
+    input.setAttribute('aria-label', `Название категории ${category.name}`);
+    input.disabled = !profileReady || profilePending;
+    const saveButton = element('button', 'button button-quiet', 'Сохранить'); saveButton.type = 'submit';
+    const deleteButton = element('button', 'icon-button'); deleteButton.type = 'button'; deleteButton.append(icon('close'));
+    deleteButton.title = 'Удалить категорию'; deleteButton.setAttribute('aria-label', `Удалить категорию ${category.name}`);
+    saveButton.disabled = deleteButton.disabled = !profileReady || profilePending;
+    row.addEventListener('submit', event => { event.preventDefault(); renameCategory(category.id, input.value); });
+    deleteButton.addEventListener('click', () => {
+      if (confirm(`Удалить категорию «${category.name}»? Игры останутся в библиотеке.`)) deleteCategory(category.id);
+    });
+    row.append(marker, input, saveButton, deleteButton); list.append(row);
+  }
+  if (!profile.categories.length) list.append(element('p', 'category-empty', 'Категорий пока нет. Создай первую подборку.'));
+  $('category-list').replaceChildren(list);
+  $('category-name').disabled = !profileReady || profilePending || profile.categories.length >= 20;
+  $('add-category-form').querySelector('button').disabled = !profileReady || profilePending || profile.categories.length >= 20;
+  $('category-status').textContent = profilePending ? 'Сохраняем изменения…' : profileReady ? `Категорий: ${profile.categories.length} из 20. Изменения сохраняются автоматически.` : 'Категории недоступны. Нажми «Обновить список» в библиотеке.';
+}
+function openCategories(gameId = null) {
+  categoryGameId = gameId;
+  renderCategoriesDialog();
+  if (!$('categories-dialog').open) $('categories-dialog').showModal();
+}
+async function mutateProfile(operation, successMessage) {
+  if (!profileReady || profilePending || busy || scanning) return false;
+  profilePending = true;
+  renderCounts(); renderGrid(); renderCategoriesDialog();
+  try {
+    applyProfile(await operation(profile.revision));
+    $('error-banner').hidden = true;
+    if (successMessage) toast(successMessage);
+    return true;
+  } catch (error) {
+    profileFailure(error, 'Не удалось подтвердить изменение категорий.');
+    return false;
+  } finally {
+    profilePending = false;
+    renderCounts(); renderHero(); renderHistory(); renderGrid(); renderCategoriesDialog();
+  }
+}
+const setGameCategory = (appId, categoryId, assigned) => mutateProfile(revision => profileClient.setCategory(revision, appId, categoryId, assigned), 'Категории игры сохранены');
+const renameCategory = (id, name) => mutateProfile(revision => profileClient.renameCategory(revision, id, name), 'Категория переименована');
+const deleteCategory = id => mutateProfile(revision => profileClient.deleteCategory(revision, id), 'Категория удалена');
+
 async function draw() {
-  if (busy || scanning || savingExclusion || !exclusionsReady || !eligibleGames(games, state).length) return;
+  if (busy || scanning || savingExclusion || !exclusionsReady || !profileReady || profilePending || !eligible().length) return;
   busy = true;
   renderCounts(); renderGrid(); renderHistory();
   try {
-    // Another browser/port may have changed the shared exclusions since our scan.
-    await loadExclusions();
-    if (!eligibleGames(games, state).length) { busy = false; renderCounts(); renderGrid(); renderHero(); renderHistory(); return; }
+    // Another browser/port may have changed the shared profile or exclusions since our scan.
+    const [, loaded] = await Promise.all([loadExclusions(), loadProfile()]);
+    if (!loaded) throw new Error('Сохранённый профиль сейчас недоступен.');
+    if (!eligible().length) { busy = false; renderCounts(); renderGrid(); renderHero(); renderHistory(); return; }
   } catch (error) {
     busy = false;
-    $('error-banner').textContent = 'Не удалось загрузить сохранённые исключения. Запусти приложение и нажми «Обновить список».';
+    $('error-banner').textContent = `Не удалось загрузить сохранённые данные перед выбором. ${error.message} Нажми «Обновить список».`;
     $('error-banner').hidden = false;
     renderCounts(); renderGrid(); renderHero(); renderHistory();
     return;
@@ -376,9 +576,9 @@ async function draw() {
   $('play-button').hidden = true; $('exclude-current').hidden = true;
   $('spotlight').classList.add('is-drawing');
   $('hero-kicker').textContent = 'ПЕРЕМЕШИВАЕМ ТВОЮ БИБЛИОТЕКУ';
-  const result = drawGame(games, state);
+  const result = drawGame(games, state, undefined, undefined, profile.assignments);
   // The animation is decorative. Only one final draw consumes the random bag.
-  const pool = eligibleGames(games, state);
+  const pool = eligible();
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (!reducedMotion) {
     for (let i = 0; i < 8; i++) {
@@ -386,7 +586,20 @@ async function draw() {
       await new Promise(resolve => setTimeout(resolve, 70 + i * 13));
     }
   }
-  state = result.state; previewId = result.game.id; save();
+  try {
+    profilePending = true;
+    applyProfile(await profileClient.replaceDraw(profile.revision, drawSnapshot(result.state)));
+    profileReady = true;
+    previewId = result.game.id;
+    $('error-banner').hidden = true;
+  } catch (error) {
+    profileFailure(error, 'Игра выбрана, но результат не удалось сохранить, поэтому розыгрыш отменён.');
+    $('spotlight').classList.remove('is-drawing');
+    busy = false; profilePending = false;
+    renderCounts(); renderHero(); renderHistory(); renderGrid();
+    return;
+  }
+  profilePending = false;
   busy = false;
   $('spotlight').classList.remove('is-drawing');
   renderCounts(); renderHero(); renderHistory(); renderGrid();
@@ -449,7 +662,7 @@ async function scan({ addedPath } = {}) {
   renderCounts();
   let success = false;
   try {
-    await Promise.all([loadExclusions(), loadDisplaySettings()]);
+    await Promise.all([loadExclusions(), loadDisplaySettings(), loadProfile()]);
     const paths = addedPath ? [...state.customPaths, addedPath] : state.customPaths;
     const response = await fetch('/api/scan', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Randomizer': '1' }, body: JSON.stringify({ paths, includeUninstalled: state.includeUninstalled }) });
     const data = await response.json();
@@ -486,11 +699,14 @@ $('include-uninstalled').addEventListener('change', async event => {
 });
 $('search-input').addEventListener('input', renderGrid);
 for (const tab of document.querySelectorAll('.filter-tab')) tab.addEventListener('click', () => setFilter(tab.dataset.filter));
-$('no-repeats').addEventListener('change', event => { state.noRepeats = event.target.checked; save(); renderCounts(); });
-$('reset-cycle').addEventListener('click', () => { if (!busy) { state.seen = []; save(); renderCounts(); toast('Новый круг: все участвующие игры снова доступны'); } });
-$('clear-history').addEventListener('click', () => { if (!busy) { state.history = []; save(); renderHistory(); toast('История очищена. Текущий круг сохранён.'); } });
+$('category-filter').addEventListener('change', event => { categoryFilter = event.target.value; renderGrid(); });
+$('draw-mode').addEventListener('change', event => updateDraw({ mode: event.target.value }, `Режим выбора: ${event.target.options[event.target.selectedIndex].textContent}`));
+$('no-repeats').addEventListener('change', event => updateDraw({ noRepeats: event.target.checked }));
+$('reset-cycle').addEventListener('click', () => updateDraw({ seen: [] }, 'Новый круг: все подходящие игры снова доступны'));
+$('clear-history').addEventListener('click', () => updateDraw({ history: [] }, 'История очищена. Текущий круг сохранён.'));
 $('exclude-current').addEventListener('click', async () => { if (previewId && await setExcluded(previewId, true)) toast('Исключение сохранено. Вернуть игру можно во вкладке «Исключены».'); });
 $('play-button').addEventListener('click', () => toast('Подтверди открытие Steam, если браузер попросит.'));
+$('categories-button').addEventListener('click', () => openCategories());
 $('libraries-button').addEventListener('click', () => { renderLibraries(); $('libraries-dialog').showModal(); });
 $('settings-button').addEventListener('click', () => { $('settings-dialog').showModal(); loadDisplaySettings(); });
 $('close-settings').addEventListener('click', () => $('settings-dialog').close());
@@ -499,6 +715,14 @@ for (const key of Object.keys(DISPLAY_DEFAULTS)) $(key).addEventListener('change
 $('settings-dialog').addEventListener('click', event => { if (event.target === $('settings-dialog')) { const rect = $('settings-dialog').getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) $('settings-dialog').close(); } });
 $('close-dialog').addEventListener('click', () => $('libraries-dialog').close());
 $('libraries-dialog').addEventListener('click', event => { if (event.target === $('libraries-dialog')) { const rect = $('libraries-dialog').getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) $('libraries-dialog').close(); } });
+$('close-categories').addEventListener('click', () => $('categories-dialog').close());
+$('categories-dialog').addEventListener('click', event => { if (event.target === $('categories-dialog')) { const rect = $('categories-dialog').getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) $('categories-dialog').close(); } });
+$('add-category-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const input = $('category-name');
+  const name = input.value.trim();
+  if (name && await mutateProfile(revision => profileClient.addCategory(revision, name), 'Категория добавлена')) input.value = '';
+});
 $('add-path-form').addEventListener('submit', event => {
   event.preventDefault();
   const value = $('path-input').value.trim().replace(/^"|"$/g, '').replace(/[\\/]+$/, '');
@@ -506,20 +730,21 @@ $('add-path-form').addEventListener('submit', event => {
   if (state.customPaths.length >= 20) { $('path-error').textContent = 'Можно добавить не больше 20 ручных путей.'; $('path-error').hidden = false; return; }
   scan({ addedPath: value });
 });
-$('empty-action').addEventListener('click', () => { if (!scopedGames().length) $('libraries-dialog').showModal(); else { $('search-input').value = ''; setFilter('all'); } });
+$('empty-action').addEventListener('click', () => { if (!scopedGames().length) $('libraries-dialog').showModal(); else { $('search-input').value = ''; categoryFilter = 'all'; renderCategorySelectors(); setFilter('all'); } });
 document.addEventListener('keydown', event => {
-  if (event.code !== 'Space' || event.repeat || event.ctrlKey || event.altKey || event.metaKey || $('libraries-dialog').open || $('settings-dialog').open) return;
+  if ($('settings-dialog').open) return;
+  if (event.code !== 'Space' || event.repeat || event.ctrlKey || event.altKey || event.metaKey || $('libraries-dialog').open || $('categories-dialog').open) return;
   if (event.target.closest('input,textarea,select,button,a,[contenteditable="true"]')) return;
   event.preventDefault(); draw();
 });
 window.addEventListener('storage', event => {
   if (event.key !== STORAGE_KEY || busy || scanning || savingExclusion) return;
   try {
-    const previous = state.includeUninstalled;
     const next = cleanState(JSON.parse(event.newValue ?? '{}'));
-    const exclusionsChanged = JSON.stringify(next.excluded) !== JSON.stringify(state.excluded);
-    state = { ...next, excluded: state.excluded }; previewId = state.current;
-    if (previous !== state.includeUninstalled || exclusionsChanged) scan();
+    const scopeChanged = next.includeUninstalled !== state.includeUninstalled;
+    const pathsChanged = JSON.stringify(next.customPaths) !== JSON.stringify(state.customPaths);
+    state = cleanState({ ...state, includeUninstalled: next.includeUninstalled, customPaths: next.customPaths });
+    if (scopeChanged || pathsChanged) scan();
     else { renderCounts(); renderHero(); renderHistory(); renderGrid(); renderLibraries(); }
   }
   catch { /* Ignore malformed updates from another browser tab. */ }

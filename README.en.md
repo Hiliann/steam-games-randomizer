@@ -12,7 +12,7 @@ The website includes a fictional demo, project information and downloads. It can
 
 ## Run on Windows
 
-1. Download **PlayNext-1.4.1-win-x64.zip** from [Releases](https://github.com/Hiliann/steam-games-randomizer/releases/latest). Do not use **Code > Download ZIP**: that archive contains source code without the bundled runtime.
+1. Download **PlayNext-1.5.0-win-x64.zip** from [Releases](https://github.com/Hiliann/steam-games-randomizer/releases/latest). Do not use **Code > Download ZIP**: that archive contains source code without the bundled runtime.
 2. Extract the entire archive to a writable folder. Do not run the program from inside the ZIP.
 3. Open **Start.cmd**. The program opens in your browser, usually at `http://127.0.0.1:3210`. If the port is occupied, it chooses another one.
 4. Press **«Выбрать игру»** (Choose a game), then **«Играть в Steam»** (Play in Steam). An uninstalled game instead offers **«Установить в Steam»** (Install in Steam). Nothing launches or downloads automatically.
@@ -24,6 +24,8 @@ Requires **Windows 10/11 x64 (Intel/AMD), Steam and a modern browser**. Node.js 
 
 - Automatically detects Steam libraries across multiple drives; custom paths can be added manually.
 - Chooses only eligible games, with optional no-repeat rounds and a history of recent picks.
+- Adds saved categories for personal collections. A category can filter the visible library or become the active randomization mode.
+- Includes modes for all participating games, installed or uninstalled games, never-played games, games dormant for 90 days and any saved category. Every eligible game keeps the same probability.
 - Lets you exclude individual games. Exclusions survive closing the program, changing ports and clearing browser storage.
 - Shows artwork from the local Steam cache, with a game-name fallback when artwork is unavailable.
 - Includes search, keyboard controls, reduced-motion support and a responsive interface for narrow and wide windows.
@@ -42,9 +44,9 @@ Turn size information off in **«Настройки»** (Settings) to hide it an
 
 ## Saved settings and updates
 
-Exclusions, display settings and cached online sizes are stored in the `data` folder next to the program. **Keep this folder when updating or moving your own copy.** Stop the program with Stop.cmd before copying files.
+Exclusions, categories, category assignments, pick history, the current round, the selected draw mode, display settings and cached online sizes are stored in the `data` folder next to the program. **Keep this folder when updating or moving your own copy.** Stop the program with Stop.cmd before copying files.
 
-History, the current randomization round, the uninstalled-games checkbox and manually added library paths remain in browser storage. They are specific to the browser and local address. Clearing browser data can reset these preferences, but does not remove the settings saved in `data`.
+Only the uninstalled-games checkbox and manually added library paths remain in browser storage. They are specific to the browser and local address. Clearing browser data can reset these preferences, but does not remove categories, history or other settings saved in `data`.
 
 Send friends the clean release ZIP, not a copy of a folder you have already used. Your used folder may contain personal settings and diagnostic logs.
 

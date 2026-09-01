@@ -7,9 +7,10 @@ import { scanSteam, normalizeLibrary, findArtwork } from './lib/steam.mjs';
 import { createExclusionsStore, MAX_EXCLUSIONS_BYTES } from './lib/exclusions.mjs';
 import { createDisplayStore, MAX_DISPLAY_BYTES } from './lib/display-settings.mjs';
 import { createOnlineSizeService } from './lib/online-sizes.mjs';
+import { createProfileStore, MAX_PROFILE_BYTES } from './lib/profile.mjs';
 
 const base = path.dirname(fileURLToPath(import.meta.url));
-export const APP_VERSION = '1.4.1';
+export const APP_VERSION = '1.5.0';
 export function getInstanceId(directory = base) {
   const resolved = path.resolve(directory);
   return createHash('sha256').update(process.platform === 'win32' ? resolved.toLowerCase() : resolved).digest('hex').slice(0, 24);
@@ -21,6 +22,7 @@ const staticFiles = new Map([
   ['/exclusions.js', ['exclusions.js', 'text/javascript; charset=utf-8']],
   ['/display.js', ['display.js', 'text/javascript; charset=utf-8']],
   ['/online-sizes.js', ['online-sizes.js', 'text/javascript; charset=utf-8']],
+  ['/profile.js', ['profile.js', 'text/javascript; charset=utf-8']],
   ['/style.css', ['style.css', 'text/css; charset=utf-8']],
   ['/responsive.css', ['responsive.css', 'text/css; charset=utf-8']],
   ['/icon.svg', ['icon.svg', 'image/svg+xml']],
@@ -44,9 +46,10 @@ async function requestJson(request, limit = 32768) {
   catch { throw Object.assign(new Error('Некорректный JSON.'), { status: 400 }); }
 }
 
-export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, 'data/exclusions.json'), displaySettingsFile = path.join(base, 'data/display-settings.json'), onlineSizes = createOnlineSizeService({ filename: path.join(base, 'data/online-sizes.json') }) } = {}) {
+export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, 'data/exclusions.json'), displaySettingsFile = path.join(base, 'data/display-settings.json'), profileFile = path.join(base, 'data/profile.json'), onlineSizes = createOnlineSizeService({ filename: path.join(base, 'data/online-sizes.json') }) } = {}) {
   const exclusions = createExclusionsStore(exclusionsFile);
   const displaySettings = createDisplayStore(displaySettingsFile);
+  const profile = createProfileStore(profileFile);
   let snapshot;
   let scanQueue = Promise.resolve();
   const artworkCache = new Map();
@@ -83,6 +86,11 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
       if (url.pathname === '/api/health' && request.method === 'GET') return json(response, 200, { app: 'steam-games-randomizer', version: APP_VERSION, instanceId: getInstanceId() });
       if (url.pathname === '/api/exclusions' && request.method === 'GET') return json(response, 200, await exclusions.read());
       if (url.pathname === '/api/display-settings' && request.method === 'GET') return json(response, 200, await displaySettings.read());
+      if (url.pathname === '/api/profile' && request.method === 'GET') return json(response, 200, await profile.read());
+      if (url.pathname === '/api/profile' && request.method === 'POST') {
+        if (request.headers['x-randomizer'] !== '1') return json(response, 403, { error: 'Отсутствует заголовок приложения.' });
+        return json(response, 200, await profile.change(await requestJson(request, MAX_PROFILE_BYTES)));
+      }
       if (url.pathname === '/api/display-settings' && request.method === 'POST') {
         if (request.headers['x-randomizer'] !== '1') return json(response, 403, { error: 'Отсутствует заголовок приложения.' });
         return json(response, 200, await displaySettings.change(await requestJson(request, MAX_DISPLAY_BYTES)));

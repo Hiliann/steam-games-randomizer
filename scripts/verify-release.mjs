@@ -9,6 +9,7 @@ import os from 'node:os';
 import { getInstanceId, APP_VERSION } from '../server.mjs';
 import { createExclusionsClient } from '../public/exclusions.js';
 import { createDisplayClient, DISPLAY_DEFAULTS } from '../public/display.js';
+import { createProfileClient } from '../public/profile.js';
 
 const execFileAsync = promisify(execFile);
 const directory = path.resolve(process.argv[2] ?? '');
@@ -43,7 +44,7 @@ try {
   const health = await fetch(base + '/api/health').then(response => response.json());
   assert.equal(health.version, APP_VERSION);
   assert.equal(health.instanceId, record.instanceId);
-  for (const asset of ['/', '/app.js', '/exclusions.js', '/display.js', '/online-sizes.js', '/responsive.css', '/style.css']) {
+  for (const asset of ['/', '/app.js', '/exclusions.js', '/profile.js', '/display.js', '/online-sizes.js', '/responsive.css', '/style.css']) {
     const response = await fetch(base + asset);
     assert.equal(response.status, 200);
     await response.arrayBuffer();
@@ -91,11 +92,15 @@ try {
   assert.equal(running.stdout.trim().toLowerCase(), path.join(directory, 'runtime/node.exe').toLowerCase());
   const exclusions = createExclusionsClient((route, options) => fetch(base + route, options));
   const display = createDisplayClient((route, options) => fetch(base + route, options));
+  const profileClient = createProfileClient((route, options) => fetch(base + route, options));
   assert.deepEqual(await display.load(), DISPLAY_DEFAULTS);
   await display.set('showUninstalledSize', false);
   await display.set('showInstalledBadge', true);
   assert.deepEqual(await exclusions.load(['900000001']), ['900000001']);
   assert.deepEqual(await exclusions.set('900000002', true), ['900000001', '900000002']);
+  let savedProfile = await profileClient.load({ seen: ['900000003'], current: '900000003' });
+  savedProfile = await profileClient.setCategory(savedProfile.revision, '900000003', 'favorite', true);
+  savedProfile = await profileClient.replaceDraw(savedProfile.revision, { ...savedProfile.draw, mode: 'category:favorite', history: [{ id: '900000003', at: '2026-09-01T00:00:00.000Z' }] });
   await invoke(['-Stop']);
   await assert.rejects(fetch(base + '/api/health', { signal: AbortSignal.timeout(1500) }));
   // A different address and an empty browser cache must still see the saved file.
@@ -107,6 +112,7 @@ try {
   const restartedBase = `http://127.0.0.1:${restarted.port}`;
   const freshBrowser = createExclusionsClient((route, options) => fetch(restartedBase + route, options));
   const freshDisplay = createDisplayClient((route, options) => fetch(restartedBase + route, options));
+  const freshProfile = createProfileClient((route, options) => fetch(restartedBase + route, options));
   if (onlineCheck) {
     const response = await fetch(restartedBase + '/api/scan', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Randomizer': '1' }, body: JSON.stringify({ paths: [], includeUninstalled: true }) });
     const loaded = await response.json();
@@ -117,6 +123,10 @@ try {
   assert.deepEqual(await freshDisplay.load(), { showUninstalledSize: false, showInstalledBadge: true });
   assert.deepEqual(JSON.parse(await readFile(path.join(directory, 'data/display-settings.json'), 'utf8')).settings, { showUninstalledSize: false, showInstalledBadge: true });
   assert.deepEqual(await freshBrowser.load([]), ['900000001', '900000002']);
+  const restoredProfile = await freshProfile.load({});
+  assert.deepEqual(restoredProfile.assignments['900000003'], ['favorite']);
+  assert.equal(restoredProfile.draw.mode, 'category:favorite');
+  assert.deepEqual(restoredProfile.draw.history, [{ id: '900000003', at: '2026-09-01T00:00:00.000Z' }]);
   await freshBrowser.set('900000001', false);
   assert.deepEqual(await freshBrowser.load(['900000001']), ['900000002']);
   const saved = JSON.parse(await readFile(path.join(directory, 'data/exclusions.json'), 'utf8'));
@@ -124,7 +134,7 @@ try {
   await invoke(['-Stop']);
   await assert.rejects(fetch(restartedBase + '/api/health', { signal: AbortSignal.timeout(1500) }));
   assert.equal(await fetch(`http://127.0.0.1:${blockedPort}`).then(response => response.text()), 'another application');
-  console.log(JSON.stringify({ applicationLaunch: 'passed', systemNodeRequired: false, occupiedPort: 'handled', sameProcessOnRelaunch: true, installedGames: games.games.length, includingUninstalled: expanded.games.length, estimatedSizes: expanded.games.filter(game => game.installed === false && game.installSize?.bytes > 0).length, onlineSizeAndPersistentCache: onlineCheck ? 'passed' : 'not requested', libraryStatus: expanded.ownedLibrary.status, switchingModes: 'passed', exclusionsSurviveRestartAndPortChange: true, displaySettingsSurviveRestartAndPortChange: true, emptyBrowserStorage: 'handled', staleImport: 'ignored', cleanStop: true }, null, 2));
+  console.log(JSON.stringify({ applicationLaunch: 'passed', systemNodeRequired: false, occupiedPort: 'handled', sameProcessOnRelaunch: true, installedGames: games.games.length, includingUninstalled: expanded.games.length, estimatedSizes: expanded.games.filter(game => game.installed === false && game.installSize?.bytes > 0).length, onlineSizeAndPersistentCache: onlineCheck ? 'passed' : 'not requested', libraryStatus: expanded.ownedLibrary.status, switchingModes: 'passed', exclusionsSurviveRestartAndPortChange: true, categoriesAndHistorySurviveRestartAndPortChange: true, displaySettingsSurviveRestartAndPortChange: true, emptyBrowserStorage: 'handled', staleImport: 'ignored', cleanStop: true }, null, 2));
 } finally {
   await invoke(['-Stop']).catch(() => {});
   occupied.closeAllConnections();

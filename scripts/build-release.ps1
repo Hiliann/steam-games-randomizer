@@ -66,7 +66,7 @@ if ($RuntimeDirectory) {
 $releaseFiles = @(
     'package.json', 'server.mjs', 'start.ps1', 'Start.cmd', 'Stop.cmd',
     'README.md', 'README.en.md', 'READ ME FIRST.txt', 'THIRD_PARTY_NOTICES.md',
-    'lib\steam.mjs', 'lib\owned.mjs', 'lib\steam-cache.mjs', 'lib\exclusions.mjs', 'public\index.html', 'public\app.js', 'public\exclusions.js',
+    'lib\steam.mjs', 'lib\owned.mjs', 'lib\steam-cache.mjs', 'lib\exclusions.mjs', 'lib\profile.mjs', 'public\index.html', 'public\app.js', 'public\exclusions.js', 'public\profile.js',
     'lib\install-size.mjs', 'lib\display-settings.mjs', 'public\display.js',
     'lib\online-sizes.mjs', 'public\online-sizes.js',
     'public\randomizer.js', 'public\style.css', 'public\responsive.css', 'public\icon.svg'

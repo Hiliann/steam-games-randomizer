@@ -34,6 +34,12 @@ main, section, article, aside, .page-intro > div, .library-heading > div,
 .display-options .switch-row small { font-size: 12px; line-height: 1.6; margin-top: 4px; }
 .display-options .switch { flex-shrink: 0; }
 .display-status { margin-bottom: 12px; }
+.settings-section-title { margin-top: 22px; font-size: 13px; font-weight: 650; letter-spacing: .2px; }
+.dialog-heading + .settings-section-title { margin-top: 24px; }
+.settings-section { margin-top: 24px; padding-top: 2px; border-top: 1px solid var(--border); }
+.settings-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.settings-actions .button { min-height: 42px; }
+.settings-section .privacy-note { margin-top: 16px; }
 .game-size { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 3px 6px; }
 .size-source { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 .hero-badges .size-source { margin: 0; }

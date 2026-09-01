@@ -1,5 +1,21 @@
 # Изменения
 
+## 1.6.0
+
+- В настройки добавлено создание ярлыка Play Next на рабочем столе.
+- Добавлен фоновый запуск вместе с Windows без открытия браузера и без прав администратора.
+- Ярлыки привязаны к текущей папке программы; выключение удаляет только ярлык этой копии.
+- Добавлена фоновая и ручная проверка новых релизов на GitHub. Обновления не скачиваются и не устанавливаются автоматически.
+- Добавлены проверки безопасности API, валидация ссылок релиза и тесты Windows-интеграции.
+
+### English
+
+- Added an option to create a Play Next desktop shortcut.
+- Added background startup with Windows without opening the browser or requiring administrator rights.
+- Shortcuts are tied to the current program folder; disabling an option removes only this copy's shortcut.
+- Added background and manual checks for new GitHub releases. Updates are never downloaded or installed automatically.
+- Added API security checks, release-link validation and Windows integration tests.
+
 ## 1.5.0
 
 - Добавлены сохраняемые категории игр с назначением прямо из карточки.

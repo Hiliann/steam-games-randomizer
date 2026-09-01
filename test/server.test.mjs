@@ -5,12 +5,12 @@ import { once } from 'node:events';
 import { readFile } from 'node:fs/promises';
 import { createApp, APP_VERSION, getInstanceId } from '../server.mjs';
 
-async function fixture(t) {
+async function fixture(t, options = {}) {
   const requests = [];
   const server = createApp({ scan: async options => {
     requests.push(options);
     return { games: [{ id: '10', name: '<script>Untrusted game name</script>' }], libraries: [], warnings: [], cacheRoots: ['private-cache-path'], skipped: 0, utilities: 0 };
-  } });
+  }, ...options });
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
   const port = server.address().port;
@@ -23,6 +23,7 @@ test('local health, page and scripts are served with restrictive security header
   assert.equal(health.app, 'steam-games-randomizer');
   assert.equal(health.version, APP_VERSION);
   assert.match(health.instanceId, /^[0-9a-f]{24}$/);
+  assert.equal(health.processId, process.pid);
   const page = await fetch(url);
   assert.equal(page.status, 200);
   assert.match(page.headers.get('content-security-policy'), /frame-ancestors 'none'/);
@@ -71,6 +72,29 @@ test('owned-library mode is opt-in and forwarded as a boolean', async t => {
   const post = mode => fetch(url + '/api/scan', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Randomizer': '1' }, body: JSON.stringify({ paths: [], includeUninstalled: mode }) });
   await post(undefined); await post(true); await post(false);
   assert.deepEqual(requests.map(request => request.includeUninstalled), [false, true, false]);
+});
+test('Windows and update actions are bounded, same-origin and require the app header', async t => {
+  const changes = [];
+  const checks = [];
+  const windowsIntegration = {
+    read: async () => ({ supported: true, desktopShortcut: false, startup: false }),
+    change: async body => { changes.push(body); return { supported: true, desktopShortcut: body.setting === 'desktopShortcut' && body.enabled, startup: body.setting === 'startup' && body.enabled }; },
+  };
+  const updates = {
+    read: () => ({ status: 'not-checked', currentVersion: APP_VERSION }),
+    check: async body => { checks.push(body); return { status: 'ready', currentVersion: APP_VERSION, latestVersion: APP_VERSION, updateAvailable: false, releaseUrl: 'https://github.com/Hiliann/steam-games-randomizer/releases/tag/v' + APP_VERSION }; },
+  };
+  const { url } = await fixture(t, { windowsIntegration, updates });
+  assert.equal((await fetch(url + '/api/windows-settings')).status, 200);
+  assert.equal((await fetch(url + '/api/update')).status, 200);
+  const post = (route, body, headers = {}) => fetch(url + route, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body });
+  assert.equal((await post('/api/windows-settings', JSON.stringify({ setting: 'startup', enabled: true }))).status, 403);
+  assert.equal((await post('/api/update', JSON.stringify({ force: false }))).status, 403);
+  assert.equal((await post('/api/windows-settings', JSON.stringify({ setting: 'startup', enabled: true }), { 'X-Randomizer': '1' })).status, 200);
+  assert.equal((await post('/api/update', JSON.stringify({ force: true }), { 'X-Randomizer': '1' })).status, 200);
+  assert.deepEqual(changes, [{ setting: 'startup', enabled: true }]);
+  assert.deepEqual(checks, [{ force: true }]);
+  for (const body of ['{}', '{"force":"yes"}', '{"force":false,"extra":1}']) assert.equal((await post('/api/update', body, { 'X-Randomizer': '1' })).status, 400);
 });
 test('cross-site requests, DNS rebinding and filesystem paths are rejected', async t => {
   const { url, port } = await fixture(t);

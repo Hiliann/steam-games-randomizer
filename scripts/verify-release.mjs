@@ -44,12 +44,19 @@ try {
   const health = await fetch(base + '/api/health').then(response => response.json());
   assert.equal(health.version, APP_VERSION);
   assert.equal(health.instanceId, record.instanceId);
-  for (const asset of ['/', '/app.js', '/exclusions.js', '/profile.js', '/display.js', '/online-sizes.js', '/responsive.css', '/style.css']) {
+  for (const asset of ['/', '/app.js', '/exclusions.js', '/profile.js', '/display.js', '/online-sizes.js', '/system.js', '/responsive.css', '/style.css']) {
     const response = await fetch(base + asset);
     assert.equal(response.status, 200);
     await response.arrayBuffer();
   }
   const games = await fetch(base + '/api/games').then(response => response.json());
+  const windowsSettings = await fetch(base + '/api/windows-settings').then(response => response.json());
+  assert.equal(windowsSettings.supported, true);
+  assert.equal(typeof windowsSettings.desktopShortcut, 'boolean');
+  assert.equal(typeof windowsSettings.startup, 'boolean');
+  const updateStatus = await fetch(base + '/api/update').then(response => response.json());
+  assert.equal(updateStatus.currentVersion, APP_VERSION);
+  assert.ok(['not-checked', 'ready', 'offline'].includes(updateStatus.status));
   assert.ok(Array.isArray(games.games));
   assert.equal(games.ownedLibrary.status, 'not-requested');
   const scanMode = async includeUninstalled => {
@@ -88,7 +95,7 @@ try {
   assert.ok(back.games.every(game => game.installed));
   await invoke(['-NoBrowser', '-Port', String(blockedPort)]);
   assert.equal((await readRecord()).processId, record.processId, 'A second launch must reuse the same process');
-  const running = await execFileAsync(powershell, ['-NoProfile', '-Command', `[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false); (Get-CimInstance Win32_Process -Filter 'ProcessId = ${record.processId}').ExecutablePath`], { windowsHide: true });
+  const running = await execFileAsync(powershell, ['-NoProfile', '-Command', `[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false); (Get-Process -Id ${record.processId}).Path`], { windowsHide: true });
   assert.equal(running.stdout.trim().toLowerCase(), path.join(directory, 'runtime/node.exe').toLowerCase());
   const exclusions = createExclusionsClient((route, options) => fetch(base + route, options));
   const display = createDisplayClient((route, options) => fetch(base + route, options));

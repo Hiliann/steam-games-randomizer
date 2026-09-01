@@ -2,6 +2,7 @@ param([switch]$Stop, [switch]$NoBrowser, [int]$Port = 0)
 $ErrorActionPreference = 'Stop'
 $appDirectory = [IO.Path]::GetFullPath($PSScriptRoot)
 $serverPath = Join-Path $appDirectory 'server.mjs'
+$packagePath = Join-Path $appDirectory 'package.json'
 $pidPath = Join-Path $appDirectory '.server-process.json'
 $originalPort = $env:PORT
 $preferredPort = if ($Port) { $Port } elseif ($env:PORT) { [int]$env:PORT } else { 3210 }
@@ -9,6 +10,7 @@ $sha = [Security.Cryptography.SHA256]::Create()
 try { $hashBytes = $sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($appDirectory.ToLowerInvariant())) }
 finally { $sha.Dispose() }
 $instanceId = (-join ($hashBytes | ForEach-Object { $_.ToString('x2') })).Substring(0, 24)
+$expectedVersion = if (Test-Path -LiteralPath $packagePath) { (Get-Content -LiteralPath $packagePath -Raw | ConvertFrom-Json).version } else { $null }
 
 function Get-AppHealth([int]$CheckPort) {
     try { return Invoke-RestMethod -Uri "http://127.0.0.1:$CheckPort/api/health" -TimeoutSec 1 }
@@ -17,10 +19,10 @@ function Get-AppHealth([int]$CheckPort) {
 
 function Get-MatchingProcess($Record) {
     if (-not $Record -or -not $Record.processId -or -not $Record.createdAt) { return $null }
-    $running = Get-CimInstance Win32_Process -Filter "ProcessId = $([int]$Record.processId)" -ErrorAction SilentlyContinue
-    if (-not $running -or $running.Name -ne 'node.exe' -or -not $running.CommandLine) { return $null }
-    if (-not $running.CommandLine.Contains('"' + $serverPath + '"')) { return $null }
-    if ($running.CreationDate.ToUniversalTime().ToString('o') -ne $Record.createdAt) { return $null }
+    $running = Get-Process -Id ([int]$Record.processId) -ErrorAction SilentlyContinue
+    if (-not $running -or $running.ProcessName -ne 'node') { return $null }
+    if ($running.StartTime.ToUniversalTime().ToString('o') -ne $Record.createdAt) { return $null }
+    if ($Record.executablePath -and [IO.Path]::GetFullPath($running.Path) -ne [IO.Path]::GetFullPath($Record.executablePath)) { return $null }
     return $running
 }
 
@@ -41,6 +43,10 @@ try {
     $matchingProcess = Get-MatchingProcess $record
     if ($Stop) {
         if ($matchingProcess) {
+            $savedPort = if ($record.port) { [int]$record.port } else { $preferredPort }
+            $health = Get-AppHealth $savedPort
+            $wrongHealth = $health -and ($health.app -ne 'steam-games-randomizer' -or $health.instanceId -ne $instanceId -or ($health.processId -and [int]$health.processId -ne [int]$record.processId))
+            if ($wrongHealth) { throw 'The saved Play Next process could not be verified, so it was not stopped.' }
             Stop-Process -Id ([int]$record.processId)
             Wait-Process -Id ([int]$record.processId) -Timeout 5 -ErrorAction SilentlyContinue
             Write-Host 'Play Next stopped.'
@@ -53,7 +59,7 @@ try {
     if ($matchingProcess) {
         $savedPort = if ($record.port) { [int]$record.port } else { $preferredPort }
         $health = Get-AppHealth $savedPort
-        if ($health.app -eq 'steam-games-randomizer' -and (-not $health.instanceId -or $health.instanceId -eq $instanceId)) {
+        if ($health.app -eq 'steam-games-randomizer' -and $health.version -eq $expectedVersion -and $health.instanceId -eq $instanceId -and [int]$health.processId -eq [int]$record.processId) {
             Show-App $savedPort
             exit 0
         }
@@ -91,8 +97,8 @@ try {
         }
         if ($ready) {
             try {
-                $identity = Get-CimInstance Win32_Process -Filter "ProcessId = $($process.Id)"
-                @{ processId = $process.Id; createdAt = $identity.CreationDate.ToUniversalTime().ToString('o'); port = $candidatePort; instanceId = $instanceId } | ConvertTo-Json | Set-Content -LiteralPath $pidPath -Encoding UTF8
+                $process.Refresh()
+                @{ processId = $process.Id; createdAt = $process.StartTime.ToUniversalTime().ToString('o'); executablePath = $process.Path; port = $candidatePort; instanceId = $instanceId } | ConvertTo-Json | Set-Content -LiteralPath $pidPath -Encoding UTF8
             } catch {
                 if (-not $process.HasExited) { $process.Kill() }
                 throw 'The app folder is not writable. Move the extracted folder to Desktop or Documents and try again.'
@@ -102,9 +108,10 @@ try {
         }
         if (-not $process.HasExited) { $process.Kill(); throw 'The server did not respond. See .server-error.log in the app folder.' }
         $errorText = Get-Content -LiteralPath $errorLog -Raw -ErrorAction SilentlyContinue
-        if ($errorText -notmatch 'already in use|EADDRINUSE') { throw "Could not start Play Next. $errorText" }
+        $portUnavailable = $errorText -match 'already in use|EADDRINUSE|listen EACCES: permission denied 127\.0\.0\.1:'
+        if (-not $portUnavailable) { throw "Could not start Play Next. $errorText" }
         $existing = Get-AppHealth $candidatePort
-        if ($existing.app -eq 'steam-games-randomizer' -and $existing.instanceId -eq $instanceId) { Show-App $candidatePort; exit 0 }
+        if ($existing.app -eq 'steam-games-randomizer' -and $existing.version -eq $expectedVersion -and $existing.instanceId -eq $instanceId -and $existing.processId) { Show-App $candidatePort; exit 0 }
     }
     throw 'No free local port was available. Close the other copy, or run start.ps1 -Port 3310.'
 } catch {

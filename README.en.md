@@ -12,13 +12,13 @@ The website includes a fictional demo, project information and downloads. It can
 
 ## Run on Windows
 
-1. Download **PlayNext-1.5.0-win-x64.zip** from [Releases](https://github.com/Hiliann/steam-games-randomizer/releases/latest). Do not use **Code > Download ZIP**: that archive contains source code without the bundled runtime.
+1. Download **PlayNext-1.6.0-win-x64.zip** from [Releases](https://github.com/Hiliann/steam-games-randomizer/releases/latest). Do not use **Code > Download ZIP**: that archive contains source code without the bundled runtime.
 2. Extract the entire archive to a writable folder. Do not run the program from inside the ZIP.
 3. Open **Start.cmd**. The program opens in your browser, usually at `http://127.0.0.1:3210`. If the port is occupied, it chooses another one.
 4. Press **«Выбрать игру»** (Choose a game), then **«Играть в Steam»** (Play in Steam). An uninstalled game instead offers **«Установить в Steam»** (Install in Steam). Nothing launches or downloads automatically.
 5. Open **Stop.cmd** to stop the program completely. Closing the browser tab alone does not stop the background process.
 
-Requires **Windows 10/11 x64 (Intel/AMD), Steam and a modern browser**. Node.js 24.20.0 is included. No separate runtime installation, API key, Codex or administrator rights are required. Keep the `runtime` folder with the program. Play Next does not add itself to Windows startup.
+Requires **Windows 10/11 x64 (Intel/AMD), Steam and a modern browser**. Node.js 24.20.0 is included. No separate runtime installation, API key, Codex or administrator rights are required. Keep the `runtime` folder with the program. Desktop shortcut and Windows startup options are available in **«Настройки»** (Settings).
 
 ## Features
 
@@ -31,6 +31,8 @@ Requires **Windows 10/11 x64 (Intel/AMD), Steam and a modern browser**. Node.js 
 - Includes search, keyboard controls, reduced-motion support and a responsive interface for narrow and wide windows.
 - Optionally adds uninstalled games backed by local Steam licenses, without a public Steam profile or account sign-in through Play Next.
 - Shows storage requirements for uninstalled games and lets you toggle size information and the installed-game badge.
+- Can create a desktop shortcut and start in the background with Windows, without administrator rights.
+- Checks public GitHub releases for a newer version at startup or on demand. Downloads and installation always require your action.
 
 ## Uninstalled games and storage information
 
@@ -45,6 +47,10 @@ Turn size information off in **«Настройки»** (Settings) to hide it an
 ## Saved settings and updates
 
 Exclusions, categories, category assignments, pick history, the current round, the selected draw mode, display settings and cached online sizes are stored in the `data` folder next to the program. **Keep this folder when updating or moving your own copy.** Stop the program with Stop.cmd before copying files.
+
+The Windows section in **«Настройки»** (Settings) creates a shortcut for the current program folder and can enable background startup without opening the browser at sign-in. Play Next removes only shortcuts that belong to the current copy.
+
+Update checks use the repository's public GitHub release API, are cached for six hours and never install anything automatically. They do not send your Steam library, settings or file paths. GitHub can see the connection's IP address.
 
 Only the uninstalled-games checkbox and manually added library paths remain in browser storage. They are specific to the browser and local address. Clearing browser data can reset these preferences, but does not remove categories, history or other settings saved in `data`.
 

@@ -3,6 +3,7 @@ import { createExclusionsClient } from './exclusions.js';
 import { DISPLAY_DEFAULTS, createDisplayClient, formatSize, uninstalledSize, sizeDescription, sizeSourceUrl, heroBadges } from './display.js';
 import { createOnlineSizesClient } from './online-sizes.js';
 import { createProfileClient } from './profile.js';
+import { createSystemClient } from './system.js';
 
 const $ = id => document.getElementById(id);
 // Bypass covers cached by older versions that did not resolve nested Steam assets.
@@ -20,10 +21,17 @@ let savingExclusion = false;
 const exclusionsClient = createExclusionsClient();
 const displayClient = createDisplayClient();
 const profileClient = createProfileClient();
+const systemClient = createSystemClient();
 let displaySettings = { ...DISPLAY_DEFAULTS };
 let displayReady = false;
 let displayPending = false;
 let displayMessage = 'Загружаем настройки…';
+let windowsSettings = { supported: true, desktopShortcut: false, startup: false };
+let windowsReady = false;
+let windowsPending = false;
+let windowsMessage = 'Проверяем настройки Windows…';
+let updateInfo = { status: 'not-checked', currentVersion: '1.6.0' };
+let updatePending = false;
 let profile = { initialized: false, revision: 0, categories: [], assignments: {}, draw: cleanDrawState(state) };
 let profileReady = false;
 let profilePending = false;
@@ -212,6 +220,79 @@ async function setDisplaySetting(key, value) {
   } finally {
     displayPending = false;
     renderDisplaySettings(); renderHero(); renderGrid();
+  }
+}
+function renderWindowsSettings() {
+  for (const key of ['desktopShortcut', 'startup']) {
+    $(key).checked = windowsSettings[key];
+    $(key).disabled = !windowsReady || windowsPending || !windowsSettings.supported;
+  }
+  $('windows-status').textContent = windowsMessage;
+  $('retry-windows').hidden = windowsReady || windowsPending || !windowsSettings.supported;
+}
+async function loadWindowsSettings() {
+  if (windowsPending) return;
+  windowsPending = true;
+  windowsMessage = 'Проверяем настройки Windows…';
+  renderWindowsSettings();
+  try {
+    windowsSettings = await systemClient.loadWindows();
+    windowsReady = true;
+    windowsMessage = windowsSettings.supported ? 'Изменения применяются сразу к этой копии программы.' : 'Эти функции доступны только в Windows.';
+  } catch (error) {
+    windowsReady = false;
+    windowsMessage = error instanceof TypeError ? 'Нет связи с приложением. Запусти его и повтори проверку.' : error.message;
+  } finally {
+    windowsPending = false;
+    renderWindowsSettings();
+  }
+}
+async function setWindowsSetting(key, value) {
+  if (!windowsReady || windowsPending) return;
+  const previous = windowsSettings[key];
+  windowsPending = true;
+  windowsMessage = 'Применяем настройку…';
+  renderWindowsSettings();
+  try {
+    windowsSettings = await systemClient.setWindows(key, value);
+    windowsMessage = key === 'desktopShortcut'
+      ? value ? 'Ярлык Play Next создан на рабочем столе.' : 'Ярлык этой копии удалён с рабочего стола.'
+      : value ? 'Play Next будет запускаться вместе с Windows.' : 'Запуск вместе с Windows выключен.';
+  } catch (error) {
+    windowsSettings[key] = previous;
+    windowsReady = false;
+    windowsMessage = error instanceof TypeError ? 'Нет связи с приложением. Повтори проверку.' : error.message;
+  } finally {
+    windowsPending = false;
+    renderWindowsSettings();
+  }
+}
+function renderUpdateStatus() {
+  $('check-update').disabled = updatePending;
+  $('check-update').textContent = updatePending ? 'Проверяем…' : 'Проверить сейчас';
+  const link = $('download-update');
+  link.hidden = true;
+  link.removeAttribute('href');
+  if (updatePending) $('update-status').textContent = `Проверяем обновления. Текущая версия: ${updateInfo.currentVersion}.`;
+  else if (updateInfo.status === 'offline') $('update-status').textContent = `Не удалось связаться с GitHub. Текущая версия: ${updateInfo.currentVersion}.`;
+  else if (updateInfo.status === 'ready' && updateInfo.updateAvailable) {
+    $('update-status').textContent = `Доступна версия ${updateInfo.latestVersion}. Установлена ${updateInfo.currentVersion}.`;
+    if (updateInfo.releaseUrl) { link.href = updateInfo.releaseUrl; link.hidden = false; }
+  } else if (updateInfo.status === 'ready') $('update-status').textContent = `Установлена актуальная версия ${updateInfo.currentVersion}.`;
+  else $('update-status').textContent = `Текущая версия: ${updateInfo.currentVersion}.`;
+}
+async function checkForUpdate({ force = false, notify = false } = {}) {
+  if (updatePending) return;
+  updatePending = true;
+  renderUpdateStatus();
+  try {
+    updateInfo = await systemClient.checkUpdate(force);
+    if (notify && updateInfo.status === 'ready' && updateInfo.updateAvailable) toast(`Доступна новая версия Play Next: ${updateInfo.latestVersion}`);
+  } catch {
+    updateInfo = { status: 'offline', currentVersion: updateInfo.currentVersion };
+  } finally {
+    updatePending = false;
+    renderUpdateStatus();
   }
 }
 function lastPlayedLabel(game) {
@@ -708,10 +789,13 @@ $('exclude-current').addEventListener('click', async () => { if (previewId && aw
 $('play-button').addEventListener('click', () => toast('Подтверди открытие Steam, если браузер попросит.'));
 $('categories-button').addEventListener('click', () => openCategories());
 $('libraries-button').addEventListener('click', () => { renderLibraries(); $('libraries-dialog').showModal(); });
-$('settings-button').addEventListener('click', () => { $('settings-dialog').showModal(); loadDisplaySettings(); });
+$('settings-button').addEventListener('click', () => { $('settings-dialog').showModal(); loadDisplaySettings(); loadWindowsSettings(); systemClient.loadUpdate().then(value => { updateInfo = value; renderUpdateStatus(); }).catch(() => {}); });
 $('close-settings').addEventListener('click', () => $('settings-dialog').close());
 $('retry-display').addEventListener('click', loadDisplaySettings);
+$('retry-windows').addEventListener('click', loadWindowsSettings);
+$('check-update').addEventListener('click', () => checkForUpdate({ force: true }));
 for (const key of Object.keys(DISPLAY_DEFAULTS)) $(key).addEventListener('change', event => setDisplaySetting(key, event.target.checked));
+for (const key of ['desktopShortcut', 'startup']) $(key).addEventListener('change', event => setWindowsSetting(key, event.target.checked));
 $('settings-dialog').addEventListener('click', event => { if (event.target === $('settings-dialog')) { const rect = $('settings-dialog').getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) $('settings-dialog').close(); } });
 $('close-dialog').addEventListener('click', () => $('libraries-dialog').close());
 $('libraries-dialog').addEventListener('click', event => { if (event.target === $('libraries-dialog')) { const rect = $('libraries-dialog').getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) $('libraries-dialog').close(); } });
@@ -749,4 +833,6 @@ window.addEventListener('storage', event => {
   }
   catch { /* Ignore malformed updates from another browser tab. */ }
 });
-scan();
+renderWindowsSettings();
+renderUpdateStatus();
+scan().then(() => checkForUpdate({ notify: true }));

@@ -71,7 +71,8 @@
 
   <dialog id="libraries-dialog" aria-labelledby="dialog-title"><div class="dialog-heading"><div><p class="eyebrow">ПОДКЛЮЧЕНО К STEAM</p><h2 id="dialog-title">Твои библиотеки</h2></div><button id="close-dialog" class="icon-button" aria-label="Закрыть"><svg class="icon"><use href="#i-close"/></svg></button></div><p class="dialog-intro">Обычно мы находим их автоматически. Если чего-то не хватает, укажи папку Steam, SteamLibrary или steamapps.</p><div id="library-paths" class="library-paths"></div><form id="add-path-form"><label for="path-input">Добавить библиотеку</label><div class="path-input-row"><input id="path-input" placeholder="Например, D:\SteamLibrary" maxlength="1024" required autocomplete="off"><button class="button button-primary" type="submit">Добавить</button></div></form><p id="path-error" class="path-error" role="alert" hidden></p><div id="scan-notes" class="scan-notes"></div><p class="privacy-note">Сведения об установке, обложки и лицензии аккаунта читаем из локального Steam. Файлы Steam не меняем. Размеры неустановленных игр подгружаем из Steam Store: передаём только публичный номер игры, без аккаунта, лицензий и путей к файлам. Сервис видит IP-адрес соединения. Интернет-подгрузку можно отключить вместе с размерами в «Настройках». Пароль и API-ключ не нужны. Для запуска игр может потребоваться вход, лицензия или обновление в Steam.</p></dialog>
   <dialog id="settings-dialog" aria-labelledby="settings-title">
-    <div class="dialog-heading"><div><p class="eyebrow">КАК ТЕБЕ УДОБНЕЕ</p><h2 id="settings-title">Отображение</h2></div><button id="close-settings" class="icon-button" aria-label="Закрыть настройки"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div>
+    <div class="dialog-heading"><div><p class="eyebrow">КАК ТЕБЕ УДОБНЕЕ</p><h2 id="settings-title">Настройки</h2></div><button id="close-settings" class="icon-button" aria-label="Закрыть настройки"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div>
+    <h3 class="settings-section-title">Отображение</h3>
     <p class="dialog-intro">Выбери, какую информацию показывать об играх.</p>
     <div class="display-options">
       <label class="switch-row" for="showUninstalledSize"><span>Размер неустановленных игр<small>Рядом с «Не установлена» на большой обложке и в списке библиотеки</small></span><span class="switch"><input id="showUninstalledSize" type="checkbox" checked disabled aria-describedby="size-explanation"><span class="switch-track"></span></span></label>
@@ -81,6 +82,21 @@
     <p class="privacy-note">В Steam Store передаётся только публичный номер запрашиваемой игры; сервис также видит IP-адрес соединения. Аккаунт, лицензии, пути к файлам и исключения не отправляются. Сохранённые размеры находятся в папке data приложения и не входят в ZIP для друзей.</p>
     <p id="display-status" class="dialog-intro display-status" role="status">Загружаем настройки…</p>
     <button id="retry-display" class="button button-quiet" hidden>Повторить загрузку</button>
+    <section class="settings-section" aria-labelledby="windows-settings-title">
+      <h3 id="windows-settings-title" class="settings-section-title">Windows</h3>
+      <div class="display-options">
+        <label class="switch-row" for="desktopShortcut"><span>Ярлык на рабочем столе<small>Открывает именно эту копию Play Next</small></span><span class="switch"><input id="desktopShortcut" type="checkbox" disabled><span class="switch-track"></span></span></label>
+        <label class="switch-row" for="startup"><span>Запуск вместе с Windows<small>Программа запускается в фоне без открытия браузера</small></span><span class="switch"><input id="startup" type="checkbox" disabled><span class="switch-track"></span></span></label>
+      </div>
+      <p id="windows-status" class="dialog-intro display-status" role="status">Проверяем настройки Windows…</p>
+      <button id="retry-windows" class="button button-quiet" hidden>Повторить проверку</button>
+    </section>
+    <section class="settings-section" aria-labelledby="update-settings-title">
+      <h3 id="update-settings-title" class="settings-section-title">Обновления</h3>
+      <p id="update-status" class="dialog-intro display-status" role="status">Текущая версия: 1.6.0</p>
+      <div class="settings-actions"><button id="check-update" class="button button-quiet">Проверить сейчас</button><a id="download-update" class="button button-primary" target="_blank" rel="noreferrer noopener" hidden>Открыть обновление</a></div>
+      <p class="privacy-note">Проверка обращается к публичному списку релизов GitHub и не отправляет библиотеку Steam, настройки или пути к файлам. Новая версия не скачивается и не устанавливается без твоего действия.</p>
+    </section>
   </dialog>
   <dialog id="categories-dialog" aria-labelledby="categories-title">
     <div class="dialog-heading"><div><p class="eyebrow">СОБЕРИ СВОИ ПОДБОРКИ</p><h2 id="categories-title">Категории</h2></div><button id="close-categories" class="icon-button" aria-label="Закрыть категории"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div>

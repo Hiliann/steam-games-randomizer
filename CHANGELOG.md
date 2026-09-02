@@ -1,5 +1,23 @@
 # Изменения
 
+## 1.7.0
+
+- Категории теперь заполняются массово: выбери подборку, найди игры, отметь несколько и сохрани одним действием.
+- Из карточки игры можно сразу открыть редактор и перейти к нужной игре.
+- Кнопка запуска передаёт игру локальной программе, поэтому браузер больше не оставляет техническую вкладку `steam://`.
+- Добавлена необязательная автоматическая установка проверенных обновлений.
+- Обновление проверяет SHA-256 и манифест каждого файла, заменяет только файлы программы и никогда не изменяет папку `data`.
+- Уведомления о новых версиях показываются независимо от настройки автоматической установки.
+
+### English
+
+- Categories now use a bulk workflow: choose a collection, search, select multiple games and save once.
+- A game card can open the editor directly at that game.
+- The play button delegates launching to the local program, so the browser no longer leaves a technical `steam://` tab behind.
+- Added optional automatic installation of verified updates.
+- Updates verify SHA-256 and a per-file manifest, replace program files only and never modify the `data` folder.
+- New-version notifications remain available regardless of the automatic-install setting.
+
 ## 1.6.0
 
 - В настройки добавлено создание ярлыка Play Next на рабочем столе.

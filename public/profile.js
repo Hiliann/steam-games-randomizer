@@ -33,5 +33,6 @@ export function createProfileClient(send = globalThis.fetch) {
     renameCategory(revision, id, name) { return request({ action: 'rename-category', revision, id, name }); },
     deleteCategory(revision, id) { return request({ action: 'delete-category', revision, id }); },
     setCategory(revision, appId, categoryId, assigned) { return request({ action: 'set-category', revision, appId, categoryId, assigned }); },
+    setCategoryGames(revision, categoryId, appIds, scopeAppIds) { return request({ action: 'set-category-games', revision, categoryId, appIds, scopeAppIds }); },
   };
 }

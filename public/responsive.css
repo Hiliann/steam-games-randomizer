@@ -185,4 +185,13 @@ dialog {
 @media (max-width: 640px) {
   .library-scope { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px; }
   .scope-toggle { font-size: 12px; }
+  .categories-dialog { width: calc(100% - 16px); padding: 18px 14px; max-height: 94vh; }
+  .category-editor-toolbar { align-items: stretch; flex-direction: column; }
+  .category-game-filters { width: 100%; }
+  .category-game-filter { flex: 1; padding-inline: 5px; }
+  .category-game-list { grid-template-columns: 1fr; max-height: 42vh; }
+  .category-save-bar { align-items: stretch; flex-direction: column; }
+  .category-save-bar > div { display: grid; grid-template-columns: 1fr 1fr; }
+  .category-save-bar .button { min-height: 44px; }
+  .card-category-button span { display: none; }
 }

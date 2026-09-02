@@ -96,6 +96,33 @@ test('Windows and update actions are bounded, same-origin and require the app he
   assert.deepEqual(checks, [{ force: true }]);
   for (const body of ['{}', '{"force":"yes"}', '{"force":false,"extra":1}']) assert.equal((await post('/api/update', body, { 'X-Randomizer': '1' })).status, 400);
 });
+test('game launch and update installation stay behind validated local APIs', async t => {
+  const launches = [], installs = [];
+  const version = '1.8.0';
+  const updates = {
+    read: () => ({
+      status: 'ready', currentVersion: APP_VERSION, latestVersion: version, updateAvailable: true,
+      releaseUrl: `https://github.com/Hiliann/steam-games-randomizer/releases/tag/v${version}`,
+      downloadUrl: `https://github.com/Hiliann/steam-games-randomizer/releases/download/v${version}/PlayNext-${version}-win-x64.zip`,
+      checksumUrl: `https://github.com/Hiliann/steam-games-randomizer/releases/download/v${version}/PlayNext-${version}-win-x64.zip.sha256`,
+    }),
+    check: async () => {},
+  };
+  const steamLauncher = { launch: async game => { launches.push(game.id); return { status: 'opened', action: 'run' }; } };
+  const updateInstaller = { install: options => { installs.push(options); return { status: 'installing', targetVersion: options.version }; } };
+  const { url, port } = await fixture(t, { steamLauncher, updateInstaller, updates });
+  const post = (route, value, header = true) => fetch(url + route, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(header ? { 'X-Randomizer': '1' } : {}) }, body: JSON.stringify(value) });
+  assert.equal((await post('/api/launch', { id: '10' }, false)).status, 403);
+  assert.equal((await post('/api/launch', { id: '10;calc' })).status, 400);
+  assert.equal((await post('/api/launch', { id: '999' })).status, 404);
+  assert.equal((await post('/api/launch', { id: '10' })).status, 200);
+  assert.deepEqual(launches, ['10']);
+  assert.equal((await post('/api/update-install', { version: '9.9.9' })).status, 409);
+  assert.equal((await post('/api/update-install', { version })).status, 202);
+  assert.equal(installs.length, 1);
+  assert.equal(installs[0].port, port);
+  assert.equal(installs[0].processId, process.pid);
+});
 test('cross-site requests, DNS rebinding and filesystem paths are rejected', async t => {
   const { url, port } = await fixture(t);
   assert.equal((await fetch(url + '/api/games', { headers: { Origin: 'https://example.com' } })).status, 403);

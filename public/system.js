@@ -15,6 +15,16 @@ function safeReleaseUrl(value) {
   } catch { return null; }
 }
 
+function safeAssetUrl(value, version, checksum = false) {
+  if (typeof value !== 'string') return null;
+  try {
+    const url = new URL(value);
+    const suffix = checksum ? '.sha256' : '';
+    return url.protocol === 'https:' && url.hostname === 'github.com'
+      && url.pathname === `/Hiliann/steam-games-randomizer/releases/download/v${version}/PlayNext-${version}-win-x64.zip${suffix}` ? url.href : null;
+  } catch { return null; }
+}
+
 export function updateStatus(value) {
   if (!value || !['not-checked', 'ready', 'offline'].includes(value.status) || typeof value.currentVersion !== 'string') throw new Error('Приложение вернуло некорректные сведения об обновлении.');
   if (value.status !== 'ready') return { status: value.status, currentVersion: value.currentVersion, checkedAt: value.checkedAt ?? null };
@@ -25,6 +35,7 @@ export function updateStatus(value) {
     latestVersion: value.latestVersion,
     updateAvailable: value.updateAvailable,
     releaseUrl: safeReleaseUrl(value.releaseUrl),
+    installable: Boolean(safeAssetUrl(value.downloadUrl, value.latestVersion) && safeAssetUrl(value.checksumUrl, value.latestVersion, true)),
     checkedAt: value.checkedAt ?? null,
   };
 }
@@ -48,5 +59,15 @@ export function createSystemClient(send = fetch) {
       return updateStatus(await response.json());
     },
     async checkUpdate(force = false) { return updateStatus(await post('/api/update', { force: force === true })); },
+    async installUpdate(version) {
+      const result = await post('/api/update-install', { version });
+      if (!result || result.status !== 'installing' || result.targetVersion !== version) throw new Error('Приложение не подтвердило установку обновления.');
+      return result;
+    },
+    async launchGame(id) {
+      const result = await post('/api/launch', { id });
+      if (!result || result.status !== 'opened' || !['run', 'install'].includes(result.action)) throw new Error('Steam не подтвердил запуск.');
+      return result;
+    },
   };
 }

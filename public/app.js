@@ -4,6 +4,7 @@ import { DISPLAY_DEFAULTS, createDisplayClient, formatSize, uninstalledSize, siz
 import { createOnlineSizesClient } from './online-sizes.js';
 import { createProfileClient } from './profile.js';
 import { createSystemClient } from './system.js';
+import { APP_DEFAULTS, createAppSettingsClient } from './app-settings.js';
 
 const $ = id => document.getElementById(id);
 // Bypass covers cached by older versions that did not resolve nested Steam assets.
@@ -22,6 +23,7 @@ const exclusionsClient = createExclusionsClient();
 const displayClient = createDisplayClient();
 const profileClient = createProfileClient();
 const systemClient = createSystemClient();
+const appSettingsClient = createAppSettingsClient();
 let displaySettings = { ...DISPLAY_DEFAULTS };
 let displayReady = false;
 let displayPending = false;
@@ -30,13 +32,23 @@ let windowsSettings = { supported: true, desktopShortcut: false, startup: false 
 let windowsReady = false;
 let windowsPending = false;
 let windowsMessage = 'Проверяем настройки Windows…';
-let updateInfo = { status: 'not-checked', currentVersion: '1.6.0' };
+let appSettings = { ...APP_DEFAULTS };
+let appSettingsReady = false;
+let appSettingsPending = false;
+let appSettingsMessage = 'Загружаем настройки обновлений…';
+let updateInfo = { status: 'not-checked', currentVersion: '1.7.0' };
 let updatePending = false;
+let updateInstalling = false;
 let profile = { initialized: false, revision: 0, categories: [], assignments: {}, draw: cleanDrawState(state) };
 let profileReady = false;
 let profilePending = false;
 let categoryFilter = 'all';
-let categoryGameId = null;
+let categorySelectedId = null;
+let categoryDraft = new Set();
+let categoryDraftOriginal = new Set();
+let categoryGameFilter = 'all';
+let categoryFocusGameId = null;
+let launching = false;
 let previewId = state.current;
 let toastTimer;
 const scopedGames = () => gamesInScope(games, state);
@@ -267,32 +279,107 @@ async function setWindowsSetting(key, value) {
     renderWindowsSettings();
   }
 }
+function renderAppSettings() {
+  $('automaticUpdates').checked = appSettings.automaticUpdates;
+  $('automaticUpdates').disabled = !appSettingsReady || appSettingsPending || updateInstalling;
+  $('app-settings-status').textContent = appSettingsMessage;
+  $('retry-app-settings').hidden = appSettingsReady || appSettingsPending;
+}
+async function loadAppSettings() {
+  if (appSettingsPending) return false;
+  appSettingsPending = true;
+  appSettingsMessage = 'Загружаем настройки обновлений…';
+  renderAppSettings();
+  try {
+    appSettings = await appSettingsClient.load();
+    appSettingsReady = true;
+    appSettingsMessage = appSettings.automaticUpdates ? 'Автоматическая установка включена.' : 'Автоматическая установка выключена.';
+    return true;
+  } catch (error) {
+    appSettingsReady = false;
+    appSettingsMessage = error instanceof TypeError ? 'Нет связи с приложением. Повтори загрузку.' : error.message;
+    return false;
+  } finally {
+    appSettingsPending = false;
+    renderAppSettings();
+  }
+}
+async function setAppSetting(key, value) {
+  if (!appSettingsReady || appSettingsPending || updateInstalling) return;
+  const previous = appSettings[key];
+  appSettingsPending = true;
+  appSettingsMessage = 'Сохраняем…';
+  renderAppSettings();
+  try {
+    appSettings = await appSettingsClient.set(key, value);
+    appSettingsMessage = value ? 'Автоматическая установка включена.' : 'Автоматическая установка выключена.';
+    if (value && updateInfo.status === 'ready' && updateInfo.updateAvailable) installUpdate();
+  } catch (error) {
+    appSettings[key] = previous;
+    appSettingsReady = false;
+    appSettingsMessage = `Не удалось подтвердить сохранение. ${error instanceof TypeError ? 'Проверь, что приложение запущено.' : error.message}`;
+  } finally {
+    appSettingsPending = false;
+    renderAppSettings();
+  }
+}
 function renderUpdateStatus() {
-  $('check-update').disabled = updatePending;
+  $('check-update').disabled = updatePending || updateInstalling;
   $('check-update').textContent = updatePending ? 'Проверяем…' : 'Проверить сейчас';
   const link = $('download-update');
+  const install = $('install-update');
   link.hidden = true;
   link.removeAttribute('href');
-  if (updatePending) $('update-status').textContent = `Проверяем обновления. Текущая версия: ${updateInfo.currentVersion}.`;
+  install.hidden = true;
+  install.disabled = updateInstalling;
+  if (updateInstalling) $('update-status').textContent = `Устанавливаем версию ${updateInfo.latestVersion}. Play Next перезапустится автоматически, данные сохранятся.`;
+  else if (updatePending) $('update-status').textContent = `Проверяем обновления. Текущая версия: ${updateInfo.currentVersion}.`;
   else if (updateInfo.status === 'offline') $('update-status').textContent = `Не удалось связаться с GitHub. Текущая версия: ${updateInfo.currentVersion}.`;
   else if (updateInfo.status === 'ready' && updateInfo.updateAvailable) {
     $('update-status').textContent = `Доступна версия ${updateInfo.latestVersion}. Установлена ${updateInfo.currentVersion}.`;
     if (updateInfo.releaseUrl) { link.href = updateInfo.releaseUrl; link.hidden = false; }
+    install.hidden = !updateInfo.installable;
   } else if (updateInfo.status === 'ready') $('update-status').textContent = `Установлена актуальная версия ${updateInfo.currentVersion}.`;
   else $('update-status').textContent = `Текущая версия: ${updateInfo.currentVersion}.`;
 }
 async function checkForUpdate({ force = false, notify = false } = {}) {
-  if (updatePending) return;
+  if (updatePending || updateInstalling) return;
   updatePending = true;
+  let automatic = false;
   renderUpdateStatus();
   try {
     updateInfo = await systemClient.checkUpdate(force);
     if (notify && updateInfo.status === 'ready' && updateInfo.updateAvailable) toast(`Доступна новая версия Play Next: ${updateInfo.latestVersion}`);
+    automatic = appSettingsReady && appSettings.automaticUpdates && updateInfo.status === 'ready' && updateInfo.updateAvailable && updateInfo.installable;
   } catch {
     updateInfo = { status: 'offline', currentVersion: updateInfo.currentVersion };
   } finally {
     updatePending = false;
     renderUpdateStatus();
+  }
+  if (automatic) installUpdate();
+}
+async function installUpdate() {
+  if (updateInstalling || updatePending || updateInfo.status !== 'ready' || !updateInfo.updateAvailable || !updateInfo.installable) return;
+  updateInstalling = true;
+  renderUpdateStatus(); renderAppSettings();
+  try {
+    const targetVersion = updateInfo.latestVersion;
+    await systemClient.installUpdate(targetVersion);
+    toast('Обновление проверяется и устанавливается. Страница перезагрузится сама.');
+    for (let attempt = 0; attempt < 120; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      try {
+        const response = await fetch('/api/health', { cache: 'no-store', signal: AbortSignal.timeout(1500) });
+        const health = await response.json();
+        if (response.ok && health.version === targetVersion) { location.reload(); return; }
+      } catch { /* The local server is restarting. */ }
+    }
+    throw new Error('Программа не перезапустилась вовремя. Открой «Запустить.cmd» вручную.');
+  } catch (error) {
+    updateInstalling = false;
+    toast(error.message);
+    renderUpdateStatus(); renderAppSettings();
   }
 }
 function lastPlayedLabel(game) {
@@ -425,6 +512,7 @@ function renderHero() {
   renderCategoryBadges($('hero-categories'), game?.id);
   requestOnlineSize(game, true);
   $('play-button').hidden = !selected;
+  $('play-button').disabled = launching;
   $('exclude-current').hidden = !selected || state.excluded.includes(selected.id);
   $('exclude-current').disabled = busy || scanning || savingExclusion || !exclusionsReady;
   if (selected) {
@@ -433,7 +521,6 @@ function renderHero() {
     $('hero-title').textContent = selected.name;
     $('hero-description').textContent = selected.installed === false ? 'Игра есть в библиотеке аккаунта, но не установлена на этом компьютере. Steam предложит выбрать диск и начать загрузку.' : selected.updateRequired ? 'Игра установлена. Перед запуском Steam может предложить обновление.' : lastPlayedLabel(selected);
     const action = gameAction(selected);
-    $('play-button').href = action.href;
     $('play-label').textContent = action.label;
     $('cover-caption').textContent = 'Обложка из твоей библиотеки Steam';
   } else {
@@ -441,8 +528,22 @@ function renderHero() {
     $('hero-kicker').textContent = scoped.length ? 'БИБЛИОТЕКА ПОЛНА ВОЗМОЖНОСТЕЙ' : 'НАЧНЁМ С ТВОЕЙ БИБЛИОТЕКИ';
     $('hero-title').textContent = scoped.length ? 'Вечер свободен. Игра найдётся.' : 'Твоя следующая игра уже где-то рядом.';
     $('hero-description').textContent = scoped.length ? 'Нажми «Выбрать игру» - мы найдём, во что погрузиться сегодня.' : 'Если Steam установлен в необычной папке, укажи её в разделе «Библиотеки».';
-    $('play-button').removeAttribute('href');
     $('cover-caption').textContent = game ? `На обложке: ${game.name}` : '';
+  }
+}
+async function launchSelectedGame() {
+  const game = scopedGames().find(item => item.id === previewId);
+  if (!game || launching) return;
+  launching = true;
+  renderHero();
+  try {
+    const result = await systemClient.launchGame(game.id);
+    toast(result.action === 'install' ? 'Steam открыт для установки игры.' : 'Игра передана в Steam.');
+  } catch (error) {
+    toast(error instanceof TypeError ? 'Нет связи с Play Next. Запусти программу и повтори.' : error.message);
+  } finally {
+    launching = false;
+    renderHero();
   }
 }
 $('hero-image').addEventListener('load', () => { $('hero-image').hidden = false; });
@@ -568,54 +669,105 @@ function setFilter(value) {
   renderGrid();
 }
 
-function renderCategoriesDialog() {
-  const game = games.find(item => item.id === categoryGameId);
-  $('categories-intro').textContent = game ? `Настрой категории для «${game.name}» или измени сами подборки.` : 'Создавай подборки для настроения, компании или свободного времени. Категории сохраняются в папке приложения.';
-  $('game-category-editor').hidden = !game;
-  $('category-game-name').textContent = game?.name ?? '';
-  const options = document.createDocumentFragment();
-  if (game) for (const category of profile.categories) {
-    const label = element('label', 'category-option');
+function sameIds(left, right) {
+  return left.size === right.size && [...left].every(id => right.has(id));
+}
+function categoryDraftDirty() { return !sameIds(categoryDraft, categoryDraftOriginal); }
+function selectCategory(categoryId, { force = false } = {}) {
+  if (!force && categorySelectedId !== categoryId && categoryDraftDirty() && !confirm('Отменить несохранённые изменения этой категории?')) return false;
+  categorySelectedId = profile.categories.some(item => item.id === categoryId) ? categoryId : profile.categories[0]?.id ?? null;
+  categoryDraft = new Set(games.filter(game => (profile.assignments[game.id] ?? []).includes(categorySelectedId)).map(game => game.id));
+  categoryDraftOriginal = new Set(categoryDraft);
+  renderCategoriesDialog();
+  return true;
+}
+function visibleCategoryGames() {
+  const term = $('category-search').value.trim().toLocaleLowerCase('ru');
+  return games.filter(game => game.name.toLocaleLowerCase('ru').includes(term)
+    && (categoryGameFilter === 'all' || (categoryGameFilter === 'added') === categoryDraft.has(game.id)))
+    .sort((left, right) => Number(right.id === categoryFocusGameId) - Number(left.id === categoryFocusGameId) || left.name.localeCompare(right.name, 'ru'));
+}
+function renderCategoryGameList() {
+  const visible = visibleCategoryGames();
+  const fragment = document.createDocumentFragment();
+  for (const game of visible) {
+    const label = element('label', 'category-game-row' + (game.id === categoryFocusGameId ? ' category-game-focus' : ''));
     const input = document.createElement('input');
-    input.type = 'checkbox'; input.checked = (profile.assignments[game.id] ?? []).includes(category.id);
-    input.disabled = !profileReady || profilePending;
-    input.addEventListener('change', () => setGameCategory(game.id, category.id, input.checked));
-    label.append(input, categoryBadge(category));
-    options.append(label);
+    input.type = 'checkbox'; input.checked = categoryDraft.has(game.id); input.disabled = !profileReady || profilePending;
+    input.setAttribute('aria-label', `Добавить в категорию: ${game.name}`);
+    input.addEventListener('change', () => {
+      if (input.checked) categoryDraft.add(game.id); else categoryDraft.delete(game.id);
+      renderCategoryGameList();
+    });
+    const copy = element('span', 'category-game-copy');
+    copy.append(element('strong', '', game.name), element('small', '', game.installed === false ? 'Не установлена' : 'Установлена'));
+    label.append(input, copy);
+    fragment.append(label);
   }
-  if (game && !profile.categories.length) options.append(element('p', 'category-empty', 'Сначала создай первую категорию ниже.'));
-  $('game-category-options').replaceChildren(options);
+  if (!visible.length) fragment.append(element('p', 'category-empty', 'По этому фильтру игр не найдено.'));
+  $('category-game-list').replaceChildren(fragment);
+  const changed = [...new Set([...categoryDraft, ...categoryDraftOriginal])].filter(id => categoryDraft.has(id) !== categoryDraftOriginal.has(id)).length;
+  $('category-draft-count').textContent = changed ? `Изменений: ${changed} · в подборке: ${categoryDraft.size}` : `В подборке: ${categoryDraft.size} · изменений нет`;
+  $('category-save').disabled = !changed || !profileReady || profilePending;
+  $('category-cancel').disabled = !changed || profilePending;
+  $('category-add-visible').disabled = !visible.some(game => !categoryDraft.has(game.id)) || profilePending;
+  $('category-remove-visible').disabled = !visible.some(game => categoryDraft.has(game.id)) || profilePending;
+}
+function renderCategoriesDialog() {
+  if (profile.categories.length && !profile.categories.some(item => item.id === categorySelectedId)) {
+    categorySelectedId = profile.categories[0].id;
+    categoryDraft = new Set(games.filter(game => (profile.assignments[game.id] ?? []).includes(categorySelectedId)).map(game => game.id));
+    categoryDraftOriginal = new Set(categoryDraft);
+  } else if (!profile.categories.length) {
+    categorySelectedId = null; categoryDraft = new Set(); categoryDraftOriginal = new Set();
+  }
+  const picker = document.createDocumentFragment();
+  for (const category of profile.categories) {
+    const count = games.filter(game => (profile.assignments[game.id] ?? []).includes(category.id)).length;
+    const button = element('button', `category-picker-button category-${category.color}`);
+    button.type = 'button'; button.disabled = !profileReady || profilePending;
+    button.classList.toggle('active', category.id === categorySelectedId);
+    button.setAttribute('aria-pressed', String(category.id === categorySelectedId));
+    button.append(element('span', '', category.name), element('small', '', String(count)));
+    button.addEventListener('click', () => selectCategory(category.id));
+    picker.append(button);
+  }
+  if (!profile.categories.length) picker.append(element('p', 'category-empty', 'Категорий пока нет. Создай первую подборку ниже.'));
+  $('category-picker').replaceChildren(picker);
+  $('category-bulk-editor').hidden = !categorySelectedId;
+  if (categorySelectedId) renderCategoryGameList();
 
   const list = document.createDocumentFragment();
   for (const category of profile.categories) {
     const row = element('form', 'category-manage-row');
-    const marker = categoryBadge(category);
-    marker.textContent = '';
-    marker.setAttribute('aria-hidden', 'true');
+    const marker = categoryBadge(category); marker.textContent = ''; marker.setAttribute('aria-hidden', 'true');
     const input = document.createElement('input');
     input.value = category.name; input.maxLength = 32; input.required = true;
-    input.setAttribute('aria-label', `Название категории ${category.name}`);
-    input.disabled = !profileReady || profilePending;
+    input.setAttribute('aria-label', `Название категории ${category.name}`); input.disabled = !profileReady || profilePending;
     const saveButton = element('button', 'button button-quiet', 'Сохранить'); saveButton.type = 'submit';
     const deleteButton = element('button', 'icon-button'); deleteButton.type = 'button'; deleteButton.append(icon('close'));
     deleteButton.title = 'Удалить категорию'; deleteButton.setAttribute('aria-label', `Удалить категорию ${category.name}`);
     saveButton.disabled = deleteButton.disabled = !profileReady || profilePending;
     row.addEventListener('submit', event => { event.preventDefault(); renameCategory(category.id, input.value); });
-    deleteButton.addEventListener('click', () => {
-      if (confirm(`Удалить категорию «${category.name}»? Игры останутся в библиотеке.`)) deleteCategory(category.id);
-    });
+    deleteButton.addEventListener('click', () => { if (confirm(`Удалить категорию «${category.name}»? Игры останутся в библиотеке.`)) deleteCategory(category.id); });
     row.append(marker, input, saveButton, deleteButton); list.append(row);
   }
-  if (!profile.categories.length) list.append(element('p', 'category-empty', 'Категорий пока нет. Создай первую подборку.'));
+  if (!profile.categories.length) list.append(element('p', 'category-empty', 'Создай первую подборку.'));
   $('category-list').replaceChildren(list);
   $('category-name').disabled = !profileReady || profilePending || profile.categories.length >= 20;
   $('add-category-form').querySelector('button').disabled = !profileReady || profilePending || profile.categories.length >= 20;
-  $('category-status').textContent = profilePending ? 'Сохраняем изменения…' : profileReady ? `Категорий: ${profile.categories.length} из 20. Изменения сохраняются автоматически.` : 'Категории недоступны. Нажми «Обновить список» в библиотеке.';
+  $('category-status').textContent = profilePending ? 'Сохраняем изменения…' : profileReady ? `Категорий: ${profile.categories.length} из 20. Отметь нужные игры и нажми «Сохранить».` : 'Категории недоступны. Нажми «Обновить список» в библиотеке.';
 }
 function openCategories(gameId = null) {
-  categoryGameId = gameId;
-  renderCategoriesDialog();
+  categoryFocusGameId = gameId;
+  const assigned = gameId ? profile.assignments[gameId] ?? [] : [];
+  selectCategory(assigned.find(id => profile.categories.some(item => item.id === id)) ?? categorySelectedId ?? profile.categories[0]?.id ?? null, { force: true });
   if (!$('categories-dialog').open) $('categories-dialog').showModal();
+  if (gameId) requestAnimationFrame(() => $('category-game-list').querySelector('.category-game-focus')?.scrollIntoView({ block: 'center' }));
+}
+function closeCategories() {
+  if (categoryDraftDirty() && !confirm('Закрыть категории и отменить несохранённые изменения?')) return;
+  $('categories-dialog').close();
 }
 async function mutateProfile(operation, successMessage) {
   if (!profileReady || profilePending || busy || scanning) return false;
@@ -634,9 +786,14 @@ async function mutateProfile(operation, successMessage) {
     renderCounts(); renderHero(); renderHistory(); renderGrid(); renderCategoriesDialog();
   }
 }
-const setGameCategory = (appId, categoryId, assigned) => mutateProfile(revision => profileClient.setCategory(revision, appId, categoryId, assigned), 'Категории игры сохранены');
 const renameCategory = (id, name) => mutateProfile(revision => profileClient.renameCategory(revision, id, name), 'Категория переименована');
 const deleteCategory = id => mutateProfile(revision => profileClient.deleteCategory(revision, id), 'Категория удалена');
+async function saveCategoryDraft() {
+  if (!categorySelectedId || !categoryDraftDirty()) return;
+  const selected = categorySelectedId;
+  const saved = await mutateProfile(revision => profileClient.setCategoryGames(revision, selected, [...categoryDraft], games.map(game => game.id)), 'Подборка сохранена');
+  if (saved) selectCategory(selected, { force: true });
+}
 
 async function draw() {
   if (busy || scanning || savingExclusion || !exclusionsReady || !profileReady || profilePending || !eligible().length) return;
@@ -743,7 +900,7 @@ async function scan({ addedPath } = {}) {
   renderCounts();
   let success = false;
   try {
-    await Promise.all([loadExclusions(), loadDisplaySettings(), loadProfile()]);
+    await Promise.all([loadExclusions(), loadDisplaySettings(), loadAppSettings(), loadProfile()]);
     const paths = addedPath ? [...state.customPaths, addedPath] : state.customPaths;
     const response = await fetch('/api/scan', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Randomizer': '1' }, body: JSON.stringify({ paths, includeUninstalled: state.includeUninstalled }) });
     const data = await response.json();
@@ -786,21 +943,35 @@ $('no-repeats').addEventListener('change', event => updateDraw({ noRepeats: even
 $('reset-cycle').addEventListener('click', () => updateDraw({ seen: [] }, 'Новый круг: все подходящие игры снова доступны'));
 $('clear-history').addEventListener('click', () => updateDraw({ history: [] }, 'История очищена. Текущий круг сохранён.'));
 $('exclude-current').addEventListener('click', async () => { if (previewId && await setExcluded(previewId, true)) toast('Исключение сохранено. Вернуть игру можно во вкладке «Исключены».'); });
-$('play-button').addEventListener('click', () => toast('Подтверди открытие Steam, если браузер попросит.'));
+$('play-button').addEventListener('click', launchSelectedGame);
 $('categories-button').addEventListener('click', () => openCategories());
 $('libraries-button').addEventListener('click', () => { renderLibraries(); $('libraries-dialog').showModal(); });
-$('settings-button').addEventListener('click', () => { $('settings-dialog').showModal(); loadDisplaySettings(); loadWindowsSettings(); systemClient.loadUpdate().then(value => { updateInfo = value; renderUpdateStatus(); }).catch(() => {}); });
+$('settings-button').addEventListener('click', () => { $('settings-dialog').showModal(); loadDisplaySettings(); loadAppSettings(); loadWindowsSettings(); systemClient.loadUpdate().then(value => { updateInfo = value; renderUpdateStatus(); }).catch(() => {}); });
 $('close-settings').addEventListener('click', () => $('settings-dialog').close());
 $('retry-display').addEventListener('click', loadDisplaySettings);
 $('retry-windows').addEventListener('click', loadWindowsSettings);
+$('retry-app-settings').addEventListener('click', loadAppSettings);
 $('check-update').addEventListener('click', () => checkForUpdate({ force: true }));
+$('install-update').addEventListener('click', installUpdate);
 for (const key of Object.keys(DISPLAY_DEFAULTS)) $(key).addEventListener('change', event => setDisplaySetting(key, event.target.checked));
 for (const key of ['desktopShortcut', 'startup']) $(key).addEventListener('change', event => setWindowsSetting(key, event.target.checked));
+$('automaticUpdates').addEventListener('change', event => setAppSetting('automaticUpdates', event.target.checked));
 $('settings-dialog').addEventListener('click', event => { if (event.target === $('settings-dialog')) { const rect = $('settings-dialog').getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) $('settings-dialog').close(); } });
 $('close-dialog').addEventListener('click', () => $('libraries-dialog').close());
 $('libraries-dialog').addEventListener('click', event => { if (event.target === $('libraries-dialog')) { const rect = $('libraries-dialog').getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) $('libraries-dialog').close(); } });
-$('close-categories').addEventListener('click', () => $('categories-dialog').close());
-$('categories-dialog').addEventListener('click', event => { if (event.target === $('categories-dialog')) { const rect = $('categories-dialog').getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) $('categories-dialog').close(); } });
+$('close-categories').addEventListener('click', closeCategories);
+$('categories-dialog').addEventListener('cancel', event => { event.preventDefault(); closeCategories(); });
+$('categories-dialog').addEventListener('click', event => { if (event.target === $('categories-dialog')) { const rect = $('categories-dialog').getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeCategories(); } });
+$('category-search').addEventListener('input', renderCategoryGameList);
+for (const button of document.querySelectorAll('.category-game-filter')) button.addEventListener('click', () => {
+  categoryGameFilter = button.dataset.categoryFilter;
+  for (const item of document.querySelectorAll('.category-game-filter')) { const active = item === button; item.classList.toggle('active', active); item.setAttribute('aria-pressed', String(active)); }
+  renderCategoryGameList();
+});
+$('category-add-visible').addEventListener('click', () => { for (const game of visibleCategoryGames()) categoryDraft.add(game.id); renderCategoryGameList(); });
+$('category-remove-visible').addEventListener('click', () => { for (const game of visibleCategoryGames()) categoryDraft.delete(game.id); renderCategoryGameList(); });
+$('category-cancel').addEventListener('click', () => { categoryDraft = new Set(categoryDraftOriginal); renderCategoryGameList(); });
+$('category-save').addEventListener('click', saveCategoryDraft);
 $('add-category-form').addEventListener('submit', async event => {
   event.preventDefault();
   const input = $('category-name');
@@ -834,5 +1005,6 @@ window.addEventListener('storage', event => {
   catch { /* Ignore malformed updates from another browser tab. */ }
 });
 renderWindowsSettings();
+renderAppSettings();
 renderUpdateStatus();
 scan().then(() => checkForUpdate({ notify: true }));

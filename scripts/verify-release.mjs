@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import http from 'node:http';
 import { once } from 'node:events';
 import { execFile } from 'node:child_process';
@@ -10,6 +11,7 @@ import { getInstanceId, APP_VERSION } from '../server.mjs';
 import { createExclusionsClient } from '../public/exclusions.js';
 import { createDisplayClient, DISPLAY_DEFAULTS } from '../public/display.js';
 import { createProfileClient } from '../public/profile.js';
+import { APP_DEFAULTS, createAppSettingsClient } from '../public/app-settings.js';
 
 const execFileAsync = promisify(execFile);
 const directory = path.resolve(process.argv[2] ?? '');
@@ -17,6 +19,28 @@ if (!process.argv[2]) throw new Error('Pass a clean, extracted application direc
 const recordPath = path.join(directory, '.server-process.json');
 const root = process.env.SystemRoot ?? process.env.SYSTEMROOT;
 const powershell = path.join(root, 'System32/WindowsPowerShell/v1.0/powershell.exe');
+const manifest = JSON.parse((await readFile(path.join(directory, 'release-manifest.json'), 'utf8')).replace(/^\uFEFF/, ''));
+assert.equal(manifest.version, 1);
+assert.equal(manifest.appVersion, APP_VERSION);
+const listed = new Set();
+for (const item of manifest.files) {
+  assert.match(item.path, /^(?!data(?:\/|$))(?!.*\.\.)(?:[\p{L}\p{N} ._\/-]+)$/u);
+  assert.equal(listed.has(item.path), false);
+  listed.add(item.path);
+  const bytes = await readFile(path.join(directory, ...item.path.split('/')));
+  assert.equal(bytes.length, item.bytes);
+  assert.equal(createHash('sha256').update(bytes).digest('hex'), item.sha256);
+}
+async function packagedFiles(folder = directory, prefix = '') {
+  const result = [];
+  for (const name of await readdir(folder)) {
+    const full = path.join(folder, name); const relative = prefix ? `${prefix}/${name}` : name;
+    if ((await stat(full)).isDirectory()) result.push(...await packagedFiles(full, relative));
+    else if (relative !== 'release-manifest.json') result.push(relative);
+  }
+  return result;
+}
+assert.deepEqual([...listed].sort(), (await packagedFiles()).sort());
 const cleanEnvironment = { ...process.env };
 for (const key of Object.keys(cleanEnvironment)) {
   if (['PATH', 'NODE_OPTIONS', 'NODE_PATH', 'STEAM_PATH', 'PORT'].includes(key.toUpperCase())) delete cleanEnvironment[key];
@@ -44,7 +68,7 @@ try {
   const health = await fetch(base + '/api/health').then(response => response.json());
   assert.equal(health.version, APP_VERSION);
   assert.equal(health.instanceId, record.instanceId);
-  for (const asset of ['/', '/app.js', '/exclusions.js', '/profile.js', '/display.js', '/online-sizes.js', '/system.js', '/responsive.css', '/style.css']) {
+  for (const asset of ['/', '/app.js', '/exclusions.js', '/profile.js', '/display.js', '/app-settings.js', '/online-sizes.js', '/system.js', '/responsive.css', '/style.css']) {
     const response = await fetch(base + asset);
     assert.equal(response.status, 200);
     await response.arrayBuffer();
@@ -100,7 +124,10 @@ try {
   const exclusions = createExclusionsClient((route, options) => fetch(base + route, options));
   const display = createDisplayClient((route, options) => fetch(base + route, options));
   const profileClient = createProfileClient((route, options) => fetch(base + route, options));
+  const appSettingsClient = createAppSettingsClient((route, options) => fetch(base + route, options));
   assert.deepEqual(await display.load(), DISPLAY_DEFAULTS);
+  assert.deepEqual(await appSettingsClient.load(), APP_DEFAULTS);
+  await appSettingsClient.set('automaticUpdates', true);
   await display.set('showUninstalledSize', false);
   await display.set('showInstalledBadge', true);
   assert.deepEqual(await exclusions.load(['900000001']), ['900000001']);
@@ -120,6 +147,7 @@ try {
   const freshBrowser = createExclusionsClient((route, options) => fetch(restartedBase + route, options));
   const freshDisplay = createDisplayClient((route, options) => fetch(restartedBase + route, options));
   const freshProfile = createProfileClient((route, options) => fetch(restartedBase + route, options));
+  const freshAppSettings = createAppSettingsClient((route, options) => fetch(restartedBase + route, options));
   if (onlineCheck) {
     const response = await fetch(restartedBase + '/api/scan', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Randomizer': '1' }, body: JSON.stringify({ paths: [], includeUninstalled: true }) });
     const loaded = await response.json();
@@ -128,6 +156,7 @@ try {
     assert.equal(disabled.status, 'disabled');
   }
   assert.deepEqual(await freshDisplay.load(), { showUninstalledSize: false, showInstalledBadge: true });
+  assert.deepEqual(await freshAppSettings.load(), { automaticUpdates: true });
   assert.deepEqual(JSON.parse(await readFile(path.join(directory, 'data/display-settings.json'), 'utf8')).settings, { showUninstalledSize: false, showInstalledBadge: true });
   assert.deepEqual(await freshBrowser.load([]), ['900000001', '900000002']);
   const restoredProfile = await freshProfile.load({});
@@ -141,7 +170,7 @@ try {
   await invoke(['-Stop']);
   await assert.rejects(fetch(restartedBase + '/api/health', { signal: AbortSignal.timeout(1500) }));
   assert.equal(await fetch(`http://127.0.0.1:${blockedPort}`).then(response => response.text()), 'another application');
-  console.log(JSON.stringify({ applicationLaunch: 'passed', systemNodeRequired: false, occupiedPort: 'handled', sameProcessOnRelaunch: true, installedGames: games.games.length, includingUninstalled: expanded.games.length, estimatedSizes: expanded.games.filter(game => game.installed === false && game.installSize?.bytes > 0).length, onlineSizeAndPersistentCache: onlineCheck ? 'passed' : 'not requested', libraryStatus: expanded.ownedLibrary.status, switchingModes: 'passed', exclusionsSurviveRestartAndPortChange: true, categoriesAndHistorySurviveRestartAndPortChange: true, displaySettingsSurviveRestartAndPortChange: true, emptyBrowserStorage: 'handled', staleImport: 'ignored', cleanStop: true }, null, 2));
+  console.log(JSON.stringify({ applicationLaunch: 'passed', systemNodeRequired: false, occupiedPort: 'handled', sameProcessOnRelaunch: true, installedGames: games.games.length, includingUninstalled: expanded.games.length, estimatedSizes: expanded.games.filter(game => game.installed === false && game.installSize?.bytes > 0).length, onlineSizeAndPersistentCache: onlineCheck ? 'passed' : 'not requested', libraryStatus: expanded.ownedLibrary.status, switchingModes: 'passed', exclusionsSurviveRestartAndPortChange: true, categoriesAndHistorySurviveRestartAndPortChange: true, displaySettingsSurviveRestartAndPortChange: true, appSettingsSurviveRestartAndPortChange: true, releaseManifestVerified: true, emptyBrowserStorage: 'handled', staleImport: 'ignored', cleanStop: true }, null, 2));
 } finally {
   await invoke(['-Stop']).catch(() => {});
   occupied.closeAllConnections();

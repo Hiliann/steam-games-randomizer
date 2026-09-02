@@ -65,11 +65,12 @@ if ($RuntimeDirectory) {
 # cached covers, settings, source archives and any other machine-specific files.
 $releaseFiles = @(
     'package.json', 'server.mjs', 'start.ps1', 'Start.cmd', 'Stop.cmd',
-    'README.md', 'README.en.md', 'READ ME FIRST.txt', 'THIRD_PARTY_NOTICES.md',
+    'README.md', 'README.en.md', 'READ ME FIRST.txt', 'THIRD_PARTY_NOTICES.md', 'CHANGELOG.md',
     'lib\steam.mjs', 'lib\owned.mjs', 'lib\steam-cache.mjs', 'lib\exclusions.mjs', 'lib\profile.mjs', 'public\index.html', 'public\app.js', 'public\exclusions.js', 'public\profile.js',
     'lib\install-size.mjs', 'lib\display-settings.mjs', 'public\display.js',
     'lib\online-sizes.mjs', 'public\online-sizes.js',
-    'lib\windows-integration.mjs', 'lib\update-check.mjs', 'scripts\windows-integration.ps1', 'public\system.js',
+    'lib\windows-integration.mjs', 'lib\update-check.mjs', 'lib\update-installer.mjs', 'lib\steam-launch.mjs', 'lib\app-settings.mjs',
+    'scripts\windows-integration.ps1', 'scripts\launch-steam.ps1', 'scripts\apply-update.ps1', 'public\system.js', 'public\app-settings.js',
     'public\randomizer.js', 'public\style.css', 'public\responsive.css', 'public\icon.svg'
 )
 foreach ($relativeFile in $releaseFiles) {
@@ -89,6 +90,12 @@ $release = [ordered]@{
     personalDataIncluded = $false
 }
 $release | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $packageDirectory 'release.json') -Encoding UTF8
+$manifestFiles = Get-ChildItem -LiteralPath $packageDirectory -File -Recurse | ForEach-Object {
+    $relative = $_.FullName.Substring($packageDirectory.Length + 1).Replace('\', '/')
+    [ordered]@{ path = $relative; bytes = [long]$_.Length; sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
+}
+$manifest = [ordered]@{ version = 1; appVersion = $package.version; files = @($manifestFiles) }
+$manifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $packageDirectory 'release-manifest.json') -Encoding UTF8
 Compress-Archive -LiteralPath $packageDirectory -DestinationPath $zipPath -CompressionLevel Optimal
 $zipHash = (Get-FileHash -LiteralPath $zipPath).Hash.ToLowerInvariant()
 "$zipHash  $releaseName.zip" | Set-Content -LiteralPath "$zipPath.sha256" -Encoding ASCII

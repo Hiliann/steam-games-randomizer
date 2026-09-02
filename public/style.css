@@ -38,3 +38,26 @@ select:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .category-empty{color:var(--muted);font-size:12px;line-height:1.6}
 .add-category-form{margin-top:22px;padding-top:18px;border-top:1px solid var(--border)}.add-category-form>label{display:block;margin-bottom:9px;font-size:12px}
 .category-status{margin-bottom:0}
+.hero-actions:has(.button:not([hidden])){margin-top:22px}
+.card-category-button{padding:4px 7px}.card-category-button span{display:inline}
+.categories-dialog{width:min(920px,calc(100vw - 32px));overflow:auto}
+.category-picker{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;scrollbar-width:thin}
+.category-picker-button{display:flex;align-items:center;gap:9px;flex:0 0 auto;padding:9px 11px;background:#171d14;border:1px solid #3b4633;border-radius:999px;color:currentColor;font-size:11px}
+.category-picker-button small{display:grid;place-items:center;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:#ffffff12;color:#dce5d4;font-size:9px}
+.category-picker-button.active{background:#2b3624;box-shadow:inset 0 0 0 1px currentColor}
+.category-bulk-editor{margin-top:4px;border:1px solid var(--border);border-radius:13px;background:#171c14;overflow:hidden}
+.category-editor-toolbar{display:flex;align-items:center;gap:10px;padding:13px;border-bottom:1px solid var(--border)}
+.category-search{max-width:none;flex:1;background:#10150c}
+.category-game-filters{display:flex;gap:3px;padding:3px;background:#10150c;border:1px solid var(--border);border-radius:9px}
+.category-game-filter{padding:8px 10px;background:transparent;color:var(--muted);border-radius:6px;font-size:10px;white-space:nowrap}
+.category-game-filter.active{background:#2d3725;color:var(--accent)}
+.category-bulk-actions{display:flex;gap:16px;padding:8px 14px 6px}.category-bulk-actions .text-button{min-height:32px}
+.category-game-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:8px 12px 12px;max-height:340px;overflow:auto;scrollbar-width:thin}
+.category-game-row{display:flex;align-items:center;gap:11px;min-width:0;padding:10px;border:1px solid transparent;border-radius:9px;background:#20271c;cursor:pointer}
+.category-game-row:hover{border-color:#4e5c42;background:#252e20}.category-game-row:has(input:checked){border-color:#617b4b;background:#293422}
+.category-game-row input{width:17px;height:17px;margin:0;flex-shrink:0;accent-color:var(--accent)}
+.category-game-copy{min-width:0}.category-game-copy strong,.category-game-copy small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.category-game-copy strong{font-size:11px;font-weight:550}.category-game-copy small{margin-top:3px;color:var(--muted);font-size:9px}
+.category-game-focus{outline:2px solid var(--accent);outline-offset:-2px}
+.category-save-bar{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;background:#222a1d;border-top:1px solid var(--border);font-size:10px;color:#aeb9a5}
+.category-save-bar>div{display:flex;gap:8px}.category-save-bar .button{padding:9px 13px;font-size:11px}
+.category-management{margin-top:16px;border-top:1px solid var(--border);padding-top:14px}.category-management summary{cursor:pointer;color:#aebaa4;font-size:11px}.category-management[open] summary{color:var(--accent)}

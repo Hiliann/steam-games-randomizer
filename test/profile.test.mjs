@@ -41,6 +41,10 @@ test('categories can be assigned, renamed, created and deleted without losing ot
   let profile = await store.change({ action: 'initialize', draw: {} });
   profile = await store.change({ action: 'set-category', revision: profile.revision, appId: '10', categoryId: 'favorite', assigned: true });
   profile = await store.change({ action: 'set-category', revision: profile.revision, appId: '20', categoryId: 'company', assigned: true });
+  profile = await store.change({ action: 'set-category', revision: profile.revision, appId: '999', categoryId: 'favorite', assigned: true });
+  profile = await store.change({ action: 'set-category-games', revision: profile.revision, categoryId: 'favorite', appIds: ['20'], scopeAppIds: ['10', '20'] });
+  assert.deepEqual(profile.assignments['20'].sort(), ['company', 'favorite']);
+  assert.deepEqual(profile.assignments['999'], ['favorite'], 'assignments outside the loaded library are preserved');
   profile = await store.change({ action: 'rename-category', revision: profile.revision, id: 'favorite', name: 'Самые любимые' });
   profile = await store.change({ action: 'add-category', revision: profile.revision, name: 'На выходные' });
   const custom = profile.categories.find(item => item.name === 'На выходные');
@@ -78,6 +82,8 @@ test('profile API is local-only, bounded and client validates responses', async 
   assert.deepEqual(profile.draw.seen, ['10']);
   const updated = await client.setCategory(profile.revision, '10', 'favorite', true);
   assert.deepEqual(updated.assignments['10'], ['favorite']);
+  const bulk = await client.setCategoryGames(updated.revision, 'company', ['20'], ['10', '20']);
+  assert.deepEqual(bulk.assignments['20'], ['company']);
   const post = (body, headers = {}) => fetch(url + '/api/profile', { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body });
   assert.equal((await post('{}')).status, 403);
   assert.equal((await post('{}', { 'X-Randomizer': '1', Origin: 'https://example.com' })).status, 403);
@@ -91,10 +97,10 @@ test('category and draw-mode controls are wired into the responsive interface', 
   const html = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
   const app = await readFile(new URL('../public/app.js', import.meta.url), 'utf8');
   const css = await readFile(new URL('../public/responsive.css', import.meta.url), 'utf8');
-  for (const id of ['categories-button', 'categories-dialog', 'category-list', 'add-category-form', 'category-filter', 'draw-mode', 'hero-categories']) assert.ok(html.includes(`id="${id}"`), id);
+  for (const id of ['categories-button', 'categories-dialog', 'category-picker', 'category-game-list', 'category-save', 'category-list', 'add-category-form', 'category-filter', 'draw-mode', 'hero-categories']) assert.ok(html.includes(`id="${id}"`), id);
   assert.match(app, /eligibleGames\(games, state, profile\.assignments\)/);
   assert.match(app, /profileClient\.replaceDraw/);
-  assert.match(app, /profileClient\.setCategory/);
+  assert.match(app, /profileClient\.setCategoryGames/);
   assert.match(app, /includeUninstalled: next\.includeUninstalled, customPaths: next\.customPaths/);
   assert.match(css, /\.library-tools\s*\{[^}]*flex-direction:\s*column/s);
   assert.match(css, /\.category-manage-row\s*\{[^}]*grid-template-columns/s);

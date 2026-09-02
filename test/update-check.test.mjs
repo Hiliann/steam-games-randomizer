@@ -19,7 +19,10 @@ test('update checker accepts only the expected public release and caches backgro
     assert.match(options.headers['User-Agent'], /Play-Next\/1\.6\.0/);
     return new Response(JSON.stringify({
       tag_name: 'v1.7.0', draft: false, prerelease: false,
-      assets: [{ name: 'PlayNext-1.7.0-win-x64.zip', browser_download_url: 'https://github.com/Hiliann/steam-games-randomizer/releases/download/v1.7.0/PlayNext-1.7.0-win-x64.zip' }],
+      assets: [
+        { name: 'PlayNext-1.7.0-win-x64.zip', browser_download_url: 'https://github.com/Hiliann/steam-games-randomizer/releases/download/v1.7.0/PlayNext-1.7.0-win-x64.zip' },
+        { name: 'PlayNext-1.7.0-win-x64.zip.sha256', browser_download_url: 'https://github.com/Hiliann/steam-games-randomizer/releases/download/v1.7.0/PlayNext-1.7.0-win-x64.zip.sha256' },
+      ],
     }));
   };
   const service = createUpdateService({ currentVersion: '1.6.0', request, clock: () => now });
@@ -29,6 +32,7 @@ test('update checker accepts only the expected public release and caches backgro
   assert.equal(first.latestVersion, '1.7.0');
   assert.match(first.releaseUrl, /releases\/tag\/v1\.7\.0$/);
   assert.match(first.downloadUrl, /PlayNext-1\.7\.0-win-x64\.zip$/);
+  assert.match(first.checksumUrl, /PlayNext-1\.7\.0-win-x64\.zip\.sha256$/);
   await service.check();
   assert.equal(requests, 1);
   now += 1000;

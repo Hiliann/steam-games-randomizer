@@ -44,7 +44,7 @@
           <img id="hero-image" class="hero-image" alt="" hidden>
           <div class="hero-shade"></div>
           <div class="spotlight-top"><span class="spotlight-tag" id="spotlight-tag"><span class="status-dot"></span>ТВОЯ СЛЕДУЮЩАЯ ИГРА</span><div class="hero-badges"><span id="hero-disk" class="disk-tag" hidden></span><span id="hero-size" class="disk-tag" hidden></span><a id="hero-size-source" class="disk-tag size-source" target="_blank" rel="noreferrer noopener" aria-label="Источник размера в Steam" hidden>Steam ↗</a></div></div>
-          <div class="spotlight-body"><p class="eyebrow" id="hero-kicker">БИБЛИОТЕКА ПОЛНА ВОЗМОЖНОСТЕЙ</p><h2 id="hero-title">Вечер свободен.<br>Игра найдётся.</h2><div id="hero-categories" class="category-badges" hidden></div><p id="hero-description">Собираем установленные игры из Steam…</p><div class="hero-actions"><a id="play-button" class="button button-light" hidden><svg class="icon"><use href="#i-play"/></svg><span id="play-label">Играть в Steam</span><svg class="icon arrow"><use href="#i-arrow"/></svg></a><button id="exclude-current" class="hero-skip" hidden>Не предлагать эту игру</button></div></div>
+          <div class="spotlight-body"><p class="eyebrow" id="hero-kicker">БИБЛИОТЕКА ПОЛНА ВОЗМОЖНОСТЕЙ</p><h2 id="hero-title">Вечер свободен.<br>Игра найдётся.</h2><div id="hero-categories" class="category-badges" hidden></div><p id="hero-description">Собираем установленные игры из Steam…</p><div class="hero-actions"><button id="play-button" type="button" class="button button-light" hidden><svg class="icon"><use href="#i-play"/></svg><span id="play-label">Играть в Steam</span><svg class="icon arrow"><use href="#i-arrow"/></svg></button><button id="exclude-current" class="hero-skip" hidden>Не предлагать эту игру</button></div></div>
           <span id="cover-caption" class="cover-caption"></span>
         </article>
 
@@ -93,17 +93,25 @@
     </section>
     <section class="settings-section" aria-labelledby="update-settings-title">
       <h3 id="update-settings-title" class="settings-section-title">Обновления</h3>
-      <p id="update-status" class="dialog-intro display-status" role="status">Текущая версия: 1.6.0</p>
-      <div class="settings-actions"><button id="check-update" class="button button-quiet">Проверить сейчас</button><a id="download-update" class="button button-primary" target="_blank" rel="noreferrer noopener" hidden>Открыть обновление</a></div>
-      <p class="privacy-note">Проверка обращается к публичному списку релизов GitHub и не отправляет библиотеку Steam, настройки или пути к файлам. Новая версия не скачивается и не устанавливается без твоего действия.</p>
+      <div class="display-options"><label class="switch-row" for="automaticUpdates"><span>Устанавливать обновления автоматически<small>После проверки программа сама скачает, проверит и применит новую версию</small></span><span class="switch"><input id="automaticUpdates" type="checkbox" disabled><span class="switch-track"></span></span></label></div>
+      <p id="app-settings-status" class="dialog-intro display-status" role="status">Загружаем настройки обновлений…</p>
+      <button id="retry-app-settings" class="button button-quiet" hidden>Повторить загрузку</button>
+      <p id="update-status" class="dialog-intro display-status" role="status">Текущая версия: 1.7.0</p>
+      <div class="settings-actions"><button id="check-update" class="button button-quiet">Проверить сейчас</button><button id="install-update" class="button button-primary" hidden>Установить сейчас</button><a id="download-update" class="button button-quiet" target="_blank" rel="noreferrer noopener" hidden>Открыть страницу релиза</a></div>
+      <p class="privacy-note">О доступных обновлениях сообщаем всегда. Автоматическая установка включается только по твоему выбору. Архив и контрольная сумма загружаются с GitHub, а перед заменой проверяется каждый файл. Папка data с категориями, историей, исключениями и настройками не входит в обновление и не изменяется.</p>
     </section>
   </dialog>
-  <dialog id="categories-dialog" aria-labelledby="categories-title">
+  <dialog id="categories-dialog" class="categories-dialog" aria-labelledby="categories-title">
     <div class="dialog-heading"><div><p class="eyebrow">СОБЕРИ СВОИ ПОДБОРКИ</p><h2 id="categories-title">Категории</h2></div><button id="close-categories" class="icon-button" aria-label="Закрыть категории"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div>
-    <p id="categories-intro" class="dialog-intro">Создавай подборки для настроения, компании или свободного времени. Категории сохраняются в папке приложения.</p>
-    <div id="game-category-editor" class="game-category-editor" hidden><strong id="category-game-name"></strong><p>Отметь, к каким категориям относится игра.</p><div id="game-category-options" class="game-category-options"></div></div>
-    <div id="category-list" class="category-list" aria-live="polite"></div>
-    <form id="add-category-form" class="add-category-form"><label for="category-name">Новая категория</label><div class="path-input-row"><input id="category-name" maxlength="32" placeholder="Например, На вечер" required autocomplete="off"><button class="button button-primary" type="submit">Добавить</button></div></form>
+    <p id="categories-intro" class="dialog-intro">Выбери подборку, отметь сразу несколько игр и сохрани одним действием.</p>
+    <div id="category-picker" class="category-picker" role="list" aria-label="Выбор категории"></div>
+    <section id="category-bulk-editor" class="category-bulk-editor" hidden aria-label="Игры в категории">
+      <div class="category-editor-toolbar"><label class="search-box category-search"><svg class="icon"><use href="#i-search"/></svg><input id="category-search" type="search" placeholder="Найти игру…" aria-label="Поиск игры для категории" autocomplete="off"></label><div class="category-game-filters" role="group" aria-label="Фильтр игр"><button type="button" class="category-game-filter active" data-category-filter="all" aria-pressed="true">Все</button><button type="button" class="category-game-filter" data-category-filter="added" aria-pressed="false">Добавлены</button><button type="button" class="category-game-filter" data-category-filter="missing" aria-pressed="false">Не добавлены</button></div></div>
+      <div class="category-bulk-actions"><button id="category-add-visible" type="button" class="text-button">Добавить найденные</button><button id="category-remove-visible" type="button" class="text-button">Убрать найденные</button></div>
+      <div id="category-game-list" class="category-game-list" aria-live="polite"></div>
+      <div class="category-save-bar"><span id="category-draft-count">Нет изменений</span><div><button id="category-cancel" type="button" class="button button-quiet">Отменить</button><button id="category-save" type="button" class="button button-primary">Сохранить</button></div></div>
+    </section>
+    <details class="category-management"><summary>Создать, переименовать или удалить категорию</summary><div id="category-list" class="category-list" aria-live="polite"></div><form id="add-category-form" class="add-category-form"><label for="category-name">Новая категория</label><div class="path-input-row"><input id="category-name" maxlength="32" placeholder="Например, На вечер" required autocomplete="off"><button class="button button-primary" type="submit">Добавить</button></div></form></details>
     <p id="category-status" class="dialog-intro category-status" role="status">Загружаем категории…</p>
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>

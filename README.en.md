@@ -12,10 +12,10 @@ The website includes a fictional demo, project information and downloads. It can
 
 ## Run on Windows
 
-1. Download **PlayNext-1.6.0-win-x64.zip** from [Releases](https://github.com/Hiliann/steam-games-randomizer/releases/latest). Do not use **Code > Download ZIP**: that archive contains source code without the bundled runtime.
+1. Download **PlayNext-1.7.0-win-x64.zip** from [Releases](https://github.com/Hiliann/steam-games-randomizer/releases/latest). Do not use **Code > Download ZIP**: that archive contains source code without the bundled runtime.
 2. Extract the entire archive to a writable folder. Do not run the program from inside the ZIP.
 3. Open **Start.cmd**. The program opens in your browser, usually at `http://127.0.0.1:3210`. If the port is occupied, it chooses another one.
-4. Press **«Выбрать игру»** (Choose a game), then **«Играть в Steam»** (Play in Steam). An uninstalled game instead offers **«Установить в Steam»** (Install in Steam). Nothing launches or downloads automatically.
+4. Press **«Выбрать игру»** (Choose a game), then **«Играть в Steam»** (Play in Steam). An uninstalled game instead offers **«Установить в Steam»** (Install in Steam). The local program passes the command to Steam without leaving a technical browser tab open.
 5. Open **Stop.cmd** to stop the program completely. Closing the browser tab alone does not stop the background process.
 
 Requires **Windows 10/11 x64 (Intel/AMD), Steam and a modern browser**. Node.js 24.20.0 is included. No separate runtime installation, API key, Codex or administrator rights are required. Keep the `runtime` folder with the program. Desktop shortcut and Windows startup options are available in **«Настройки»** (Settings).
@@ -24,7 +24,7 @@ Requires **Windows 10/11 x64 (Intel/AMD), Steam and a modern browser**. Node.js 
 
 - Automatically detects Steam libraries across multiple drives; custom paths can be added manually.
 - Chooses only eligible games, with optional no-repeat rounds and a history of recent picks.
-- Adds saved categories for personal collections. A category can filter the visible library or become the active randomization mode.
+- Adds saved categories with a bulk editor for searching and selecting many games before saving once. A category can filter the visible library or become the active randomization mode.
 - Includes modes for all participating games, installed or uninstalled games, never-played games, games dormant for 90 days and any saved category. Every eligible game keeps the same probability.
 - Lets you exclude individual games. Exclusions survive closing the program, changing ports and clearing browser storage.
 - Shows artwork from the local Steam cache, with a game-name fallback when artwork is unavailable.
@@ -32,7 +32,7 @@ Requires **Windows 10/11 x64 (Intel/AMD), Steam and a modern browser**. Node.js 
 - Optionally adds uninstalled games backed by local Steam licenses, without a public Steam profile or account sign-in through Play Next.
 - Shows storage requirements for uninstalled games and lets you toggle size information and the installed-game badge.
 - Can create a desktop shortcut and start in the background with Windows, without administrator rights.
-- Checks public GitHub releases for a newer version at startup or on demand. Downloads and installation always require your action.
+- Checks public GitHub releases for a newer version at startup or on demand. Verified updates can be installed manually or automatically through an opt-in setting.
 
 ## Uninstalled games and storage information
 
@@ -50,7 +50,7 @@ Exclusions, categories, category assignments, pick history, the current round, t
 
 The Windows section in **«Настройки»** (Settings) creates a shortcut for the current program folder and can enable background startup without opening the browser at sign-in. Play Next removes only shortcuts that belong to the current copy.
 
-Update checks use the repository's public GitHub release API, are cached for six hours and never install anything automatically. They do not send your Steam library, settings or file paths. GitHub can see the connection's IP address.
+Update checks use the repository's public GitHub release API and are cached for six hours. Notifications remain enabled regardless of installation settings. Automatic installation is off by default and must be enabled explicitly. The updater accepts only this repository's release archive, verifies its published SHA-256 and per-file manifest, and replaces program files only. The `data` folder is never included or modified. Update checks do not send your Steam library, settings or file paths. GitHub can see the connection's IP address.
 
 Only the uninstalled-games checkbox and manually added library paths remain in browser storage. They are specific to the browser and local address. Clearing browser data can reset these preferences, but does not remove categories, history or other settings saved in `data`.
 

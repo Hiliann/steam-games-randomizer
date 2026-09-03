@@ -1,9 +1,24 @@
-export const APP_DEFAULTS = Object.freeze({ automaticUpdates: false });
+export const APP_DEFAULTS = Object.freeze({ automaticUpdates: false, showUpdateNotifications: true });
 
 export function validAppSettings(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     && Object.keys(value).length === Object.keys(APP_DEFAULTS).length
     && Object.keys(APP_DEFAULTS).every(key => typeof value[key] === 'boolean');
+}
+
+export function normalizeAppSettings(value) {
+  if (validAppSettings(value)) return { ...value };
+  if (value !== null && typeof value === 'object' && !Array.isArray(value)
+    && Object.keys(value).length === 1 && typeof value.automaticUpdates === 'boolean') {
+    return { automaticUpdates: value.automaticUpdates, showUpdateNotifications: true };
+  }
+  return null;
+}
+
+export function startupUpdateAction(settings, updateInfo) {
+  if (!validAppSettings(settings) || updateInfo?.status !== 'ready' || updateInfo.updateAvailable !== true || updateInfo.installable !== true) return 'none';
+  if (settings.automaticUpdates) return 'install';
+  return settings.showUpdateNotifications ? 'notify' : 'none';
 }
 
 export function createAppSettingsClient(send = globalThis.fetch) {

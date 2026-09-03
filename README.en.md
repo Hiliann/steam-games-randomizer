@@ -8,14 +8,14 @@ Play Next is a local program that helps you pick a random game from your Steam l
 
 Spend less time browsing your library and more time playing. Exclude games you do not feel like playing, choose without repeats, and launch the selected game in Steam when you are ready.
 
-The website includes a fictional demo, project information and downloads. It cannot read your Steam library or access the local program. **The program's interface is currently in Russian; the website and this project description are available in Russian and English.**
+The website includes a fictional demo, project information and downloads. It cannot read your Steam library or access the local program. **The program, website and project description are available in Russian and English.**
 
 ## Run on Windows
 
-1. Download **PlayNext-1.7.0-win-x64.zip** from [Releases](https://github.com/Hiliann/steam-games-randomizer/releases/latest). Do not use **Code > Download ZIP**: that archive contains source code without the bundled runtime.
+1. Download **PlayNext-1.8.0-win-x64.zip** from [Releases](https://github.com/Hiliann/steam-games-randomizer/releases/latest). Do not use **Code > Download ZIP**: that archive contains source code without the bundled runtime.
 2. Extract the entire archive to a writable folder. Do not run the program from inside the ZIP.
 3. Open **Start.cmd**. The program opens in your browser, usually at `http://127.0.0.1:3210`. If the port is occupied, it chooses another one.
-4. Press **«Выбрать игру»** (Choose a game), then **«Играть в Steam»** (Play in Steam). An uninstalled game instead offers **«Установить в Steam»** (Install in Steam). The local program passes the command to Steam without leaving a technical browser tab open.
+4. Press **Pick a game**, then **Play on Steam**. An uninstalled game instead offers **Install on Steam**. The local program passes the command to Steam without leaving a technical browser tab open.
 5. Open **Stop.cmd** to stop the program completely. Closing the browser tab alone does not stop the background process.
 
 Requires **Windows 10/11 x64 (Intel/AMD), Steam and a modern browser**. Node.js 24.20.0 is included. No separate runtime installation, API key, Codex or administrator rights are required. Keep the `runtime` folder with the program. Desktop shortcut and Windows startup options are available in **«Настройки»** (Settings).
@@ -32,7 +32,9 @@ Requires **Windows 10/11 x64 (Intel/AMD), Steam and a modern browser**. Node.js 
 - Optionally adds uninstalled games backed by local Steam licenses, without a public Steam profile or account sign-in through Play Next.
 - Shows storage requirements for uninstalled games and lets you toggle size information and the installed-game badge.
 - Can create a desktop shortcut and start in the background with Windows, without administrator rights.
-- Checks public GitHub releases for a newer version at startup or on demand. Verified updates can be installed manually or automatically through an opt-in setting.
+- Offers Russian and English interfaces, three dark themes and four accent colors.
+- Exports categories, history, exclusions, library paths and settings to one validated backup file and restores the previous data if an import write fails.
+- Checks public GitHub releases for a newer version at startup or on demand. Verified updates can be installed manually or automatically at startup through an opt-in setting.
 
 ## Uninstalled games and storage information
 
@@ -50,7 +52,11 @@ Exclusions, categories, category assignments, pick history, the current round, t
 
 The Windows section in **«Настройки»** (Settings) creates a shortcut for the current program folder and can enable background startup without opening the browser at sign-in. Play Next removes only shortcuts that belong to the current copy.
 
-Update checks use the repository's public GitHub release API and are cached for six hours. Notifications remain enabled regardless of installation settings. Automatic installation is off by default and must be enabled explicitly. The updater accepts only this repository's release archive, verifies its published SHA-256 and per-file manifest, and replaces program files only. The `data` folder is never included or modified. Update checks do not send your Steam library, settings or file paths. GitHub can see the connection's IP address.
+Update checks use the repository's public GitHub release API and are cached for six hours. **Update automatically at startup** is off by default. When enabled, a detected version is downloaded, verified and installed during startup; enabling the setting during a running session does not start an immediate installation. Otherwise a separate notice offers **Install update**, **Later** and **Do not show this notice again**. The notice can be enabled again in Settings, and manual installation remains available there.
+
+The updater accepts only this repository's release archive, verifies its published SHA-256 and per-file manifest, and replaces program files only. The `data` folder is never included or modified. Update checks do not send your Steam library, settings or file paths. GitHub can see the connection's IP address.
+
+The **Backup** section downloads one JSON file containing categories, assignments, history, the current round, exclusions, manual library paths and settings. The entire file is validated before restoration starts. If one write fails, Play Next attempts to restore the previous data. Keep personal backups separate from the clean ZIP shared with friends.
 
 Only the uninstalled-games checkbox and manually added library paths remain in browser storage. They are specific to the browser and local address. Clearing browser data can reset these preferences, but does not remove categories, history or other settings saved in `data`.
 

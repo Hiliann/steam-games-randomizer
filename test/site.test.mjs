@@ -43,7 +43,7 @@ test('public page has matching bindings and relative assets for a project subpat
   assert.match(html, /connect-src 'none'/);
   assert.doesNotMatch(html, /[\u2013\u2014]|&(?:mdash|ndash);|portable|переносим/iu);
   for (const locale of ['ru', 'en', 'x-default']) assert.ok(html.includes(`hreflang="${locale}"`));
-  if (language === 'en') assert.match(html, /interface is currently in Russian/);
+  if (language === 'en') assert.match(html, /program and this website are available in English and Russian/);
   }
   assert.ok((await stat(new URL('.nojekyll', root))).isFile());
 });
@@ -88,5 +88,5 @@ test('project descriptions and application text use ordinary hyphens and neutral
   const en = await readFile(new URL('../README.en.md', import.meta.url), 'utf8');
   assert.match(ru, /\[English\]\(README\.en\.md\)/);
   assert.match(en, /\[Русский\]\(README\.md\)/);
-  assert.match(en, /interface is currently in Russian/);
+  assert.match(en, /program, website and project description are available in Russian and English/);
 });

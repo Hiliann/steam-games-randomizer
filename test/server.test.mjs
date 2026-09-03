@@ -29,7 +29,7 @@ test('local health, page and scripts are served with restrictive security header
   assert.match(page.headers.get('content-security-policy'), /frame-ancestors 'none'/);
   assert.equal(page.headers.get('access-control-allow-origin'), null);
   assert.match(await page.text(), /Play Next/);
-  for (const asset of ['/app.js', '/randomizer.js']) {
+  for (const asset of ['/app.js', '/randomizer.js', '/ui-settings.js', '/i18n.js', '/backup.js']) {
     const response = await fetch(url + asset);
     assert.equal(response.status, 200);
     assert.match(response.headers.get('content-type'), /javascript/);

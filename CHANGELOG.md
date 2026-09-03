@@ -1,5 +1,25 @@
 # Изменения
 
+## 1.8.0
+
+- Добавлены русский и английский интерфейс с переключением без перезапуска.
+- Добавлены темы «Тёмный лес», «Полночь» и «Графит», а также четыре акцентных цвета.
+- Добавлена резервная копия категорий, истории, исключений, путей библиотек и настроек одним JSON-файлом.
+- Восстановление проверяет весь файл до записи и возвращает прежние данные, если одна из записей завершилась ошибкой.
+- Автоматическое обновление теперь запускается только при старте программы, если пользователь заранее включил галочку.
+- Добавлено отдельное окно о новой версии с действиями «Установить», «Позже» и «Больше не показывать».
+- Настройка обновлений старого формата переносится автоматически, а пользовательские данные по-прежнему не входят в архив обновления.
+
+### English
+
+- Added Russian and English interfaces with switching that does not require a restart.
+- Added Dark Forest, Midnight and Graphite themes plus four accent colors.
+- Added one-file backup for categories, history, exclusions, library paths and settings.
+- Restore validates the entire file before writing and rolls previous data back if one write fails.
+- Automatic updating now runs only at app startup when the user has enabled it beforehand.
+- Added a separate new-version notice with Install, Later and Do not show again actions.
+- Existing update preferences migrate automatically, while user data remains excluded from update archives.
+
 ## 1.7.0
 
 - Категории теперь заполняются массово: выбери подборку, найди игры, отметь несколько и сохрани одним действием.

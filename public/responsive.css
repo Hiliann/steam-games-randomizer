@@ -147,6 +147,7 @@ dialog {
 }
 
 @media (max-width: 480px) {
+  .update-dialog-actions { grid-template-columns: 1fr; }
   .game-grid { --library-columns: 2; gap: 20px 12px; }
   .library-heading h2 { font-size: 21px; }
   .hero-actions { align-items: stretch; flex-direction: column; }
@@ -184,6 +185,8 @@ dialog {
 .scope-note { flex: 1 1 55%; min-width: 0; font-size: 11px; line-height: 1.7; color: var(--muted); overflow-wrap: anywhere; }
 @media (max-width: 640px) {
   .library-scope { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px; }
+  .option-row { align-items: stretch; flex-direction: column; gap: 9px; }
+  .option-row select { width: 100%; max-width: none; min-height: 44px; }
   .scope-toggle { font-size: 12px; }
   .categories-dialog { width: calc(100% - 16px); padding: 18px 14px; max-height: 94vh; }
   .category-editor-toolbar { align-items: stretch; flex-direction: column; }

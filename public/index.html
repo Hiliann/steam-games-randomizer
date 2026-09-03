@@ -72,6 +72,16 @@
   <dialog id="libraries-dialog" aria-labelledby="dialog-title"><div class="dialog-heading"><div><p class="eyebrow">ПОДКЛЮЧЕНО К STEAM</p><h2 id="dialog-title">Твои библиотеки</h2></div><button id="close-dialog" class="icon-button" aria-label="Закрыть"><svg class="icon"><use href="#i-close"/></svg></button></div><p class="dialog-intro">Обычно мы находим их автоматически. Если чего-то не хватает, укажи папку Steam, SteamLibrary или steamapps.</p><div id="library-paths" class="library-paths"></div><form id="add-path-form"><label for="path-input">Добавить библиотеку</label><div class="path-input-row"><input id="path-input" placeholder="Например, D:\SteamLibrary" maxlength="1024" required autocomplete="off"><button class="button button-primary" type="submit">Добавить</button></div></form><p id="path-error" class="path-error" role="alert" hidden></p><div id="scan-notes" class="scan-notes"></div><p class="privacy-note">Сведения об установке, обложки и лицензии аккаунта читаем из локального Steam. Файлы Steam не меняем. Размеры неустановленных игр подгружаем из Steam Store: передаём только публичный номер игры, без аккаунта, лицензий и путей к файлам. Сервис видит IP-адрес соединения. Интернет-подгрузку можно отключить вместе с размерами в «Настройках». Пароль и API-ключ не нужны. Для запуска игр может потребоваться вход, лицензия или обновление в Steam.</p></dialog>
   <dialog id="settings-dialog" aria-labelledby="settings-title">
     <div class="dialog-heading"><div><p class="eyebrow">КАК ТЕБЕ УДОБНЕЕ</p><h2 id="settings-title">Настройки</h2></div><button id="close-settings" class="icon-button" aria-label="Закрыть настройки"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div>
+    <section class="settings-section settings-section-first" aria-labelledby="appearance-settings-title">
+      <h3 id="appearance-settings-title" class="settings-section-title">Язык и оформление</h3>
+      <div class="appearance-options">
+        <label class="option-row" for="interfaceLanguage"><span>Язык интерфейса<small>Русский или English</small></span><select id="interfaceLanguage" disabled><option value="ru">Русский</option><option value="en">English</option></select></label>
+        <label class="option-row" for="theme"><span>Тема<small>Подбери комфортный фон</small></span><select id="theme" disabled><option value="forest">Тёмный лес</option><option value="midnight">Полночь</option><option value="graphite">Графит</option></select></label>
+        <label class="option-row" for="accent"><span>Акцентный цвет<small>Кнопки, переключатели и подсветка</small></span><select id="accent" disabled><option value="lime">Лайм</option><option value="blue">Синий</option><option value="violet">Фиолетовый</option><option value="orange">Оранжевый</option></select></label>
+      </div>
+      <p id="ui-settings-status" class="dialog-intro display-status" role="status">Загружаем язык и оформление…</p>
+      <button id="retry-ui-settings" class="button button-quiet" hidden>Повторить загрузку</button>
+    </section>
     <h3 class="settings-section-title">Отображение</h3>
     <p class="dialog-intro">Выбери, какую информацию показывать об играх.</p>
     <div class="display-options">
@@ -93,13 +103,28 @@
     </section>
     <section class="settings-section" aria-labelledby="update-settings-title">
       <h3 id="update-settings-title" class="settings-section-title">Обновления</h3>
-      <div class="display-options"><label class="switch-row" for="automaticUpdates"><span>Устанавливать обновления автоматически<small>После проверки программа сама скачает, проверит и применит новую версию</small></span><span class="switch"><input id="automaticUpdates" type="checkbox" disabled><span class="switch-track"></span></span></label></div>
+      <div class="display-options">
+        <label class="switch-row" for="automaticUpdates"><span>Автообновление при запуске<small>При следующем запуске программа сама скачает, проверит и применит новую версию</small></span><span class="switch"><input id="automaticUpdates" type="checkbox" disabled><span class="switch-track"></span></span></label>
+        <label class="switch-row" for="showUpdateNotifications"><span>Сообщать о новой версии отдельным окном<small>Само обновление всегда остаётся доступно в настройках</small></span><span class="switch"><input id="showUpdateNotifications" type="checkbox" checked disabled><span class="switch-track"></span></span></label>
+      </div>
       <p id="app-settings-status" class="dialog-intro display-status" role="status">Загружаем настройки обновлений…</p>
       <button id="retry-app-settings" class="button button-quiet" hidden>Повторить загрузку</button>
-      <p id="update-status" class="dialog-intro display-status" role="status">Текущая версия: 1.7.0</p>
+      <p id="update-status" class="dialog-intro display-status" role="status">Текущая версия: 1.8.0</p>
       <div class="settings-actions"><button id="check-update" class="button button-quiet">Проверить сейчас</button><button id="install-update" class="button button-primary" hidden>Установить сейчас</button><a id="download-update" class="button button-quiet" target="_blank" rel="noreferrer noopener" hidden>Открыть страницу релиза</a></div>
-      <p class="privacy-note">О доступных обновлениях сообщаем всегда. Автоматическая установка включается только по твоему выбору. Архив и контрольная сумма загружаются с GitHub, а перед заменой проверяется каждый файл. Папка data с категориями, историей, исключениями и настройками не входит в обновление и не изменяется.</p>
+      <p class="privacy-note">Обновления проверяются при запуске. Если автообновление включено, новая версия установится во время запуска программы. Иначе о ней сообщит отдельное окно, пока ты не отключишь его. Обновление всегда можно запустить вручную здесь. Архив и контрольная сумма загружаются с GitHub, а папка data не заменяется.</p>
     </section>
+    <section class="settings-section" aria-labelledby="data-settings-title">
+      <h3 id="data-settings-title" class="settings-section-title">Резервная копия</h3>
+      <p class="dialog-intro">Сохрани категории, историю, исключения и настройки одним файлом. Его можно использовать после переустановки или переноса программы.</p>
+      <div class="settings-actions"><button id="export-backup" class="button button-quiet" type="button">Скачать копию</button><button id="import-backup" class="button button-quiet" type="button">Восстановить из файла</button><input id="backup-file" type="file" accept="application/json,.json" hidden></div>
+      <p id="backup-status" class="dialog-intro display-status" role="status">Данные остаются только на этом компьютере, пока ты сам не сохранишь файл.</p>
+    </section>
+  </dialog>
+  <dialog id="update-dialog" class="update-dialog" aria-labelledby="update-dialog-title">
+    <div class="dialog-heading"><div><p class="eyebrow">ДОСТУПНО ОБНОВЛЕНИЕ</p><h2 id="update-dialog-title">Вышла новая версия Play Next</h2></div><button id="close-update-dialog" class="icon-button" aria-label="Закрыть уведомление об обновлении"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div>
+    <p id="update-dialog-description" class="dialog-intro">Можно установить новую версию сейчас или вернуться к этому позже.</p>
+    <div class="update-dialog-actions"><button id="update-dialog-install" class="button button-primary" type="button">Установить обновление</button><button id="update-dialog-later" class="button button-quiet" type="button">Позже</button></div>
+    <button id="disable-update-dialog" class="text-button update-dialog-disable" type="button">Больше не показывать это окно</button>
   </dialog>
   <dialog id="categories-dialog" class="categories-dialog" aria-labelledby="categories-title">
     <div class="dialog-heading"><div><p class="eyebrow">СОБЕРИ СВОИ ПОДБОРКИ</p><h2 id="categories-title">Категории</h2></div><button id="close-categories" class="icon-button" aria-label="Закрыть категории"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div>

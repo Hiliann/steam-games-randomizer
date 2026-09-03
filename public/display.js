@@ -1,3 +1,5 @@
+import { getLocale, tr } from './i18n.js';
+
 export const DISPLAY_DEFAULTS = Object.freeze({ showUninstalledSize: true, showInstalledBadge: false });
 
 export function validDisplaySettings(value) {
@@ -7,17 +9,17 @@ export function validDisplaySettings(value) {
 }
 
 export function formatSize(bytes) {
-  if (!Number.isSafeInteger(bytes) || bytes <= 0) return 'Размер неизвестен';
-  if (bytes < 1024 ** 2) return '< 1 МБ';
-  if (bytes < 1024 ** 3) return `${Math.round(bytes / 1024 ** 2)} МБ`;
-  return `${(bytes / 1024 ** 3).toLocaleString('ru', { maximumFractionDigits: 1 })} ГБ`;
+  if (!Number.isSafeInteger(bytes) || bytes <= 0) return tr('Размер неизвестен', 'Unknown size');
+  if (bytes < 1024 ** 2) return tr('< 1 МБ', '< 1 MB');
+  if (bytes < 1024 ** 3) return `${Math.round(bytes / 1024 ** 2)} ${tr('МБ', 'MB')}`;
+  return `${(bytes / 1024 ** 3).toLocaleString(getLocale(), { maximumFractionDigits: 1 })} ${tr('ГБ', 'GB')}`;
 }
 
 export function uninstalledSize(game) {
-  if (game?.onlineSize?.source === 'steam-store' && Number.isSafeInteger(game.onlineSize.bytes) && game.onlineSize.bytes > 0) return `Место: ${formatSize(game.onlineSize.bytes)}`;
+  if (game?.onlineSize?.source === 'steam-store' && Number.isSafeInteger(game.onlineSize.bytes) && game.onlineSize.bytes > 0) return `${tr('Место', 'Disk space')}: ${formatSize(game.onlineSize.bytes)}`;
   const bytes = game?.installSize?.bytes;
   if (Number.isSafeInteger(bytes) && bytes > 0) return `≈ ${formatSize(bytes)}`;
-  return ['queued', 'loading'].includes(game?.onlineSizeStatus) ? 'Проверяем размер…' : 'Размер не указан';
+  return ['queued', 'loading'].includes(game?.onlineSizeStatus) ? tr('Проверяем размер…', 'Checking size…') : tr('Размер не указан', 'Size unavailable');
 }
 
 export function sizeSourceUrl(game) {
@@ -27,21 +29,26 @@ export function sizeSourceUrl(game) {
 export function sizeDescription(game) {
   if (sizeSourceUrl(game)) {
     const info = game.onlineSize;
-    return `Место на диске по системным требованиям издателя в Steam Store (${info.platform}). Это не точный объём установленной игры и не размер загрузки. Проверено ${new Date(info.checkedAt).toLocaleDateString('ru-RU')}.${info.stale ? ' Сохранённые данные: обновить сейчас не удалось.' : ''}`;
+    return tr(
+      `Место на диске по системным требованиям издателя в Steam Store (${info.platform}). Это не точный объём установленной игры и не размер загрузки. Проверено ${new Date(info.checkedAt).toLocaleDateString('ru-RU')}.${info.stale ? ' Сохранённые данные: обновить сейчас не удалось.' : ''}`,
+      `Disk space from the publisher's Steam Store system requirements (${info.platform}). This is not the exact installed size or download size. Checked ${new Date(info.checkedAt).toLocaleDateString(getLocale())}.${info.stale ? ' Cached data is shown because it could not be refreshed.' : ''}`,
+    );
   }
   if (!Number.isSafeInteger(game?.installSize?.bytes) || game.installSize.bytes <= 0) {
-    if (['queued', 'loading'].includes(game?.onlineSizeStatus)) return 'Запрашиваем системные требования в Steam Store. Розыгрыш можно продолжать.';
-    return game?.onlineSizeStatus === 'offline' ? 'Steam Store сейчас недоступен, а сохранённого размера нет. Проверь интернет и нажми «Обновить список».' : 'В доступных данных Steam размер не указан. Не подставляем объём оперативной памяти или данные другой версии игры.';
+    if (['queued', 'loading'].includes(game?.onlineSizeStatus)) return tr('Запрашиваем системные требования в Steam Store. Розыгрыш можно продолжать.', 'Requesting system requirements from Steam Store. You can keep using the draw.');
+    return game?.onlineSizeStatus === 'offline'
+      ? tr('Steam Store сейчас недоступен, а сохранённого размера нет. Проверь интернет и нажми «Обновить список».', 'Steam Store is unavailable and no cached size exists. Check your connection and click “Refresh list”.')
+      : tr('В доступных данных Steam размер не указан. Не подставляем объём оперативной памяти или данные другой версии игры.', 'The available Steam data does not specify a size. RAM requirements or data from another game version are not used.');
   }
   const info = game.installSize;
   const platform = { windows: 'Windows', linux: 'Linux', macos: 'macOS' }[info.platform] ?? info.platform;
-  return `Примерный объём основной игры на диске (${platform}, язык: ${info.language}). По локальным данным Steam, без DLC и дополнительных компонентов. Это не размер загрузки; после обновлений объём может измениться.`;
+  return tr(`Примерный объём основной игры на диске (${platform}, язык: ${info.language}). По локальным данным Steam, без DLC и дополнительных компонентов. Это не размер загрузки; после обновлений объём может измениться.`, `Estimated disk size of the base game (${platform}, language: ${info.language}). Based on local Steam data, without DLC or optional components. This is not download size and may change after updates.`);
 }
 
 export function heroBadges(game, settings = DISPLAY_DEFAULTS) {
   if (!game) return { status: '', size: '', description: '' };
   if (game.installed === false) return {
-    status: 'Не установлена',
+    status: tr('Не установлена', 'Not installed'),
     size: settings.showUninstalledSize ? uninstalledSize(game) : '',
     description: settings.showUninstalledSize ? sizeDescription(game) : '',
   };

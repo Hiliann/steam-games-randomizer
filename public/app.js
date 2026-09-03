@@ -4,9 +4,13 @@ import { DISPLAY_DEFAULTS, createDisplayClient, formatSize, uninstalledSize, siz
 import { createOnlineSizesClient } from './online-sizes.js';
 import { createProfileClient } from './profile.js';
 import { createSystemClient } from './system.js';
-import { APP_DEFAULTS, createAppSettingsClient } from './app-settings.js';
+import { APP_DEFAULTS, createAppSettingsClient, startupUpdateAction } from './app-settings.js';
+import { UI_DEFAULTS, createUiSettingsClient, applyUiSettings } from './ui-settings.js';
+import { createBackupClient } from './backup.js';
+import { getLocale, setLanguage, startLocalization, tr } from './i18n.js';
 
 const $ = id => document.getElementById(id);
+startLocalization();
 // Bypass covers cached by older versions that did not resolve nested Steam assets.
 const ARTWORK_VERSION = '2';
 let state = cleanState();
@@ -24,6 +28,8 @@ const displayClient = createDisplayClient();
 const profileClient = createProfileClient();
 const systemClient = createSystemClient();
 const appSettingsClient = createAppSettingsClient();
+const uiSettingsClient = createUiSettingsClient();
+const backupClient = createBackupClient();
 let displaySettings = { ...DISPLAY_DEFAULTS };
 let displayReady = false;
 let displayPending = false;
@@ -36,9 +42,16 @@ let appSettings = { ...APP_DEFAULTS };
 let appSettingsReady = false;
 let appSettingsPending = false;
 let appSettingsMessage = 'Загружаем настройки обновлений…';
-let updateInfo = { status: 'not-checked', currentVersion: '1.7.0' };
+let uiSettings = { ...UI_DEFAULTS };
+let uiSettingsReady = false;
+let uiSettingsPending = false;
+let uiSettingsMessage = 'Загружаем язык и оформление…';
+let backupPending = false;
+let backupMessage = 'Данные остаются только на этом компьютере, пока ты сам не сохранишь файл.';
+let updateInfo = { status: 'not-checked', currentVersion: '1.8.0' };
 let updatePending = false;
 let updateInstalling = false;
+let updateDialogShownVersion = null;
 let profile = { initialized: false, revision: 0, categories: [], assignments: {}, draw: cleanDrawState(state) };
 let profileReady = false;
 let profilePending = false;
@@ -191,6 +204,108 @@ function element(tag, className, text) {
   if (text !== undefined) node.textContent = text;
   return node;
 }
+function renderUiSettings() {
+  for (const key of Object.keys(UI_DEFAULTS)) {
+    $(key === 'language' ? 'interfaceLanguage' : key).value = uiSettings[key];
+    $(key === 'language' ? 'interfaceLanguage' : key).disabled = !uiSettingsReady || uiSettingsPending;
+  }
+  $('ui-settings-status').textContent = uiSettingsMessage;
+  $('retry-ui-settings').hidden = uiSettingsReady || uiSettingsPending;
+}
+function rerenderLocalizedContent() {
+  renderDisplaySettings(); renderWindowsSettings(); renderAppSettings(); renderUpdateStatus(); renderCounts(); renderHero(); renderHistory(); renderGrid(); renderLibraries();
+  if ($('categories-dialog').open) renderCategoriesDialog();
+}
+async function loadUiSettings() {
+  if (uiSettingsPending) return false;
+  uiSettingsPending = true;
+  uiSettingsMessage = 'Загружаем язык и оформление…';
+  renderUiSettings();
+  try {
+    uiSettings = await uiSettingsClient.load();
+    uiSettingsReady = true;
+    applyUiSettings(uiSettings);
+    setLanguage(uiSettings.language);
+    uiSettingsMessage = 'Язык и оформление сохраняются в папке приложения.';
+    rerenderLocalizedContent();
+    return true;
+  } catch (error) {
+    uiSettingsReady = false;
+    uiSettingsMessage = error instanceof TypeError ? 'Нет связи с приложением. Повтори загрузку.' : error.message;
+    return false;
+  } finally {
+    uiSettingsPending = false;
+    renderUiSettings();
+  }
+}
+async function setUiSetting(key, value) {
+  if (!uiSettingsReady || uiSettingsPending) return;
+  const previous = { ...uiSettings };
+  uiSettingsPending = true;
+  uiSettingsMessage = 'Сохраняем…';
+  renderUiSettings();
+  try {
+    uiSettings = await uiSettingsClient.set(key, value);
+    applyUiSettings(uiSettings);
+    setLanguage(uiSettings.language);
+    uiSettingsMessage = 'Язык и оформление сохранены.';
+    rerenderLocalizedContent();
+  } catch (error) {
+    uiSettings = previous;
+    uiSettingsReady = false;
+    applyUiSettings(uiSettings);
+    setLanguage(uiSettings.language);
+    uiSettingsMessage = `Не удалось подтвердить сохранение. ${error instanceof TypeError ? 'Проверь, что приложение запущено.' : error.message}`;
+  } finally {
+    uiSettingsPending = false;
+    renderUiSettings();
+  }
+}
+function renderBackup() {
+  $('export-backup').disabled = backupPending;
+  $('import-backup').disabled = backupPending;
+  $('backup-status').textContent = backupMessage;
+}
+async function exportBackup() {
+  if (backupPending) return;
+  backupPending = true;
+  backupMessage = 'Собираем резервную копию…';
+  renderBackup();
+  try {
+    const backup = await backupClient.exportBackup({ includeUninstalled: state.includeUninstalled, customPaths: state.customPaths });
+    const blob = new Blob([JSON.stringify(backup, null, 2) + '\n'], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Play-Next-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    backupMessage = 'Резервная копия скачана. Храни её как обычный личный файл.';
+  } catch (error) {
+    backupMessage = error instanceof TypeError ? 'Нет связи с приложением. Запусти его и повтори.' : error.message;
+  } finally {
+    backupPending = false;
+    renderBackup();
+  }
+}
+async function restoreBackup(file) {
+  if (backupPending || !file) return;
+  if (!confirm(tr('Текущие категории, история, исключения и настройки будут заменены данными из файла. Продолжить?', 'Current categories, history, exclusions and settings will be replaced with data from the file. Continue?'))) return;
+  backupPending = true;
+  backupMessage = 'Проверяем и восстанавливаем данные…';
+  renderBackup();
+  try {
+    const result = await backupClient.restoreBackup(file);
+    state = cleanState({ ...state, ...result.browser });
+    save();
+    backupMessage = 'Данные восстановлены. Перезапускаем страницу…';
+    renderBackup();
+    location.reload();
+  } catch (error) {
+    backupMessage = error instanceof TypeError ? 'Нет связи с приложением. Данные не изменены.' : error.message;
+    backupPending = false;
+    renderBackup();
+  }
+}
 function renderDisplaySettings() {
   for (const key of Object.keys(DISPLAY_DEFAULTS)) {
     $(key).checked = displaySettings[key];
@@ -280,8 +395,10 @@ async function setWindowsSetting(key, value) {
   }
 }
 function renderAppSettings() {
-  $('automaticUpdates').checked = appSettings.automaticUpdates;
-  $('automaticUpdates').disabled = !appSettingsReady || appSettingsPending || updateInstalling;
+  for (const key of Object.keys(APP_DEFAULTS)) {
+    $(key).checked = appSettings[key];
+    $(key).disabled = !appSettingsReady || appSettingsPending || updateInstalling;
+  }
   $('app-settings-status').textContent = appSettingsMessage;
   $('retry-app-settings').hidden = appSettingsReady || appSettingsPending;
 }
@@ -293,7 +410,7 @@ async function loadAppSettings() {
   try {
     appSettings = await appSettingsClient.load();
     appSettingsReady = true;
-    appSettingsMessage = appSettings.automaticUpdates ? 'Автоматическая установка включена.' : 'Автоматическая установка выключена.';
+    appSettingsMessage = appSettings.automaticUpdates ? 'Автообновление при запуске включено.' : 'Автообновление при запуске выключено.';
     return true;
   } catch (error) {
     appSettingsReady = false;
@@ -305,23 +422,32 @@ async function loadAppSettings() {
   }
 }
 async function setAppSetting(key, value) {
-  if (!appSettingsReady || appSettingsPending || updateInstalling) return;
+  if (!appSettingsReady || appSettingsPending || updateInstalling) return false;
   const previous = appSettings[key];
   appSettingsPending = true;
   appSettingsMessage = 'Сохраняем…';
   renderAppSettings();
   try {
     appSettings = await appSettingsClient.set(key, value);
-    appSettingsMessage = value ? 'Автоматическая установка включена.' : 'Автоматическая установка выключена.';
-    if (value && updateInfo.status === 'ready' && updateInfo.updateAvailable) installUpdate();
+    appSettingsMessage = key === 'automaticUpdates'
+      ? value ? 'Автообновление при запуске включено.' : 'Автообновление при запуске выключено.'
+      : value ? 'Окно о новой версии включено.' : 'Окно о новой версии выключено.';
+    return true;
   } catch (error) {
     appSettings[key] = previous;
     appSettingsReady = false;
     appSettingsMessage = `Не удалось подтвердить сохранение. ${error instanceof TypeError ? 'Проверь, что приложение запущено.' : error.message}`;
+    return false;
   } finally {
     appSettingsPending = false;
     renderAppSettings();
   }
+}
+function showUpdateDialog() {
+  if (!appSettings.showUpdateNotifications || updateInstalling || updateInfo.status !== 'ready' || !updateInfo.updateAvailable || !updateInfo.installable || updateDialogShownVersion === updateInfo.latestVersion) return;
+  updateDialogShownVersion = updateInfo.latestVersion;
+  $('update-dialog-description').textContent = `Доступна версия ${updateInfo.latestVersion}. Сейчас установлена ${updateInfo.currentVersion}. Можно обновиться сейчас или вернуться к этому позже.`;
+  if (!$('update-dialog').open) $('update-dialog').showModal();
 }
 function renderUpdateStatus() {
   $('check-update').disabled = updatePending || updateInstalling;
@@ -346,11 +472,14 @@ async function checkForUpdate({ force = false, notify = false } = {}) {
   if (updatePending || updateInstalling) return;
   updatePending = true;
   let automatic = false;
+  let showDialog = false;
   renderUpdateStatus();
   try {
     updateInfo = await systemClient.checkUpdate(force);
     if (notify && updateInfo.status === 'ready' && updateInfo.updateAvailable) toast(`Доступна новая версия Play Next: ${updateInfo.latestVersion}`);
-    automatic = appSettingsReady && appSettings.automaticUpdates && updateInfo.status === 'ready' && updateInfo.updateAvailable && updateInfo.installable;
+    const startupAction = notify && appSettingsReady ? startupUpdateAction(appSettings, updateInfo) : 'none';
+    automatic = startupAction === 'install';
+    showDialog = startupAction === 'notify';
   } catch {
     updateInfo = { status: 'offline', currentVersion: updateInfo.currentVersion };
   } finally {
@@ -358,10 +487,12 @@ async function checkForUpdate({ force = false, notify = false } = {}) {
     renderUpdateStatus();
   }
   if (automatic) installUpdate();
+  else if (showDialog) showUpdateDialog();
 }
 async function installUpdate() {
   if (updateInstalling || updatePending || updateInfo.status !== 'ready' || !updateInfo.updateAvailable || !updateInfo.installable) return;
   updateInstalling = true;
+  if ($('update-dialog').open) $('update-dialog').close();
   renderUpdateStatus(); renderAppSettings();
   try {
     const targetVersion = updateInfo.latestVersion;
@@ -386,7 +517,7 @@ function lastPlayedLabel(game) {
   if (!game.lastPlayed) return 'Самое время познакомиться поближе.';
   const days = Math.max(0, Math.floor((Date.now() / 1000 - game.lastPlayed) / 86400));
   if (days === 0) return 'Ты уже заглядывал сюда сегодня. Продолжим?';
-  return `Последний запуск: ${new Date(game.lastPlayed * 1000).toLocaleDateString('ru-RU')}. Почему бы не вернуться?`;
+  return tr(`Последний запуск: ${new Date(game.lastPlayed * 1000).toLocaleDateString('ru-RU')}. Почему бы не вернуться?`, `Last played: ${new Date(game.lastPlayed * 1000).toLocaleDateString(getLocale())}. Why not return?`);
 }
 function artwork(game, kind = 'cover') {
   const img = document.createElement('img');
@@ -884,7 +1015,7 @@ function renderLibraries() {
   if (snapshot?.utilities) notes.push(`Служебные компоненты Steam скрыты: ${snapshot.utilities}.`);
   if (snapshot?.skipped) notes.push(`Пропущены незавершённые, пустые или недоступные установки: ${snapshot.skipped}.`);
   notes.push(...(snapshot?.warnings ?? []));
-  if (snapshot?.scannedAt) notes.push(`Последняя проверка: ${new Date(snapshot.scannedAt).toLocaleTimeString('ru-RU')}.`);
+  if (snapshot?.scannedAt) notes.push(tr(`Последняя проверка: ${new Date(snapshot.scannedAt).toLocaleTimeString('ru-RU')}.`, `Last checked: ${new Date(snapshot.scannedAt).toLocaleTimeString(getLocale())}.`));
   $('scan-notes').replaceChildren(...notes.map(text => element('p', '', text)));
 }
 
@@ -946,8 +1077,9 @@ $('exclude-current').addEventListener('click', async () => { if (previewId && aw
 $('play-button').addEventListener('click', launchSelectedGame);
 $('categories-button').addEventListener('click', () => openCategories());
 $('libraries-button').addEventListener('click', () => { renderLibraries(); $('libraries-dialog').showModal(); });
-$('settings-button').addEventListener('click', () => { $('settings-dialog').showModal(); loadDisplaySettings(); loadAppSettings(); loadWindowsSettings(); systemClient.loadUpdate().then(value => { updateInfo = value; renderUpdateStatus(); }).catch(() => {}); });
+$('settings-button').addEventListener('click', () => { $('settings-dialog').showModal(); loadUiSettings(); loadDisplaySettings(); loadAppSettings(); loadWindowsSettings(); systemClient.loadUpdate().then(value => { updateInfo = value; renderUpdateStatus(); }).catch(() => {}); });
 $('close-settings').addEventListener('click', () => $('settings-dialog').close());
+$('retry-ui-settings').addEventListener('click', loadUiSettings);
 $('retry-display').addEventListener('click', loadDisplaySettings);
 $('retry-windows').addEventListener('click', loadWindowsSettings);
 $('retry-app-settings').addEventListener('click', loadAppSettings);
@@ -955,7 +1087,22 @@ $('check-update').addEventListener('click', () => checkForUpdate({ force: true }
 $('install-update').addEventListener('click', installUpdate);
 for (const key of Object.keys(DISPLAY_DEFAULTS)) $(key).addEventListener('change', event => setDisplaySetting(key, event.target.checked));
 for (const key of ['desktopShortcut', 'startup']) $(key).addEventListener('change', event => setWindowsSetting(key, event.target.checked));
-$('automaticUpdates').addEventListener('change', event => setAppSetting('automaticUpdates', event.target.checked));
+for (const key of Object.keys(APP_DEFAULTS)) $(key).addEventListener('change', event => setAppSetting(key, event.target.checked));
+$('update-dialog-install').addEventListener('click', installUpdate);
+$('update-dialog-later').addEventListener('click', () => $('update-dialog').close());
+$('close-update-dialog').addEventListener('click', () => $('update-dialog').close());
+$('disable-update-dialog').addEventListener('click', async () => { if (await setAppSetting('showUpdateNotifications', false)) $('update-dialog').close(); });
+$('update-dialog').addEventListener('click', event => { if (event.target === $('update-dialog')) { const rect = $('update-dialog').getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) $('update-dialog').close(); } });
+$('interfaceLanguage').addEventListener('change', event => setUiSetting('language', event.target.value));
+$('theme').addEventListener('change', event => setUiSetting('theme', event.target.value));
+$('accent').addEventListener('change', event => setUiSetting('accent', event.target.value));
+$('export-backup').addEventListener('click', exportBackup);
+$('import-backup').addEventListener('click', () => $('backup-file').click());
+$('backup-file').addEventListener('change', async event => {
+  const [file] = event.target.files;
+  event.target.value = '';
+  await restoreBackup(file);
+});
 $('settings-dialog').addEventListener('click', event => { if (event.target === $('settings-dialog')) { const rect = $('settings-dialog').getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) $('settings-dialog').close(); } });
 $('close-dialog').addEventListener('click', () => $('libraries-dialog').close());
 $('libraries-dialog').addEventListener('click', event => { if (event.target === $('libraries-dialog')) { const rect = $('libraries-dialog').getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) $('libraries-dialog').close(); } });
@@ -988,6 +1135,7 @@ $('add-path-form').addEventListener('submit', event => {
 $('empty-action').addEventListener('click', () => { if (!scopedGames().length) $('libraries-dialog').showModal(); else { $('search-input').value = ''; categoryFilter = 'all'; renderCategorySelectors(); setFilter('all'); } });
 document.addEventListener('keydown', event => {
   if ($('settings-dialog').open) return;
+  if ($('update-dialog').open) return;
   if (event.code !== 'Space' || event.repeat || event.ctrlKey || event.altKey || event.metaKey || $('libraries-dialog').open || $('categories-dialog').open) return;
   if (event.target.closest('input,textarea,select,button,a,[contenteditable="true"]')) return;
   event.preventDefault(); draw();
@@ -1007,4 +1155,6 @@ window.addEventListener('storage', event => {
 renderWindowsSettings();
 renderAppSettings();
 renderUpdateStatus();
-scan().then(() => checkForUpdate({ notify: true }));
+renderUiSettings();
+renderBackup();
+loadUiSettings().finally(() => scan().then(() => checkForUpdate({ notify: true })));

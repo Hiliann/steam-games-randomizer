@@ -69,8 +69,8 @@ $releaseFiles = @(
     'lib\steam.mjs', 'lib\owned.mjs', 'lib\steam-cache.mjs', 'lib\exclusions.mjs', 'lib\profile.mjs', 'public\index.html', 'public\app.js', 'public\exclusions.js', 'public\profile.js',
     'lib\install-size.mjs', 'lib\display-settings.mjs', 'public\display.js',
     'lib\online-sizes.mjs', 'public\online-sizes.js',
-    'lib\windows-integration.mjs', 'lib\update-check.mjs', 'lib\update-installer.mjs', 'lib\steam-launch.mjs', 'lib\app-settings.mjs',
-    'scripts\windows-integration.ps1', 'scripts\launch-steam.ps1', 'scripts\apply-update.ps1', 'public\system.js', 'public\app-settings.js',
+    'lib\windows-integration.mjs', 'lib\update-check.mjs', 'lib\update-installer.mjs', 'lib\steam-launch.mjs', 'lib\app-settings.mjs', 'lib\ui-settings.mjs', 'lib\backup.mjs',
+    'scripts\windows-integration.ps1', 'scripts\launch-steam.ps1', 'scripts\apply-update.ps1', 'public\system.js', 'public\app-settings.js', 'public\ui-settings.js', 'public\i18n.js', 'public\backup.js',
     'public\randomizer.js', 'public\style.css', 'public\responsive.css', 'public\icon.svg'
 )
 foreach ($relativeFile in $releaseFiles) {

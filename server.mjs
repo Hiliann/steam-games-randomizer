@@ -13,9 +13,11 @@ import { createUpdateService } from './lib/update-check.mjs';
 import { createAppSettingsStore, MAX_APP_SETTINGS_BYTES } from './lib/app-settings.mjs';
 import { createSteamLauncher } from './lib/steam-launch.mjs';
 import { createUpdateInstaller } from './lib/update-installer.mjs';
+import { createUiSettingsStore, MAX_UI_SETTINGS_BYTES } from './lib/ui-settings.mjs';
+import { createBackupService, MAX_BACKUP_BYTES } from './lib/backup.mjs';
 
 const base = path.dirname(fileURLToPath(import.meta.url));
-export const APP_VERSION = '1.7.0';
+export const APP_VERSION = '1.8.0';
 export function getInstanceId(directory = base) {
   const resolved = path.resolve(directory);
   return createHash('sha256').update(process.platform === 'win32' ? resolved.toLowerCase() : resolved).digest('hex').slice(0, 24);
@@ -30,6 +32,9 @@ const staticFiles = new Map([
   ['/profile.js', ['profile.js', 'text/javascript; charset=utf-8']],
   ['/system.js', ['system.js', 'text/javascript; charset=utf-8']],
   ['/app-settings.js', ['app-settings.js', 'text/javascript; charset=utf-8']],
+  ['/ui-settings.js', ['ui-settings.js', 'text/javascript; charset=utf-8']],
+  ['/i18n.js', ['i18n.js', 'text/javascript; charset=utf-8']],
+  ['/backup.js', ['backup.js', 'text/javascript; charset=utf-8']],
   ['/style.css', ['style.css', 'text/css; charset=utf-8']],
   ['/responsive.css', ['responsive.css', 'text/css; charset=utf-8']],
   ['/icon.svg', ['icon.svg', 'image/svg+xml']],
@@ -53,11 +58,13 @@ async function requestJson(request, limit = 32768) {
   catch { throw Object.assign(new Error('Некорректный JSON.'), { status: 400 }); }
 }
 
-export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, 'data/exclusions.json'), displaySettingsFile = path.join(base, 'data/display-settings.json'), appSettingsFile = path.join(base, 'data/app-settings.json'), profileFile = path.join(base, 'data/profile.json'), onlineSizes = createOnlineSizeService({ filename: path.join(base, 'data/online-sizes.json') }), windowsIntegration = createWindowsIntegration(), updates = createUpdateService({ currentVersion: APP_VERSION }), steamLauncher = createSteamLauncher(), updateInstaller = createUpdateInstaller(), onUpdateInstall = () => {} } = {}) {
+export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, 'data/exclusions.json'), displaySettingsFile = path.join(base, 'data/display-settings.json'), appSettingsFile = path.join(base, 'data/app-settings.json'), uiSettingsFile = path.join(base, 'data/ui-settings.json'), profileFile = path.join(base, 'data/profile.json'), onlineSizes = createOnlineSizeService({ filename: path.join(base, 'data/online-sizes.json') }), windowsIntegration = createWindowsIntegration(), updates = createUpdateService({ currentVersion: APP_VERSION }), steamLauncher = createSteamLauncher(), updateInstaller = createUpdateInstaller(), onUpdateInstall = () => {} } = {}) {
   const exclusions = createExclusionsStore(exclusionsFile);
   const displaySettings = createDisplayStore(displaySettingsFile);
   const appSettings = createAppSettingsStore(appSettingsFile);
+  const uiSettings = createUiSettingsStore(uiSettingsFile);
   const profile = createProfileStore(profileFile);
+  const backup = createBackupService({ exclusions, displaySettings, appSettings, uiSettings, profile, appVersion: APP_VERSION });
   let snapshot;
   let scanQueue = Promise.resolve();
   const artworkCache = new Map();
@@ -95,7 +102,9 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
       if (url.pathname === '/api/exclusions' && request.method === 'GET') return json(response, 200, await exclusions.read());
       if (url.pathname === '/api/display-settings' && request.method === 'GET') return json(response, 200, await displaySettings.read());
       if (url.pathname === '/api/app-settings' && request.method === 'GET') return json(response, 200, await appSettings.read());
+      if (url.pathname === '/api/ui-settings' && request.method === 'GET') return json(response, 200, await uiSettings.read());
       if (url.pathname === '/api/profile' && request.method === 'GET') return json(response, 200, await profile.read());
+      if (url.pathname === '/api/backup' && request.method === 'GET') return json(response, 200, await backup.export());
       if (url.pathname === '/api/windows-settings' && request.method === 'GET') return json(response, 200, await windowsIntegration.read());
       if (url.pathname === '/api/update' && request.method === 'GET') return json(response, 200, updates.read());
       if (url.pathname === '/api/update' && request.method === 'POST') {
@@ -140,6 +149,14 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
       if (url.pathname === '/api/app-settings' && request.method === 'POST') {
         if (request.headers['x-randomizer'] !== '1') return json(response, 403, { error: 'Отсутствует заголовок приложения.' });
         return json(response, 200, await appSettings.change(await requestJson(request, MAX_APP_SETTINGS_BYTES)));
+      }
+      if (url.pathname === '/api/ui-settings' && request.method === 'POST') {
+        if (request.headers['x-randomizer'] !== '1') return json(response, 403, { error: 'Отсутствует заголовок приложения.' });
+        return json(response, 200, await uiSettings.change(await requestJson(request, MAX_UI_SETTINGS_BYTES)));
+      }
+      if (url.pathname === '/api/backup' && request.method === 'POST') {
+        if (request.headers['x-randomizer'] !== '1') return json(response, 403, { error: 'Отсутствует заголовок приложения.' });
+        return json(response, 200, await backup.restore(await requestJson(request, MAX_BACKUP_BYTES)));
       }
       if (url.pathname === '/api/exclusions' && request.method === 'POST') {
         if (request.headers['x-randomizer'] !== '1') return json(response, 403, { error: 'Отсутствует заголовок приложения.' });

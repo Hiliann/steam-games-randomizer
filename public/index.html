@@ -77,7 +77,16 @@
       <div class="appearance-options">
         <label class="option-row" for="interfaceLanguage"><span>Язык интерфейса<small>Русский или English</small></span><select id="interfaceLanguage" disabled><option value="ru">Русский</option><option value="en">English</option></select></label>
         <label class="option-row" for="theme"><span>Тема<small>Подбери комфортный фон</small></span><select id="theme" disabled><option value="forest">Тёмный лес</option><option value="midnight">Полночь</option><option value="graphite">Графит</option></select></label>
-        <label class="option-row" for="accent"><span>Акцентный цвет<small>Кнопки, переключатели и подсветка</small></span><select id="accent" disabled><option value="lime">Лайм</option><option value="blue">Синий</option><option value="violet">Фиолетовый</option><option value="orange">Оранжевый</option></select></label>
+        <label class="option-row" for="accent"><span>Акцентный цвет<small>Кнопки, переключатели и подсветка</small></span><select id="accent" disabled><option value="lime">Лайм</option><option value="blue">Синий</option><option value="violet">Фиолетовый</option><option value="orange">Оранжевый</option><option value="custom">Своя палитра</option></select></label>
+      </div>
+      <div id="custom-accent-editor" class="accent-editor" aria-labelledby="accent-editor-title">
+        <div class="accent-editor-heading"><div><strong id="accent-editor-title">Своя палитра</strong><small>Создай случайный вариант, настрой цвета и сохрани только если понравится</small></div><button id="randomize-accent" class="button button-quiet" type="button" disabled>Случайные цвета</button></div>
+        <div class="accent-color-fields">
+          <label for="accent-base"><span>Основной</span><input id="accent-base" type="color" value="#72e6c1" disabled></label>
+          <label for="accent-hover"><span>Наведение</span><input id="accent-hover" type="color" value="#a1f2d8" disabled></label>
+          <label for="accent-contrast"><span>Текст на кнопках</span><input id="accent-contrast" type="color" value="#102a23" disabled></label>
+        </div>
+        <div class="accent-editor-footer"><p id="accent-preview-status" role="status">Сохранённая палитра готова к предпросмотру.</p><div><button id="cancel-accent-preview" class="button button-quiet" type="button" disabled>Отменить</button><button id="save-custom-accent" class="button button-primary" type="button" disabled>Сохранить палитру</button></div></div>
       </div>
       <p id="ui-settings-status" class="dialog-intro display-status" role="status">Загружаем язык и оформление…</p>
       <button id="retry-ui-settings" class="button button-quiet" hidden>Повторить загрузку</button>
@@ -109,7 +118,7 @@
       </div>
       <p id="app-settings-status" class="dialog-intro display-status" role="status">Загружаем настройки обновлений…</p>
       <button id="retry-app-settings" class="button button-quiet" hidden>Повторить загрузку</button>
-      <p id="update-status" class="dialog-intro display-status" role="status">Текущая версия: 1.8.0</p>
+      <p id="update-status" class="dialog-intro display-status" role="status">Текущая версия: 1.8.1</p>
       <div class="settings-actions"><button id="check-update" class="button button-quiet">Проверить сейчас</button><button id="install-update" class="button button-primary" hidden>Установить сейчас</button><a id="download-update" class="button button-quiet" target="_blank" rel="noreferrer noopener" hidden>Открыть страницу релиза</a></div>
       <p class="privacy-note">Обновления проверяются при запуске. Если автообновление включено, новая версия установится во время запуска программы. Иначе о ней сообщит отдельное окно, пока ты не отключишь его. Обновление всегда можно запустить вручную здесь. Архив и контрольная сумма загружаются с GitHub, а папка data не заменяется.</p>
     </section>

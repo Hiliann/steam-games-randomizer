@@ -6,6 +6,7 @@ import os from 'node:os';
 import { once } from 'node:events';
 import { createApp } from '../server.mjs';
 import { MAX_BACKUP_BYTES } from '../lib/backup.mjs';
+import { UI_DEFAULTS } from '../public/ui-settings.js';
 
 async function fixture(t) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'playnext-settings-api-'));
@@ -23,10 +24,14 @@ test('appearance and backup APIs are local-only, bounded and restore a valid exp
   const url = await fixture(t);
   const headers = { 'Content-Type': 'application/json', 'X-Randomizer': '1' };
   const appearance = await fetch(url + '/api/ui-settings').then(response => response.json());
-  assert.deepEqual(appearance, { language: 'ru', theme: 'forest', accent: 'lime' });
+  assert.deepEqual(appearance, UI_DEFAULTS);
   const changed = await fetch(url + '/api/ui-settings', { method: 'POST', headers, body: JSON.stringify({ key: 'language', value: 'en' }) });
   assert.equal(changed.status, 200);
   assert.equal((await changed.json()).language, 'en');
+  const palette = { base: '#48d7c5', hover: '#7ce6d8', contrast: '#102522' };
+  const custom = await fetch(url + '/api/ui-settings', { method: 'POST', headers, body: JSON.stringify({ customAccent: palette }) });
+  assert.equal(custom.status, 200);
+  assert.deepEqual(await custom.json(), { ...UI_DEFAULTS, language: 'en', accent: 'custom', customAccent: palette });
 
   const exportedResponse = await fetch(url + '/api/backup');
   assert.equal(exportedResponse.headers.get('cache-control'), 'no-store');

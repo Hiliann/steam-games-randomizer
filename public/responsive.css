@@ -187,6 +187,13 @@ dialog {
   .library-scope { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px; }
   .option-row { align-items: stretch; flex-direction: column; gap: 9px; }
   .option-row select { width: 100%; max-width: none; min-height: 44px; }
+  .accent-editor-heading, .accent-editor-footer { align-items: stretch; flex-direction: column; }
+  .accent-editor-heading .button { width: 100%; min-height: 44px; }
+  .accent-color-fields { grid-template-columns: 1fr; }
+  .accent-color-fields label { min-height: 44px; font-size: 11px; }
+  .accent-editor-footer > p { max-width: none; }
+  .accent-editor-footer > div { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .accent-editor-footer .button { min-height: 44px; }
   .scope-toggle { font-size: 12px; }
   .categories-dialog { width: calc(100% - 16px); padding: 18px 14px; max-height: 94vh; }
   .category-editor-toolbar { align-items: stretch; flex-direction: column; }

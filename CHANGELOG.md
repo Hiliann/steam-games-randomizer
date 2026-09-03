@@ -1,5 +1,21 @@
 # Изменения
 
+## 1.8.1
+
+- В настройках оформления появился генератор случайной цветовой палитры.
+- Случайные цвета сначала применяются только как предпросмотр и не меняют сохранённую тему.
+- Основной цвет, цвет наведения и цвет текста на кнопках можно отредактировать вручную.
+- Палитру можно сохранить отдельной кнопкой или отменить, вернув прежнее оформление.
+- Настройки версии 1.8.0 и старые резервные копии автоматически дополняются безопасной палитрой по умолчанию.
+
+### English
+
+- Added a random color-palette generator to appearance settings.
+- Random colors start as a preview and do not replace the saved theme.
+- The primary, hover and button-text colors can be edited manually.
+- The palette can be saved explicitly or cancelled to restore the previous appearance.
+- Settings from 1.8.0 and older backups automatically gain a safe default custom palette.
+
 ## 1.8.0
 
 - Добавлены русский и английский интерфейс с переключением без перезапуска.

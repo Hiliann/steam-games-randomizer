@@ -5,7 +5,7 @@ import { createOnlineSizesClient } from './online-sizes.js';
 import { createProfileClient } from './profile.js';
 import { createSystemClient } from './system.js';
 import { APP_DEFAULTS, createAppSettingsClient, startupUpdateAction } from './app-settings.js';
-import { UI_DEFAULTS, createUiSettingsClient, applyUiSettings } from './ui-settings.js';
+import { UI_DEFAULTS, createRandomAccent, createUiSettingsClient, applyUiSettings } from './ui-settings.js';
 import { createBackupClient } from './backup.js';
 import { getLocale, setLanguage, startLocalization, tr } from './i18n.js';
 
@@ -46,9 +46,12 @@ let uiSettings = { ...UI_DEFAULTS };
 let uiSettingsReady = false;
 let uiSettingsPending = false;
 let uiSettingsMessage = 'Загружаем язык и оформление…';
+let customAccentDraft = { ...UI_DEFAULTS.customAccent };
+let accentPreviewing = false;
+let accentPreviewMessage = 'Сохранённая палитра готова к предпросмотру.';
 let backupPending = false;
 let backupMessage = 'Данные остаются только на этом компьютере, пока ты сам не сохранишь файл.';
-let updateInfo = { status: 'not-checked', currentVersion: '1.8.0' };
+let updateInfo = { status: 'not-checked', currentVersion: '1.8.1' };
 let updatePending = false;
 let updateInstalling = false;
 let updateDialogShownVersion = null;
@@ -205,10 +208,19 @@ function element(tag, className, text) {
   return node;
 }
 function renderUiSettings() {
-  for (const key of Object.keys(UI_DEFAULTS)) {
+  for (const key of ['language', 'theme', 'accent']) {
     $(key === 'language' ? 'interfaceLanguage' : key).value = uiSettings[key];
     $(key === 'language' ? 'interfaceLanguage' : key).disabled = !uiSettingsReady || uiSettingsPending;
   }
+  if (accentPreviewing) $('accent').value = 'custom';
+  for (const [key, id] of [['base', 'accent-base'], ['hover', 'accent-hover'], ['contrast', 'accent-contrast']]) {
+    $(id).value = customAccentDraft[key];
+    $(id).disabled = !uiSettingsReady || uiSettingsPending;
+  }
+  $('randomize-accent').disabled = !uiSettingsReady || uiSettingsPending;
+  $('save-custom-accent').disabled = !uiSettingsReady || uiSettingsPending || !accentPreviewing;
+  $('cancel-accent-preview').disabled = !uiSettingsReady || uiSettingsPending || !accentPreviewing;
+  $('accent-preview-status').textContent = accentPreviewMessage;
   $('ui-settings-status').textContent = uiSettingsMessage;
   $('retry-ui-settings').hidden = uiSettingsReady || uiSettingsPending;
 }
@@ -224,6 +236,9 @@ async function loadUiSettings() {
   try {
     uiSettings = await uiSettingsClient.load();
     uiSettingsReady = true;
+    customAccentDraft = { ...uiSettings.customAccent };
+    accentPreviewing = false;
+    accentPreviewMessage = uiSettings.accent === 'custom' ? 'Сохранённая палитра включена.' : 'Сохранённая палитра готова к предпросмотру.';
     applyUiSettings(uiSettings);
     setLanguage(uiSettings.language);
     uiSettingsMessage = 'Язык и оформление сохраняются в папке приложения.';
@@ -240,21 +255,70 @@ async function loadUiSettings() {
 }
 async function setUiSetting(key, value) {
   if (!uiSettingsReady || uiSettingsPending) return;
-  const previous = { ...uiSettings };
+  const previous = { ...uiSettings, customAccent: { ...uiSettings.customAccent } };
   uiSettingsPending = true;
   uiSettingsMessage = 'Сохраняем…';
   renderUiSettings();
   try {
     uiSettings = await uiSettingsClient.set(key, value);
-    applyUiSettings(uiSettings);
+    if (key === 'accent') {
+      customAccentDraft = { ...uiSettings.customAccent };
+      accentPreviewing = false;
+      accentPreviewMessage = value === 'custom' ? 'Сохранённая палитра включена.' : 'Сохранённая палитра готова к предпросмотру.';
+    }
+    applyUiSettings(accentPreviewing ? { ...uiSettings, accent: 'custom', customAccent: customAccentDraft } : uiSettings);
     setLanguage(uiSettings.language);
     uiSettingsMessage = 'Язык и оформление сохранены.';
     rerenderLocalizedContent();
   } catch (error) {
     uiSettings = previous;
     uiSettingsReady = false;
+    accentPreviewing = false;
+    customAccentDraft = { ...previous.customAccent };
     applyUiSettings(uiSettings);
     setLanguage(uiSettings.language);
+    uiSettingsMessage = `Не удалось подтвердить сохранение. ${error instanceof TypeError ? 'Проверь, что приложение запущено.' : error.message}`;
+  } finally {
+    uiSettingsPending = false;
+    renderUiSettings();
+  }
+}
+function previewCustomAccent(next, message = 'Это предпросмотр. Сохрани палитру, если она понравилась.') {
+  if (!uiSettingsReady || uiSettingsPending) return;
+  customAccentDraft = { ...next };
+  accentPreviewing = true;
+  accentPreviewMessage = message;
+  applyUiSettings({ ...uiSettings, accent: 'custom', customAccent: customAccentDraft });
+  renderUiSettings();
+}
+function cancelAccentPreview() {
+  if (!accentPreviewing) return;
+  accentPreviewing = false;
+  customAccentDraft = { ...uiSettings.customAccent };
+  accentPreviewMessage = uiSettings.accent === 'custom' ? 'Сохранённая палитра включена.' : 'Предпросмотр отменён. Возвращена сохранённая тема.';
+  applyUiSettings(uiSettings);
+  renderUiSettings();
+}
+async function saveCustomAccent() {
+  if (!uiSettingsReady || uiSettingsPending || !accentPreviewing) return;
+  const previous = { ...uiSettings, customAccent: { ...uiSettings.customAccent } };
+  uiSettingsPending = true;
+  uiSettingsMessage = 'Сохраняем палитру…';
+  renderUiSettings();
+  try {
+    uiSettings = await uiSettingsClient.saveCustomAccent(customAccentDraft);
+    customAccentDraft = { ...uiSettings.customAccent };
+    accentPreviewing = false;
+    accentPreviewMessage = 'Своя палитра сохранена и включена.';
+    uiSettingsMessage = 'Язык и оформление сохранены.';
+    applyUiSettings(uiSettings);
+    toast('Цветовая палитра сохранена');
+  } catch (error) {
+    uiSettings = previous;
+    uiSettingsReady = false;
+    accentPreviewing = false;
+    customAccentDraft = { ...previous.customAccent };
+    applyUiSettings(previous);
     uiSettingsMessage = `Не удалось подтвердить сохранение. ${error instanceof TypeError ? 'Проверь, что приложение запущено.' : error.message}`;
   } finally {
     uiSettingsPending = false;
@@ -1095,7 +1159,13 @@ $('disable-update-dialog').addEventListener('click', async () => { if (await set
 $('update-dialog').addEventListener('click', event => { if (event.target === $('update-dialog')) { const rect = $('update-dialog').getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) $('update-dialog').close(); } });
 $('interfaceLanguage').addEventListener('change', event => setUiSetting('language', event.target.value));
 $('theme').addEventListener('change', event => setUiSetting('theme', event.target.value));
-$('accent').addEventListener('change', event => setUiSetting('accent', event.target.value));
+$('accent').addEventListener('change', event => { cancelAccentPreview(); setUiSetting('accent', event.target.value); });
+$('randomize-accent').addEventListener('click', () => previewCustomAccent(createRandomAccent(), 'Случайная палитра включена для предпросмотра. Её можно изменить или сохранить.'));
+for (const [id, key] of [['accent-base', 'base'], ['accent-hover', 'hover'], ['accent-contrast', 'contrast']]) {
+  $(id).addEventListener('input', event => previewCustomAccent({ ...customAccentDraft, [key]: event.target.value }));
+}
+$('save-custom-accent').addEventListener('click', saveCustomAccent);
+$('cancel-accent-preview').addEventListener('click', cancelAccentPreview);
 $('export-backup').addEventListener('click', exportBackup);
 $('import-backup').addEventListener('click', () => $('backup-file').click());
 $('backup-file').addEventListener('change', async event => {
@@ -1104,6 +1174,7 @@ $('backup-file').addEventListener('change', async event => {
   await restoreBackup(file);
 });
 $('settings-dialog').addEventListener('click', event => { if (event.target === $('settings-dialog')) { const rect = $('settings-dialog').getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) $('settings-dialog').close(); } });
+$('settings-dialog').addEventListener('close', cancelAccentPreview);
 $('close-dialog').addEventListener('click', () => $('libraries-dialog').close());
 $('libraries-dialog').addEventListener('click', event => { if (event.target === $('libraries-dialog')) { const rect = $('libraries-dialog').getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) $('libraries-dialog').close(); } });
 $('close-categories').addEventListener('click', closeCategories);

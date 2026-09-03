@@ -17,7 +17,7 @@ import { createUiSettingsStore, MAX_UI_SETTINGS_BYTES } from './lib/ui-settings.
 import { createBackupService, MAX_BACKUP_BYTES } from './lib/backup.mjs';
 
 const base = path.dirname(fileURLToPath(import.meta.url));
-export const APP_VERSION = '1.8.0';
+export const APP_VERSION = '1.8.1';
 export function getInstanceId(directory = base) {
   const resolved = path.resolve(directory);
   return createHash('sha256').update(process.platform === 'win32' ? resolved.toLowerCase() : resolved).digest('hex').slice(0, 24);

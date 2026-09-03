@@ -12,7 +12,7 @@ The website includes a fictional demo, project information and downloads. It can
 
 ## Run on Windows
 
-1. Download **PlayNext-1.8.0-win-x64.zip** from [Releases](https://github.com/Hiliann/steam-games-randomizer/releases/latest). Do not use **Code > Download ZIP**: that archive contains source code without the bundled runtime.
+1. Download **PlayNext-1.8.1-win-x64.zip** from [Releases](https://github.com/Hiliann/steam-games-randomizer/releases/latest). Do not use **Code > Download ZIP**: that archive contains source code without the bundled runtime.
 2. Extract the entire archive to a writable folder. Do not run the program from inside the ZIP.
 3. Open **Start.cmd**. The program opens in your browser, usually at `http://127.0.0.1:3210`. If the port is occupied, it chooses another one.
 4. Press **Pick a game**, then **Play on Steam**. An uninstalled game instead offers **Install on Steam**. The local program passes the command to Steam without leaving a technical browser tab open.
@@ -32,7 +32,7 @@ Requires **Windows 10/11 x64 (Intel/AMD), Steam and a modern browser**. Node.js 
 - Optionally adds uninstalled games backed by local Steam licenses, without a public Steam profile or account sign-in through Play Next.
 - Shows storage requirements for uninstalled games and lets you toggle size information and the installed-game badge.
 - Can create a desktop shortcut and start in the background with Windows, without administrator rights.
-- Offers Russian and English interfaces, three dark themes and four accent colors.
+- Offers Russian and English interfaces, three dark themes, preset accents and a custom palette editor. Random colors are previewed first, and the primary, hover and button-text colors remain editable until the palette is saved or cancelled.
 - Exports categories, history, exclusions, library paths and settings to one validated backup file and restores the previous data if an import write fails.
 - Checks public GitHub releases for a newer version at startup or on demand. Verified updates can be installed manually or automatically at startup through an opt-in setting.
 

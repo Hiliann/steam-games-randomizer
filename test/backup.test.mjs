@@ -8,6 +8,7 @@ import { createExclusionsStore } from '../lib/exclusions.mjs';
 import { createDisplayStore } from '../lib/display-settings.mjs';
 import { createAppSettingsStore } from '../lib/app-settings.mjs';
 import { createUiSettingsStore } from '../lib/ui-settings.mjs';
+import { UI_DEFAULTS } from '../public/ui-settings.js';
 import { createProfileStore } from '../lib/profile.mjs';
 
 async function fixture(t) {
@@ -33,14 +34,14 @@ test('one backup restores categories, history, exclusions and all settings', asy
   await stores.exclusions.replace(['10', '20']);
   await stores.displaySettings.replace({ showUninstalledSize: false, showInstalledBadge: true });
   await stores.appSettings.replace({ automaticUpdates: true, showUpdateNotifications: false });
-  await stores.uiSettings.replace({ language: 'en', theme: 'midnight', accent: 'blue' });
+  await stores.uiSettings.replace({ ...UI_DEFAULTS, language: 'en', theme: 'midnight', accent: 'blue' });
   await stores.profile.replace(profile);
   const backup = { ...(await stores.service.export()), browser: { includeUninstalled: true, customPaths: ['D:\\SteamLibrary'] } };
 
   await stores.exclusions.replace([]);
   await stores.displaySettings.replace({ showUninstalledSize: true, showInstalledBadge: false });
   await stores.appSettings.replace({ automaticUpdates: false, showUpdateNotifications: true });
-  await stores.uiSettings.replace({ language: 'ru', theme: 'forest', accent: 'lime' });
+  await stores.uiSettings.replace(UI_DEFAULTS);
   await stores.profile.replace({ ...profile, revision: 8, assignments: {}, draw: { ...profile.draw, seen: [], history: [], current: null, mode: 'all' } });
 
   assert.deepEqual(await stores.service.restore(backup), { restored: true, browser: backup.browser });
@@ -61,6 +62,14 @@ test('damaged backup is rejected before any saved data changes', async t => {
   assert.deepEqual((await stores.exclusions.read()).excluded, ['42']);
 });
 
+test('backup from before custom palettes restores with a safe editable default', async t => {
+  const stores = await fixture(t);
+  const backup = { ...(await stores.service.export()), browser: { includeUninstalled: false, customPaths: [] } };
+  backup.data.uiSettings = { language: 'en', theme: 'graphite', accent: 'orange' };
+  await stores.service.restore(backup);
+  assert.deepEqual(await stores.uiSettings.read(), { ...backup.data.uiSettings, customAccent: UI_DEFAULTS.customAccent });
+});
+
 test('restore rolls earlier stores back when a later write fails', async () => {
   let excluded = ['1'];
   let display = { showUninstalledSize: true, showInstalledBadge: false };
@@ -69,7 +78,7 @@ test('restore rolls earlier stores back when a later write fails', async () => {
   const exclusions = { read: async () => ({ initialized: true, excluded: [...excluded] }), replace: async next => { excluded = [...next]; } };
   const displaySettings = { read: async () => ({ ...display }), replace: async next => { display = { ...next }; } };
   const appSettings = fixed({ automaticUpdates: false, showUpdateNotifications: true });
-  const uiSettings = { read: async () => ({ language: 'ru', theme: 'forest', accent: 'lime' }), replace: async () => { if (failOnce) { failOnce = false; throw new Error('disk full'); } } };
+  const uiSettings = { read: async () => structuredClone(UI_DEFAULTS), replace: async () => { if (failOnce) { failOnce = false; throw new Error('disk full'); } } };
   const profile = { read: async () => ({ initialized: true, version: 1, revision: 1, categories: [], assignments: {}, draw: { seen: [], history: [], noRepeats: true, current: null, mode: 'all' } }), replace: async () => {} };
   const service = createBackupService({ exclusions, displaySettings, appSettings, uiSettings, profile, appVersion: '1.8.0' });
   const backup = await service.export();

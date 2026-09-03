@@ -1,6 +1,6 @@
 {
   "name": "steam-games-randomizer",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "private": true,
   "type": "module",
   "description": "A private, offline-first randomizer for installed and locally licensed Steam games.",

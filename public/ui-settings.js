@@ -6,6 +6,13 @@ export const UI_OPTIONS = Object.freeze({
   accent: Object.freeze(['lime', 'blue', 'violet', 'orange', 'custom']),
 });
 
+export function languageFromLocale(locale, fallback = UI_DEFAULTS.language) {
+  const primary = String(locale ?? '').split(',')[0].trim().toLowerCase();
+  if (/^ru(?:-|$)/.test(primary)) return 'ru';
+  if (/^[a-z]{2,3}(?:-|$)/.test(primary)) return 'en';
+  return fallback;
+}
+
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 
 export function validCustomAccent(value) {

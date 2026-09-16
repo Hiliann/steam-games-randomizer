@@ -1,6 +1,6 @@
 {
     "app":  "Play Next",
-    "version":  "1.8.1",
+    "version":  "1.9.0",
     "platform":  "Windows 10/11 x64",
     "runtime":  "Node.js 24.20.0",
     "runtimeSource":  "https://nodejs.org/dist/v24.20.0/node-v24.20.0-win-x64.zip",

@@ -5,8 +5,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { once } from 'node:events';
 import { setImmediate } from 'node:timers/promises';
-import { createOnlineSizeService, parseStorageRequirement, SIZE_CACHE_TTL, SIZE_MISS_TTL, MAX_SIZE_RESPONSE } from '../lib/online-sizes.mjs';
+import { cleanStoreDescription, createOnlineSizeService, parseStorageRequirement, SIZE_CACHE_TTL, SIZE_MISS_TTL, MAX_SIZE_RESPONSE } from '../lib/online-sizes.mjs';
 import { createOnlineSizesClient } from '../public/online-sizes.js';
+import { createDescriptionsClient } from '../public/descriptions.js';
 import { uninstalledSize, sizeDescription, sizeSourceUrl, heroBadges } from '../public/display.js';
 import { createApp } from '../server.mjs';
 import { createDisplayStore } from '../lib/display-settings.mjs';
@@ -31,6 +32,26 @@ test('storage parsing supports older labels, units, decimals, ranges and safer l
   for (const [text, bytes] of [['Hard Drive: 500 MB free', 500 * 1024 ** 2], ['Disk space: 1.5 GB', 1.5 * GB], ['Storage: 1,024 MB', GB], ['Storage: 1,5 GB', 1.5 * GB], ['Storage: 20\u201330 GB available', 30 * GB], ['HDD: 0.5 TB free', 512 * GB], ['Место на диске: 10 ГБ', 10 * GB]]) assert.equal(parseStorageRequirement({ minimum: text }), bytes, text);
   assert.equal(parseStorageRequirement({ ...storage(100), recommended: '<li>Storage: 120 GB available</li>' }), 120 * GB);
   for (const text of ['Storage: -1 GB', 'Storage: 0 GB', 'Storage: TBD', 'Storage: 999999999999999 GB']) assert.equal(parseStorageRequirement({ minimum: text }), null);
+});
+test('short Steam descriptions are plain, bounded text and cached per interface language', async t => {
+  const { filename } = await fixture(t);
+  let calls = 0;
+  const service = createOnlineSizeService({ ...options, filename, send: async url => {
+    calls++;
+    const language = new URL(url).searchParams.get('l');
+    return steam('10', storage(1), { short_description: language === 'russian' ? '<b>Короткое</b> описание &amp; детали.' : '<script>bad()</script>A short description.' });
+  } });
+  assert.equal(cleanStoreDescription('<b>Hello</b> &amp; welcome'), 'Hello & welcome');
+  assert.equal(cleanStoreDescription('<script>alert(1)</script>'), null);
+  assert.equal((await service.lookupDescription('10', 'russian')).description, 'Короткое описание & детали.');
+  assert.equal((await service.lookupDescription('10', 'english')).description, 'A short description.');
+  assert.equal(calls, 2);
+  const restarted = createOnlineSizeService({ ...options, filename, send: async () => { throw new Error('Must use cache'); } });
+  assert.equal((await restarted.lookupDescription('10', 'russian')).cached, true);
+  assert.equal((await restarted.lookupDescription('10', 'english')).sourceUrl, 'https://store.steampowered.com/app/10/');
+  assert.equal(calls, 2);
+  await assert.rejects(service.lookupDescription('../secret', 'english'), { status: 400 });
+  await assert.rejects(service.lookupDescription('10', 'ukrainian'), { status: 400 });
 });
 test('lookup uses only a fixed HTTPS Steam host and public ID, with correct platform selection', async () => {
   const calls = [];
@@ -126,7 +147,7 @@ test('API allows only scoped uninstalled IDs and honours the display switch', as
   const { root, filename } = await fixture(t);
   let networkCalls = 0;
   const displaySettingsFile = path.join(root, 'settings.json');
-  const service = createOnlineSizeService({ ...options, filename, send: async () => { networkCalls++; return steam('10'); } });
+  const service = createOnlineSizeService({ ...options, filename, send: async url => { networkCalls++; const id = new URL(url).searchParams.get('appids'); return steam(id, storage(100), { short_description: `Description ${id}` }); } });
   const server = createApp({ displaySettingsFile, exclusionsFile: path.join(root, 'exclusions.json'), onlineSizes: service, scan: async () => ({ games: [{ id: '10', installed: false }, { id: '20', installed: true }], libraries: [] }) });
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
   t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); });
@@ -146,8 +167,15 @@ test('API allows only scoped uninstalled IDs and honours the display switch', as
   await createDisplayStore(displaySettingsFile).change({ key: 'showUninstalledSize', value: true });
   assert.equal((await post({ id: '10' }).then(r => r.json())).size.bytes, 100 * GB);
   assert.equal(networkCalls, 1);
+  const description = (body, headers = { 'X-Randomizer': '1' }) => fetch(base + '/api/game-description', { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
+  assert.equal((await description({ id: '20', language: 'en' }).then(r => r.json())).description, 'Description 20');
+  assert.equal(networkCalls, 2);
+  assert.equal((await description({ id: '30', language: 'en' })).status, 404);
+  assert.equal((await description({ id: '20', language: 'uk' })).status, 400);
+  assert.equal((await description({ id: '20', language: 'en' }, {})).status, 403);
   assert.equal((await fetch(base + '/data/online-sizes.json')).status, 404);
   assert.equal((await fetch(base + '/online-sizes.js')).status, 200);
+  assert.equal((await fetch(base + '/descriptions.js')).status, 200);
 });
 test('client limits requests, prioritizes the hero, clears hidden cards and deduplicates rerenders', async () => {
   const calls = [], completions = [], updates = [];
@@ -176,6 +204,18 @@ test('client rejects malicious source links and exposes nonblocking offline stat
   assert.equal(client.get('10').status, 'offline');
   assert.equal(client.get('10').size, null);
   client.retryUnavailable(); assert.equal(client.get('10'), undefined);
+});
+test('description client requests only a scoped ID and validates returned text', async () => {
+  let complete;
+  const updated = new Promise(resolve => { complete = resolve; });
+  const client = createDescriptionsClient({ send: async (url, options) => {
+    assert.equal(url, '/api/game-description');
+    assert.deepEqual(JSON.parse(options.body), { id: '10', language: 'ru' });
+    return new Response(JSON.stringify({ status: 'ready', description: 'Небольшое описание.', sourceUrl: 'https://store.steampowered.com/app/10/', language: 'russian', checkedAt: Date.now() }));
+  }, onUpdate: complete });
+  client.request('10', 'ru');
+  await updated;
+  assert.equal(client.get('10', 'ru').description, 'Небольшое описание.');
 });
 test('visible size prefers Steam requirements, distinguishes them from estimates and shows source/date', () => {
   const game = { id: '10', installed: false, installSize: { bytes: 12 * GB }, onlineSize: { bytes: 100 * GB, kind: 'required-space', source: 'steam-store', platform: 'windows', checkedAt: 1700000000000, stale: true } };

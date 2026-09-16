@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
+import net from 'node:net';
 import { once } from 'node:events';
 import { readFile } from 'node:fs/promises';
 import { createApp, APP_VERSION, getInstanceId } from '../server.mjs';
@@ -14,7 +15,11 @@ async function fixture(t, options = {}) {
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
   const port = server.address().port;
-  t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); });
+  t.after(async () => {
+    server.closeBrowserSessions?.();
+    server.closeAllConnections();
+    await new Promise(resolve => server.close(resolve));
+  });
   return { url: `http://127.0.0.1:${port}`, port, requests };
 }
 test('local health, page and scripts are served with restrictive security headers', async t => {
@@ -29,7 +34,7 @@ test('local health, page and scripts are served with restrictive security header
   assert.match(page.headers.get('content-security-policy'), /frame-ancestors 'none'/);
   assert.equal(page.headers.get('access-control-allow-origin'), null);
   assert.match(await page.text(), /Play Next/);
-  for (const asset of ['/app.js', '/randomizer.js', '/ui-settings.js', '/i18n.js', '/backup.js']) {
+  for (const asset of ['/app.js', '/randomizer.js', '/ui-settings.js', '/i18n.js', '/backup.js', '/browser-session.js', '/descriptions.js']) {
     const response = await fetch(url + asset);
     assert.equal(response.status, 200);
     assert.match(response.headers.get('content-type'), /javascript/);
@@ -38,6 +43,39 @@ test('local health, page and scripts are served with restrictive security header
   assert.equal(styles.status, 200);
   assert.match(styles.headers.get('content-type'), /text\/css/);
   assert.equal(styles.headers.get('cache-control'), 'no-cache');
+});
+
+test('browser page lifecycle is same-origin protected and closes only the last page', async t => {
+  let emptyCalls = 0;
+  const { url, port } = await fixture(t, { onBrowserSessionsEmpty: () => { emptyCalls++; }, browserSessionOptions: { shutdownDelayMs: 20 } });
+  const connect = origin => new Promise((resolve, reject) => {
+    const socket = net.createConnection({ host: '127.0.0.1', port });
+    socket.once('error', reject);
+    socket.once('connect', () => socket.write([
+      'GET /api/browser-session?id=1234567890abcdef HTTP/1.1',
+      `Host: 127.0.0.1:${port}`,
+      `Origin: ${origin}`,
+      'Upgrade: websocket',
+      'Connection: Upgrade',
+      'Sec-WebSocket-Version: 13',
+      'Sec-WebSocket-Key: AAECAwQFBgcICQoLDA0ODw==',
+      '', '',
+    ].join('\r\n')));
+    socket.once('data', data => resolve({ socket, response: data.toString('ascii') }));
+  });
+  const rejected = await connect('https://example.com');
+  assert.match(rejected.response, /403 Rejected/);
+  rejected.socket.destroy();
+  const first = await connect(url);
+  const second = await connect(url);
+  assert.match(first.response, /101 Switching Protocols/);
+  assert.match(second.response, /101 Switching Protocols/);
+  first.socket.end(Buffer.from([0x88, 0x80, 0, 0, 0, 0]));
+  await new Promise(resolve => setTimeout(resolve, 35));
+  assert.equal(emptyCalls, 0);
+  second.socket.end(Buffer.from([0x88, 0x80, 0, 0, 0, 0]));
+  await new Promise(resolve => setTimeout(resolve, 35));
+  assert.equal(emptyCalls, 1);
 });
 
 test('application copy identity is stable, private and different for distinct folders', async () => {

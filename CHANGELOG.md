@@ -1,5 +1,31 @@
 # Изменения
 
+## 1.9.0
+
+- Вместо команд запуска и остановки добавлен единый файл `Play Next.exe`.
+- После закрытия последней вкладки локальная программа автоматически завершается; несколько вкладок и обычная перезагрузка страницы обработаны безопасно.
+- Ярлыки рабочего стола и автозагрузки используют новый запускатель, а старые ярлыки обновляются автоматически.
+- Переключатель автообновления больше не блокируется во время установки и сразу показывает выбранное состояние.
+- Ошибка сохранения настройки больше не оставляет переключатели в заблокированном состоянии.
+- Обновление со старых версий добавляет новый запускатель и убирает только прежние командные файлы Play Next, не изменяя папку `data`.
+- Выпавшую игру теперь можно сразу добавить в одну или несколько категорий без поиска в общей библиотеке.
+- Для результата показывается краткое описание из Steam Store на текущем языке интерфейса; оно проверяется как обычный текст и сохраняется в локальном кэше.
+- При первом запуске язык интерфейса выбирается по системному языку, а уже сохранённый выбор пользователя не меняется.
+- Игры в анимации выбора перемешиваются заново и не идут повторяющимся порядком.
+
+### English
+
+- Replaced separate start and stop command files with one `Play Next.exe` launcher.
+- The local program now stops after its last browser tab closes, while multiple tabs and normal page reloads remain safe.
+- Desktop and startup shortcuts use the new launcher, and existing managed shortcuts migrate automatically.
+- The automatic-update switch remains available during installation and immediately reflects the selected state.
+- A settings save error no longer leaves the switches locked.
+- Updating from an older version adds the launcher and removes only Play Next's legacy command wrappers without changing the `data` folder.
+- A picked game can now be added directly to one or more categories without searching the full library.
+- The result shows a short Steam Store description in the current interface language, validated as plain text and stored in the local cache.
+- A new copy chooses its initial interface language from the system locale without overriding a saved user choice.
+- Games shown during the draw animation are reshuffled instead of following a repeating order.
+
 ## 1.8.1
 
 - В настройках оформления появился генератор случайной цветовой палитры.
@@ -108,4 +134,4 @@
 - В комплекте: установленная и локально лицензированная библиотека, выбор без повторов, поиск, история и адаптивный интерфейс.
 - Программа для Windows 10/11 x64 включает Node.js 24.20.0. Установка среды и API-ключ не требуются.
 
-Для обновления заверши приложение через Stop.cmd и сохрани свою папку `data`.
+Перед ручным переносом файлов закрой последнюю вкладку приложения и сохрани свою папку `data`.

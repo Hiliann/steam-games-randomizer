@@ -1,6 +1,6 @@
 # Play Next - Steam Games Randomizer
 
-[Русский](README.md) | [English](README.en.md)
+[English](README.en.md) | [Русский](README.md)
 
 **[Project website](https://hiliann.github.io/steam-games-randomizer/en/) · [Download for Windows](https://github.com/Hiliann/steam-games-randomizer/releases/latest) · [Report a problem](https://github.com/Hiliann/steam-games-randomizer/issues)**
 
@@ -12,11 +12,11 @@ The website includes a fictional demo, project information and downloads. It can
 
 ## Run on Windows
 
-1. Download **PlayNext-1.8.1-win-x64.zip** from [Releases](https://github.com/Hiliann/steam-games-randomizer/releases/latest). Do not use **Code > Download ZIP**: that archive contains source code without the bundled runtime.
+1. Download **PlayNext-1.9.0-win-x64.zip** from [Releases](https://github.com/Hiliann/steam-games-randomizer/releases/latest). Do not use **Code > Download ZIP**: that archive contains source code without the bundled runtime.
 2. Extract the entire archive to a writable folder. Do not run the program from inside the ZIP.
-3. Open **Start.cmd**. The program opens in your browser, usually at `http://127.0.0.1:3210`. If the port is occupied, it chooses another one.
+3. Open **Play Next.exe**. The program opens in your browser, usually at `http://127.0.0.1:3210`. If the port is occupied, it chooses another one.
 4. Press **Pick a game**, then **Play on Steam**. An uninstalled game instead offers **Install on Steam**. The local program passes the command to Steam without leaving a technical browser tab open.
-5. Open **Stop.cmd** to stop the program completely. Closing the browser tab alone does not stop the background process.
+5. Close the browser tab when you are done. Play Next stops automatically after the last tab closes; reloading the page does not stop it.
 
 Requires **Windows 10/11 x64 (Intel/AMD), Steam and a modern browser**. Node.js 24.20.0 is included. No separate runtime installation, API key, Codex or administrator rights are required. Keep the `runtime` folder with the program. Desktop shortcut and Windows startup options are available in **«Настройки»** (Settings).
 
@@ -24,15 +24,17 @@ Requires **Windows 10/11 x64 (Intel/AMD), Steam and a modern browser**. Node.js 
 
 - Automatically detects Steam libraries across multiple drives; custom paths can be added manually.
 - Chooses only eligible games, with optional no-repeat rounds and a history of recent picks.
-- Adds saved categories with a bulk editor for searching and selecting many games before saving once. A category can filter the visible library or become the active randomization mode.
+- Adds saved categories directly from the picked game, plus a bulk editor for the whole library. A category can filter the visible library or become the active randomization mode.
 - Includes modes for all participating games, installed or uninstalled games, never-played games, games dormant for 90 days and any saved category. Every eligible game keeps the same probability.
 - Lets you exclude individual games. Exclusions survive closing the program, changing ports and clearing browser storage.
 - Shows artwork from the local Steam cache, with a game-name fallback when artwork is unavailable.
+- Shows a short Steam Store description for the picked game in the selected interface language, with plain-text validation and local caching.
 - Includes search, keyboard controls, reduced-motion support and a responsive interface for narrow and wide windows.
 - Optionally adds uninstalled games backed by local Steam licenses, without a public Steam profile or account sign-in through Play Next.
 - Shows storage requirements for uninstalled games and lets you toggle size information and the installed-game badge.
 - Can create a desktop shortcut and start in the background with Windows, without administrator rights.
-- Offers Russian and English interfaces, three dark themes, preset accents and a custom palette editor. Random colors are previewed first, and the primary, hover and button-text colors remain editable until the palette is saved or cancelled.
+- Chooses Russian or English from the system language on first launch, while always preserving a saved manual choice. It also offers three dark themes, preset accents and an editable random-palette preview.
+- Shuffles the decorative draw sequence on every pick and avoids adjacent repeats while more than one candidate is available.
 - Exports categories, history, exclusions, library paths and settings to one validated backup file and restores the previous data if an import write fails.
 - Checks public GitHub releases for a newer version at startup or on demand. Verified updates can be installed manually or automatically at startup through an opt-in setting.
 
@@ -44,11 +46,11 @@ The library is a **snapshot of local Steam data, not an online ownership check**
 
 **«≈» means an approximate fallback based on local Steam depot information.** DLC and optional components are excluded; updates, language choices and overlapping files may affect the result. If neither source provides a size, the program reports it as unknown rather than inventing a number.
 
-Turn size information off in **«Настройки»** (Settings) to hide it and stop new Steam Store requests. The installed-game badge is hidden by default and can be enabled separately.
+Turn size information off in **«Настройки»** (Settings) to hide it and stop new size requests. A short description is requested only for the picked game. The installed-game badge is hidden by default and can be enabled separately.
 
 ## Saved settings and updates
 
-Exclusions, categories, category assignments, pick history, the current round, the selected draw mode, display settings and cached online sizes are stored in the `data` folder next to the program. **Keep this folder when updating or moving your own copy.** Stop the program with Stop.cmd before copying files.
+Exclusions, categories, category assignments, pick history, the current round, the selected draw mode, display settings and cached online sizes are stored in the `data` folder next to the program. **Keep this folder when updating or moving your own copy.** Close the last Play Next tab before copying files.
 
 The Windows section in **«Настройки»** (Settings) creates a shortcut for the current program folder and can enable background startup without opening the browser at sign-in. Play Next removes only shortcuts that belong to the current copy.
 
@@ -66,7 +68,7 @@ Send friends the clean release ZIP, not a copy of a folder you have already used
 
 The local server listens only on `127.0.0.1`. Steam files are read, not modified. Play Next does not require a Steam password or API key and does not upload account data, licenses, file paths or exclusions.
 
-For uninstalled-game storage information, it makes HTTPS requests to `store.steampowered.com` using public game IDs. Steam can see the connection's IP address. These requests do not include cookies or your account information. You can turn this feature off. Games and Steam may make their own network requests independently.
+For uninstalled-game storage information and the selected game's short description, it makes HTTPS requests to `store.steampowered.com` using public game IDs. The description request also includes the interface language. Steam can see the connection's IP address. These requests do not include cookies or your account information. Size requests can be turned off; descriptions are requested only for the current result. Games and Steam may make their own network requests independently.
 
 The downloadable ZIP excludes personal data, Steam files, game artwork and logs. It is not digitally signed. A `.zip.sha256` file is supplied to check that your download matches the published archive; a checksum is not a substitute for a security review.
 

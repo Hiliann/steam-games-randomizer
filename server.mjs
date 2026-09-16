@@ -15,9 +15,11 @@ import { createSteamLauncher } from './lib/steam-launch.mjs';
 import { createUpdateInstaller } from './lib/update-installer.mjs';
 import { createUiSettingsStore, MAX_UI_SETTINGS_BYTES } from './lib/ui-settings.mjs';
 import { createBackupService, MAX_BACKUP_BYTES } from './lib/backup.mjs';
+import { createBrowserSessions, validBrowserSessionId } from './lib/browser-sessions.mjs';
+import { languageFromLocale } from './public/ui-settings.js';
 
 const base = path.dirname(fileURLToPath(import.meta.url));
-export const APP_VERSION = '1.8.1';
+export const APP_VERSION = '1.9.0';
 export function getInstanceId(directory = base) {
   const resolved = path.resolve(directory);
   return createHash('sha256').update(process.platform === 'win32' ? resolved.toLowerCase() : resolved).digest('hex').slice(0, 24);
@@ -29,12 +31,14 @@ const staticFiles = new Map([
   ['/exclusions.js', ['exclusions.js', 'text/javascript; charset=utf-8']],
   ['/display.js', ['display.js', 'text/javascript; charset=utf-8']],
   ['/online-sizes.js', ['online-sizes.js', 'text/javascript; charset=utf-8']],
+  ['/descriptions.js', ['descriptions.js', 'text/javascript; charset=utf-8']],
   ['/profile.js', ['profile.js', 'text/javascript; charset=utf-8']],
   ['/system.js', ['system.js', 'text/javascript; charset=utf-8']],
   ['/app-settings.js', ['app-settings.js', 'text/javascript; charset=utf-8']],
   ['/ui-settings.js', ['ui-settings.js', 'text/javascript; charset=utf-8']],
   ['/i18n.js', ['i18n.js', 'text/javascript; charset=utf-8']],
   ['/backup.js', ['backup.js', 'text/javascript; charset=utf-8']],
+  ['/browser-session.js', ['browser-session.js', 'text/javascript; charset=utf-8']],
   ['/style.css', ['style.css', 'text/css; charset=utf-8']],
   ['/responsive.css', ['responsive.css', 'text/css; charset=utf-8']],
   ['/icon.svg', ['icon.svg', 'image/svg+xml']],
@@ -58,13 +62,46 @@ async function requestJson(request, limit = 32768) {
   catch { throw Object.assign(new Error('Некорректный JSON.'), { status: 400 }); }
 }
 
-export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, 'data/exclusions.json'), displaySettingsFile = path.join(base, 'data/display-settings.json'), appSettingsFile = path.join(base, 'data/app-settings.json'), uiSettingsFile = path.join(base, 'data/ui-settings.json'), profileFile = path.join(base, 'data/profile.json'), onlineSizes = createOnlineSizeService({ filename: path.join(base, 'data/online-sizes.json') }), windowsIntegration = createWindowsIntegration(), updates = createUpdateService({ currentVersion: APP_VERSION }), steamLauncher = createSteamLauncher(), updateInstaller = createUpdateInstaller(), onUpdateInstall = () => {} } = {}) {
+function attachBrowserSessions(server, browserSessions) {
+  const sockets = new Set();
+  const reject = (socket, status = 403) => {
+    socket.write(`HTTP/1.1 ${status} Rejected\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`, () => socket.destroy());
+  };
+  server.on('upgrade', (request, socket) => {
+    sockets.add(socket);
+    socket.once('close', () => sockets.delete(socket));
+    try {
+      const port = request.socket.localPort;
+      const host = request.headers.host;
+      if (![ `127.0.0.1:${port}`, `localhost:${port}` ].includes(host) || request.headers.origin !== `http://${host}`) return reject(socket);
+      const url = new URL(request.url, `http://${host}`);
+      const id = url.searchParams.get('id');
+      const key = request.headers['sec-websocket-key'];
+      const connection = String(request.headers.connection ?? '').toLowerCase().split(',').map(value => value.trim());
+      if (url.pathname !== '/api/browser-session' || [...url.searchParams.keys()].length !== 1 || !validBrowserSessionId(id)
+        || request.headers.upgrade?.toLowerCase() !== 'websocket' || !connection.includes('upgrade')
+        || request.headers['sec-websocket-version'] !== '13' || typeof key !== 'string' || Buffer.from(key, 'base64').length !== 16) return reject(socket, 400);
+      const accept = createHash('sha1').update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
+      socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
+      const closeSession = browserSessions.open();
+      socket.once('close', closeSession);
+      socket.once('error', () => socket.destroy());
+      // The page never sends application data. Its WebSocket close frame is
+      // enough to end the connection and release this browser session.
+      socket.once('data', () => socket.end());
+    } catch { socket.destroy(); }
+  });
+  return () => { for (const socket of sockets) socket.destroy(); sockets.clear(); };
+}
+
+export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, 'data/exclusions.json'), displaySettingsFile = path.join(base, 'data/display-settings.json'), appSettingsFile = path.join(base, 'data/app-settings.json'), uiSettingsFile = path.join(base, 'data/ui-settings.json'), profileFile = path.join(base, 'data/profile.json'), onlineSizes = createOnlineSizeService({ filename: path.join(base, 'data/online-sizes.json') }), windowsIntegration = createWindowsIntegration(), updates = createUpdateService({ currentVersion: APP_VERSION }), steamLauncher = createSteamLauncher(), updateInstaller = createUpdateInstaller(), onUpdateInstall = () => {}, onBrowserSessionsEmpty = () => {}, browserSessionOptions = {} } = {}) {
   const exclusions = createExclusionsStore(exclusionsFile);
   const displaySettings = createDisplayStore(displaySettingsFile);
   const appSettings = createAppSettingsStore(appSettingsFile);
   const uiSettings = createUiSettingsStore(uiSettingsFile);
   const profile = createProfileStore(profileFile);
   const backup = createBackupService({ exclusions, displaySettings, appSettings, uiSettings, profile, appVersion: APP_VERSION });
+  const browserSessions = createBrowserSessions({ ...browserSessionOptions, onEmpty: onBrowserSessionsEmpty });
   let snapshot;
   let scanQueue = Promise.resolve();
   const artworkCache = new Map();
@@ -86,11 +123,12 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
     const { cacheRoots, ...rest } = result;
     return rest;
   };
-  return http.createServer(async (request, response) => {
+  const server = http.createServer(async (request, response) => {
     response.setHeader('X-Content-Type-Options', 'nosniff');
     response.setHeader('Referrer-Policy', 'no-referrer');
     response.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
-    response.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
+    const localPort = request.socket.localPort;
+    response.setHeader('Content-Security-Policy', `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' ws://127.0.0.1:${localPort} ws://localhost:${localPort}; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`);
     const host = request.headers.host;
     const port = request.socket.localPort;
     if (![ `127.0.0.1:${port}`, `localhost:${port}` ].includes(host)) return json(response, 403, { error: 'Разрешён только локальный доступ.' });
@@ -102,7 +140,7 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
       if (url.pathname === '/api/exclusions' && request.method === 'GET') return json(response, 200, await exclusions.read());
       if (url.pathname === '/api/display-settings' && request.method === 'GET') return json(response, 200, await displaySettings.read());
       if (url.pathname === '/api/app-settings' && request.method === 'GET') return json(response, 200, await appSettings.read());
-      if (url.pathname === '/api/ui-settings' && request.method === 'GET') return json(response, 200, await uiSettings.read());
+      if (url.pathname === '/api/ui-settings' && request.method === 'GET') return json(response, 200, await uiSettings.initialize(languageFromLocale(request.headers['accept-language'])));
       if (url.pathname === '/api/profile' && request.method === 'GET') return json(response, 200, await profile.read());
       if (url.pathname === '/api/backup' && request.method === 'GET') return json(response, 200, await backup.export());
       if (url.pathname === '/api/windows-settings' && request.method === 'GET') return json(response, 200, await windowsIntegration.read());
@@ -174,6 +212,15 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
         if (result.size) game.onlineSize = result.size;
         return json(response, 200, result);
       }
+      if (url.pathname === '/api/game-description' && request.method === 'POST') {
+        if (request.headers['x-randomizer'] !== '1') return json(response, 403, { error: 'Отсутствует заголовок приложения.' });
+        const body = await requestJson(request, 1024);
+        if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.id !== 'string' || !/^[1-9]\d{0,9}$/.test(body.id)
+          || Number(body.id) > 0xffffffff || !['ru', 'en'].includes(body.language) || Object.keys(body).sort().join(',') !== 'id,language') return json(response, 400, { error: 'Укажи игру из библиотеки и язык описания.' });
+        const game = snapshot?.games.find(game => game.id === body.id);
+        if (!game) return json(response, 404, { error: 'Игра не найдена в текущей библиотеке.' });
+        return json(response, 200, await onlineSizes.lookupDescription(game.id, body.language === 'ru' ? 'russian' : 'english'));
+      }
       if (url.pathname === '/api/scan' && request.method === 'POST') {
         if (request.headers['x-randomizer'] !== '1') return json(response, 403, { error: 'Отсутствует заголовок приложения.' });
         const body = await requestJson(request);
@@ -207,16 +254,25 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
       else response.end();
     }
   });
+  const closeBrowserSockets = attachBrowserSessions(server, browserSessions);
+  server.closeBrowserSessions = closeBrowserSockets;
+  server.once('close', () => { closeBrowserSockets(); browserSessions.dispose(); });
+  return server;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const port = Number(process.env.PORT ?? 3210);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be an integer from 1 to 65535');
   let server;
-  server = createApp({ onUpdateInstall: () => server.close(() => process.exit(0)) });
+  const stop = () => {
+    if (!server?.listening) return;
+    server.closeBrowserSessions?.();
+    server.close(() => process.exit(0));
+  };
+  server = createApp({ onUpdateInstall: stop, onBrowserSessionsEmpty: stop });
   server.on('error', error => {
     console.error(error.code === 'EADDRINUSE' ? `Port ${port} is already in use. Open http://127.0.0.1:${port} or set PORT to another number.` : error.message);
     process.exitCode = 1;
   });
-  server.listen(port, '127.0.0.1', () => console.log(`Steam Games Randomizer\nLocal: http://127.0.0.1:${port}\nPress Ctrl+C to stop. Steam files are read-only.`));
+  server.listen(port, '127.0.0.1', () => console.log(`Steam Games Randomizer\nLocal: http://127.0.0.1:${port}\nThe app stops after its last browser tab closes. Steam files are read-only.`));
 }

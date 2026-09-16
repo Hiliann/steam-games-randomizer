@@ -21,6 +21,27 @@ main, section, article, aside, .page-intro > div, .library-heading > div,
 .history-item .history-index { flex-shrink: 0; }
 .spotlight { scroll-margin-top: 18px; }
 .spotlight-body h2 { overflow-wrap: anywhere; }
+.hero-context { margin-top: 7px !important; color: #98a291 !important; font-size: 10px !important; }
+.hero-category-menu { position: relative; }
+.hero-category-menu > summary {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 40px; padding: 9px 12px; border: 1px solid #ffffff2b;
+  border-radius: 9px; background: #10170bcc; color: #dce6d3;
+  font-size: 11px; font-weight: 600; cursor: pointer; list-style: none;
+}
+.hero-category-menu > summary::-webkit-details-marker { display: none; }
+.hero-category-menu > summary:hover { background: #26331f; }
+.hero-category-menu > summary .icon { width: 15px; height: 15px; }
+.hero-category-options {
+  position: absolute; z-index: 4; left: 0; bottom: calc(100% + 8px); width: min(280px, calc(100vw - 48px));
+  max-height: 250px; overflow: auto; padding: 8px; border: 1px solid #536344;
+  border-radius: 11px; background: #151b12f7; box-shadow: 0 15px 45px #0009; backdrop-filter: blur(12px);
+}
+.hero-category-option { display: flex; align-items: center; gap: 9px; min-height: 38px; padding: 7px 8px; border-radius: 7px; font-size: 11px; cursor: pointer; }
+.hero-category-option:hover { background: #ffffff0c; }
+.hero-category-option input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+.hero-category-empty { padding: 8px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+.hero-category-manage { width: 100%; margin-top: 4px; }
 .dialog-intro, .scan-notes, .path-error, .privacy-note { overflow-wrap: anywhere; }
 .path-input-row > input { flex: 1; }
 .library-path > div { min-width: 0; }
@@ -107,6 +128,7 @@ dialog {
   .cover-caption { left: 22px; right: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hero-actions { gap: 10px; }
   .hero-actions .button { min-height: 46px; }
+  .hero-category-menu > summary { min-height: 46px; }
   .hero-skip { min-height: 44px; font-size: 11px; text-align: left; }
   .library-heading { align-items: center; }
   .library-heading h2 { font-size: 23px; }
@@ -152,6 +174,8 @@ dialog {
   .library-heading h2 { font-size: 21px; }
   .hero-actions { align-items: stretch; flex-direction: column; }
   .hero-actions .button { justify-content: center; }
+  .hero-category-menu > summary { width: 100%; }
+  .hero-category-options { width: 100%; }
   .hero-skip { text-align: center; }
 }
 

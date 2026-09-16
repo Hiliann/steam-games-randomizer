@@ -23,7 +23,7 @@ const manifest = JSON.parse((await readFile(path.join(directory, 'release-manife
 assert.equal(manifest.version, 1);
 assert.equal(manifest.appVersion, APP_VERSION);
 const listed = new Set();
-for (const item of manifest.files) {
+for (const item of [...manifest.files, ...(manifest.bootstrapFiles ?? [])]) {
   assert.match(item.path, /^(?!data(?:\/|$))(?!.*\.\.)(?:[\p{L}\p{N} ._\/-]+)$/u);
   assert.equal(listed.has(item.path), false);
   listed.add(item.path);
@@ -41,6 +41,7 @@ async function packagedFiles(folder = directory, prefix = '') {
   return result;
 }
 assert.deepEqual([...listed].sort(), (await packagedFiles()).sort());
+assert.equal(createHash('sha256').update(await readFile(path.join(directory, 'Play Next.exe'))).digest('hex'), createHash('sha256').update(await readFile(path.join(directory, 'scripts/PlayNextLauncher.exe'))).digest('hex'));
 const cleanEnvironment = { ...process.env };
 for (const key of Object.keys(cleanEnvironment)) {
   if (['PATH', 'NODE_OPTIONS', 'NODE_PATH', 'STEAM_PATH', 'PORT'].includes(key.toUpperCase())) delete cleanEnvironment[key];
@@ -68,7 +69,7 @@ try {
   const health = await fetch(base + '/api/health').then(response => response.json());
   assert.equal(health.version, APP_VERSION);
   assert.equal(health.instanceId, record.instanceId);
-  for (const asset of ['/', '/app.js', '/exclusions.js', '/profile.js', '/display.js', '/app-settings.js', '/online-sizes.js', '/system.js', '/responsive.css', '/style.css']) {
+  for (const asset of ['/', '/app.js', '/exclusions.js', '/profile.js', '/display.js', '/app-settings.js', '/online-sizes.js', '/descriptions.js', '/system.js', '/responsive.css', '/style.css']) {
     const response = await fetch(base + asset);
     assert.equal(response.status, 200);
     await response.arrayBuffer();
@@ -156,7 +157,7 @@ try {
     assert.equal(disabled.status, 'disabled');
   }
   assert.deepEqual(await freshDisplay.load(), { showUninstalledSize: false, showInstalledBadge: true });
-  assert.deepEqual(await freshAppSettings.load(), { automaticUpdates: true });
+  assert.deepEqual(await freshAppSettings.load(), { automaticUpdates: true, showUpdateNotifications: true });
   assert.deepEqual(JSON.parse(await readFile(path.join(directory, 'data/display-settings.json'), 'utf8')).settings, { showUninstalledSize: false, showInstalledBadge: true });
   assert.deepEqual(await freshBrowser.load([]), ['900000001', '900000002']);
   const restoredProfile = await freshProfile.load({});

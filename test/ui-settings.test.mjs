@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { createUiSettingsStore } from '../lib/ui-settings.mjs';
-import { UI_DEFAULTS, createRandomAccent, createUiSettingsClient, validCustomAccent, validUiSettings } from '../public/ui-settings.js';
+import { UI_DEFAULTS, createRandomAccent, createUiSettingsClient, languageFromLocale, validCustomAccent, validUiSettings } from '../public/ui-settings.js';
 import { setLanguage, translate } from '../public/i18n.js';
 
 test('language, theme and accent have safe defaults and survive restart', async t => {
@@ -51,6 +51,18 @@ test('random accent palettes stay editable and use valid web colors', () => {
   assert.equal(validCustomAccent(palette), true);
   assert.notEqual(palette.base, palette.hover);
   assert.notEqual(palette.base, palette.contrast);
+});
+
+test('a new copy chooses its initial language from the system locale only once', async t => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'playnext-ui-language-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const filename = path.join(root, 'ui.json');
+  const store = createUiSettingsStore(filename);
+  assert.equal(languageFromLocale('ru-UA,ru;q=0.9'), 'ru');
+  assert.equal(languageFromLocale('uk-UA,uk;q=0.9'), 'en');
+  assert.equal(languageFromLocale('*'), 'ru');
+  assert.equal((await store.initialize('en')).language, 'en');
+  assert.equal((await createUiSettingsStore(filename).initialize('ru')).language, 'en');
 });
 
 test('UI client protects writes and the English translator covers static and counted labels', async () => {

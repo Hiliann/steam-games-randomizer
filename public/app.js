@@ -1,4 +1,4 @@
-import { STORAGE_KEY, cleanState, cleanDrawState, gamesInScope, gameAction, eligibleGames, drawGame } from './randomizer.js';
+import { STORAGE_KEY, cleanState, cleanDrawState, gamesInScope, gameAction, eligibleGames, drawGame, animationGames } from './randomizer.js';
 import { createExclusionsClient } from './exclusions.js';
 import { DISPLAY_DEFAULTS, createDisplayClient, formatSize, uninstalledSize, sizeDescription, sizeSourceUrl, heroBadges } from './display.js';
 import { createOnlineSizesClient } from './online-sizes.js';
@@ -8,9 +8,12 @@ import { APP_DEFAULTS, createAppSettingsClient, startupUpdateAction } from './ap
 import { UI_DEFAULTS, createRandomAccent, createUiSettingsClient, applyUiSettings } from './ui-settings.js';
 import { createBackupClient } from './backup.js';
 import { getLocale, setLanguage, startLocalization, tr } from './i18n.js';
+import { connectBrowserSession } from './browser-session.js';
+import { createDescriptionsClient } from './descriptions.js';
 
 const $ = id => document.getElementById(id);
 startLocalization();
+connectBrowserSession();
 // Bypass covers cached by older versions that did not resolve nested Steam assets.
 const ARTWORK_VERSION = '2';
 let state = cleanState();
@@ -51,7 +54,7 @@ let accentPreviewing = false;
 let accentPreviewMessage = 'Сохранённая палитра готова к предпросмотру.';
 let backupPending = false;
 let backupMessage = 'Данные остаются только на этом компьютере, пока ты сам не сохранишь файл.';
-let updateInfo = { status: 'not-checked', currentVersion: '1.8.1' };
+let updateInfo = { status: 'not-checked', currentVersion: '1.9.0' };
 let updatePending = false;
 let updateInstalling = false;
 let updateDialogShownVersion = null;
@@ -80,6 +83,13 @@ const onlineSizes = createOnlineSizesClient({ onUpdate(id, result) {
   for (const node of document.querySelectorAll(`[data-size-id="${id}"]`)) renderCardSize(game, node);
   if (heroGameId === id) renderHeroBadges(game);
   if (result.cacheSaved === false && !cacheWarningShown) { cacheWarningShown = true; toast('Размер получен, но не сохранён на диск. Проверь доступ к папке data приложения.'); }
+} });
+const descriptions = createDescriptionsClient({ onUpdate(id, language, result) {
+  const game = games.find(game => game.id === id);
+  if (!game) return;
+  game.storeDescriptions ??= {};
+  game.storeDescriptions[language] = result;
+  if (heroGameId === id && uiSettings.language === language) renderHero();
 } });
 const sizeObserver = typeof IntersectionObserver === 'function' ? new IntersectionObserver(entries => {
   for (const entry of entries) if (entry.isIntersecting) {
@@ -123,6 +133,14 @@ function renderHeroBadges(game) {
   const source = game?.installed === false && displaySettings.showUninstalledSize ? sizeSourceUrl(game) : '';
   $('hero-size-source').hidden = !source;
   if (source) $('hero-size-source').href = source; else $('hero-size-source').removeAttribute('href');
+}
+
+function requestGameDescription(game) {
+  if (!game || scanning) return;
+  descriptions.request(game.id, uiSettings.language);
+  const result = descriptions.get(game.id, uiSettings.language);
+  game.storeDescriptions ??= {};
+  if (result) game.storeDescriptions[uiSettings.language] = result;
 }
 
 function save() {
@@ -461,7 +479,7 @@ async function setWindowsSetting(key, value) {
 function renderAppSettings() {
   for (const key of Object.keys(APP_DEFAULTS)) {
     $(key).checked = appSettings[key];
-    $(key).disabled = !appSettingsReady || appSettingsPending || updateInstalling;
+    $(key).disabled = !appSettingsReady || appSettingsPending;
   }
   $('app-settings-status').textContent = appSettingsMessage;
   $('retry-app-settings').hidden = appSettingsReady || appSettingsPending;
@@ -486,8 +504,9 @@ async function loadAppSettings() {
   }
 }
 async function setAppSetting(key, value) {
-  if (!appSettingsReady || appSettingsPending || updateInstalling) return false;
+  if (!appSettingsReady || appSettingsPending) return false;
   const previous = appSettings[key];
+  appSettings[key] = value;
   appSettingsPending = true;
   appSettingsMessage = 'Сохраняем…';
   renderAppSettings();
@@ -499,8 +518,7 @@ async function setAppSetting(key, value) {
     return true;
   } catch (error) {
     appSettings[key] = previous;
-    appSettingsReady = false;
-    appSettingsMessage = `Не удалось подтвердить сохранение. ${error instanceof TypeError ? 'Проверь, что приложение запущено.' : error.message}`;
+    appSettingsMessage = `Не удалось сохранить настройку. ${error instanceof TypeError ? 'Проверь, что приложение запущено, и попробуй ещё раз.' : error.message}`;
     return false;
   } finally {
     appSettingsPending = false;
@@ -570,7 +588,7 @@ async function installUpdate() {
         if (response.ok && health.version === targetVersion) { location.reload(); return; }
       } catch { /* The local server is restarting. */ }
     }
-    throw new Error('Программа не перезапустилась вовремя. Открой «Запустить.cmd» вручную.');
+    throw new Error('Программа не перезапустилась вовремя. Открой «Play Next.exe» вручную.');
   } catch (error) {
     updateInstalling = false;
     toast(error.message);
@@ -692,6 +710,32 @@ function renderScopeNote() {
   }
   $('scope-note').textContent = message;
 }
+function renderHeroCategoryMenu(game) {
+  const menu = $('hero-category-menu');
+  menu.hidden = !game;
+  if (!game) { menu.open = false; $('hero-category-options').replaceChildren(); return; }
+  const fragment = document.createDocumentFragment();
+  const assigned = new Set(profile.assignments[game.id] ?? []);
+  for (const category of profile.categories) {
+    const label = element('label', 'hero-category-option');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox'; checkbox.checked = assigned.has(category.id);
+    checkbox.disabled = !profileReady || profilePending || busy || scanning;
+    checkbox.setAttribute('aria-label', tr(`Категория ${category.name}: ${game.name}`, `Category ${category.name}: ${game.name}`));
+    checkbox.addEventListener('change', async () => {
+      const next = checkbox.checked;
+      const saved = await mutateProfile(revision => profileClient.setCategory(revision, game.id, category.id, next), next ? `Добавлено в «${category.name}»` : `Убрано из «${category.name}»`);
+      if (!saved) checkbox.checked = !next;
+    });
+    label.append(checkbox, categoryBadge(category));
+    fragment.append(label);
+  }
+  if (!profile.categories.length) fragment.append(element('p', 'hero-category-empty', 'Категорий пока нет. Создай первую подборку.'));
+  const manage = element('button', 'button button-quiet hero-category-manage', profile.categories.length ? 'Управлять категориями' : 'Создать категорию');
+  manage.type = 'button'; manage.addEventListener('click', () => { menu.open = false; openCategories(game.id); });
+  fragment.append(manage);
+  $('hero-category-options').replaceChildren(fragment);
+}
 function renderHero() {
   const scoped = scopedGames();
   const selected = scoped.find(game => game.id === previewId);
@@ -706,15 +750,21 @@ function renderHero() {
   renderHeroBadges(game);
   renderCategoryBadges($('hero-categories'), game?.id);
   requestOnlineSize(game, true);
+  renderHeroCategoryMenu(selected);
   $('play-button').hidden = !selected;
   $('play-button').disabled = launching;
   $('exclude-current').hidden = !selected || state.excluded.includes(selected.id);
   $('exclude-current').disabled = busy || scanning || savingExclusion || !exclusionsReady;
   if (selected) {
+    requestGameDescription(selected);
+    const description = selected.storeDescriptions?.[uiSettings.language];
+    const context = selected.installed === false ? 'Игра есть в библиотеке аккаунта, но не установлена на этом компьютере. Steam предложит выбрать диск и начать загрузку.' : selected.updateRequired ? 'Игра установлена. Перед запуском Steam может предложить обновление.' : lastPlayedLabel(selected);
     $('spotlight-tag').textContent = 'СЕГОДНЯ В ИГРЕ';
     $('hero-kicker').textContent = state.excluded.includes(selected.id) ? 'ИСКЛЮЧЕНА ИЗ БУДУЩИХ РОЗЫГРЫШЕЙ' : selected.installed === false ? 'СЛУЧАЙ ВЫБРАЛ. НАЧНЁМ С УСТАНОВКИ.' : 'СЛУЧАЙ ВЫБРАЛ. ОСТАЛОСЬ НАЖАТЬ PLAY.';
     $('hero-title').textContent = selected.name;
-    $('hero-description').textContent = selected.installed === false ? 'Игра есть в библиотеке аккаунта, но не установлена на этом компьютере. Steam предложит выбрать диск и начать загрузку.' : selected.updateRequired ? 'Игра установлена. Перед запуском Steam может предложить обновление.' : lastPlayedLabel(selected);
+    $('hero-description').textContent = description?.description ?? (description?.status === 'loading' ? 'Загружаем краткое описание из Steam Store…' : context);
+    $('hero-context').textContent = context;
+    $('hero-context').hidden = !description?.description && description?.status !== 'loading';
     const action = gameAction(selected);
     $('play-label').textContent = action.label;
     $('cover-caption').textContent = 'Обложка из твоей библиотеки Steam';
@@ -723,6 +773,7 @@ function renderHero() {
     $('hero-kicker').textContent = scoped.length ? 'БИБЛИОТЕКА ПОЛНА ВОЗМОЖНОСТЕЙ' : 'НАЧНЁМ С ТВОЕЙ БИБЛИОТЕКИ';
     $('hero-title').textContent = scoped.length ? 'Вечер свободен. Игра найдётся.' : 'Твоя следующая игра уже где-то рядом.';
     $('hero-description').textContent = scoped.length ? 'Нажми «Выбрать игру» - мы найдём, во что погрузиться сегодня.' : 'Если Steam установлен в необычной папке, укажи её в разделе «Библиотеки».';
+    $('hero-context').hidden = true;
     $('cover-caption').textContent = game ? `На обложке: ${game.name}` : '';
   }
 }
@@ -967,7 +1018,7 @@ function closeCategories() {
 async function mutateProfile(operation, successMessage) {
   if (!profileReady || profilePending || busy || scanning) return false;
   profilePending = true;
-  renderCounts(); renderGrid(); renderCategoriesDialog();
+  renderCounts(); renderHero(); renderGrid(); renderCategoriesDialog();
   try {
     applyProfile(await operation(profile.revision));
     $('error-banner').hidden = true;
@@ -1006,7 +1057,7 @@ async function draw() {
     renderCounts(); renderGrid(); renderHero(); renderHistory();
     return;
   }
-  $('play-button').hidden = true; $('exclude-current').hidden = true;
+  $('play-button').hidden = true; $('exclude-current').hidden = true; $('hero-category-menu').hidden = true;
   $('spotlight').classList.add('is-drawing');
   $('hero-kicker').textContent = 'ПЕРЕМЕШИВАЕМ ТВОЮ БИБЛИОТЕКУ';
   const result = drawGame(games, state, undefined, undefined, profile.assignments);
@@ -1014,8 +1065,8 @@ async function draw() {
   const pool = eligible();
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (!reducedMotion) {
-    for (let i = 0; i < 8; i++) {
-      $('hero-title').textContent = pool[i % pool.length].name;
+    for (const [i, game] of animationGames(pool, 8).entries()) {
+      $('hero-title').textContent = game.name;
       await new Promise(resolve => setTimeout(resolve, 70 + i * 13));
     }
   }
@@ -1108,7 +1159,7 @@ async function scan({ addedPath } = {}) {
     }
     success = true;
   } catch (error) {
-    const message = error instanceof TypeError ? 'Нет связи с приложением. Запусти «Запустить.cmd» и обнови страницу.' : error.message;
+    const message = error instanceof TypeError ? 'Нет связи с приложением. Запусти «Play Next.exe» и обнови страницу.' : error.message;
     $('error-banner').textContent = message; $('error-banner').hidden = false;
     if ($('libraries-dialog').open) { $('path-error').textContent = message; $('path-error').hidden = false; }
   } finally {

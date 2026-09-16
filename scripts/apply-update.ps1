@@ -24,7 +24,7 @@ function Resolve-SafeTarget([string]$RelativePath) {
     if (-not $target.StartsWith($appDirectory + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw "Path leaves app directory: $RelativePath" }
     $top = $RelativePath.Replace('\', '/').Split('/')[0]
     if (@('data', '.git', 'dist', 'downloads') -contains $top -or $RelativePath -match '(^|/)(\.server|.*\.log)') { throw "Protected path in manifest: $RelativePath" }
-    if ((@('lib', 'public', 'runtime', 'scripts') -notcontains $top) -and (@('package.json', 'server.mjs', 'start.ps1', 'Start.cmd', 'Stop.cmd', 'README.md', 'README.en.md', 'READ ME FIRST.txt', 'THIRD_PARTY_NOTICES.md', 'CHANGELOG.md', 'release.json') -notcontains $RelativePath)) { throw "Unexpected manifest path: $RelativePath" }
+    if ((@('lib', 'public', 'runtime', 'scripts') -notcontains $top) -and (@('package.json', 'server.mjs', 'start.ps1', 'Start.cmd', 'Stop.cmd', 'Play Next.exe', 'README.md', 'README.en.md', 'READ ME FIRST.txt', 'THIRD_PARTY_NOTICES.md', 'CHANGELOG.md', 'release.json') -notcontains $RelativePath)) { throw "Unexpected manifest path: $RelativePath" }
     return $target
 }
 function Start-PlayNext {
@@ -70,9 +70,10 @@ try {
     $release = Get-Content -LiteralPath (Join-Path $packageDirectory 'release.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     $manifest = Get-Content -LiteralPath (Join-Path $packageDirectory 'release-manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($release.app -ne 'Play Next' -or $release.version -ne $Version -or $manifest.version -ne 1 -or $manifest.appVersion -ne $Version -or -not $manifest.files) { throw 'Release metadata mismatch.' }
-    if ($manifest.files.Count -gt 500) { throw 'Manifest contains too many files.' }
+    if ($manifest.files.Count -gt 500 -or $manifest.bootstrapFiles.Count -gt 10) { throw 'Manifest contains too many files.' }
+    $installFiles = @($manifest.files) + @($manifest.bootstrapFiles)
     $seen = @{}
-    foreach ($item in $manifest.files) {
+    foreach ($item in $installFiles) {
         if ($item.path -isnot [string] -or $item.sha256 -notmatch '^[a-fA-F0-9]{64}$' -or $item.bytes -isnot [long] -and $item.bytes -isnot [int]) { throw 'Invalid manifest entry.' }
         $relative = $item.path.Replace('\', '/')
         if ($seen.ContainsKey($relative)) { throw "Duplicate manifest entry: $relative" }
@@ -88,7 +89,7 @@ try {
     if ($process) { $process.WaitForExit(60000) | Out-Null }
     if (Get-Process -Id $ProcessId -ErrorAction SilentlyContinue) { throw 'Play Next did not stop in time.' }
 
-    foreach ($item in $manifest.files) {
+    foreach ($item in $installFiles) {
         $relative = $item.path.Replace('\', '/')
         $source = Join-Path $packageDirectory $relative.Replace('/', [IO.Path]::DirectorySeparatorChar)
         $target = Resolve-SafeTarget $relative

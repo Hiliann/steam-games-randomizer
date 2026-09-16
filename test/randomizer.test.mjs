@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanState, cleanDrawState, gamesInScope, gameAction, eligibleGames, drawGame, randomIndex, matchesMode } from '../public/randomizer.js';
+import { cleanState, cleanDrawState, gamesInScope, gameAction, eligibleGames, drawGame, randomIndex, matchesMode, animationGames } from '../public/randomizer.js';
 
 const games = [{ id: '10', name: 'One' }, { id: '20', name: 'Two' }, { id: '30', name: 'Three' }];
 
@@ -89,6 +89,14 @@ test('random index stays within bounds and rejects invalid ranges', () => {
     }
   }
   for (const invalid of [0, -1, 0.5, NaN, 2 ** 32]) assert.throws(() => randomIndex(invalid));
+});
+test('draw animation uses shuffled bags instead of repeating the library order', () => {
+  const sequence = animationGames(games, 8, length => length - 1).map(game => game.id);
+  assert.deepEqual(sequence.slice(0, 3).sort(), ['10', '20', '30']);
+  assert.deepEqual(sequence.slice(3, 6).sort(), ['10', '20', '30']);
+  assert.ok(sequence.every((id, index) => index === 0 || id !== sequence[index - 1]));
+  assert.deepEqual(animationGames([games[0]], 3, () => 0).map(game => game.id), ['10', '10', '10']);
+  assert.throws(() => animationGames(games, 2, () => 99), /Random index/);
 });
 test('removing an installation does not block the remaining bag', () => {
   const result = drawGame(games.slice(0, 2), cleanState({ seen: ['10', '20', '30'], current: '30' }), () => 0);

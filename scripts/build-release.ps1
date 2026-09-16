@@ -64,13 +64,14 @@ if ($RuntimeDirectory) {
 # This allowlist excludes process records, logs, Steam data, local paths, tests,
 # cached covers, settings, source archives and any other machine-specific files.
 $releaseFiles = @(
-    'package.json', 'server.mjs', 'start.ps1', 'Start.cmd', 'Stop.cmd',
+    'package.json', 'server.mjs', 'start.ps1',
     'README.md', 'README.en.md', 'READ ME FIRST.txt', 'THIRD_PARTY_NOTICES.md', 'CHANGELOG.md',
     'lib\steam.mjs', 'lib\owned.mjs', 'lib\steam-cache.mjs', 'lib\exclusions.mjs', 'lib\profile.mjs', 'public\index.html', 'public\app.js', 'public\exclusions.js', 'public\profile.js',
     'lib\install-size.mjs', 'lib\display-settings.mjs', 'public\display.js',
-    'lib\online-sizes.mjs', 'public\online-sizes.js',
+    'lib\online-sizes.mjs', 'public\online-sizes.js', 'public\descriptions.js',
     'lib\windows-integration.mjs', 'lib\update-check.mjs', 'lib\update-installer.mjs', 'lib\steam-launch.mjs', 'lib\app-settings.mjs', 'lib\ui-settings.mjs', 'lib\backup.mjs',
-    'scripts\windows-integration.ps1', 'scripts\launch-steam.ps1', 'scripts\apply-update.ps1', 'public\system.js', 'public\app-settings.js', 'public\ui-settings.js', 'public\i18n.js', 'public\backup.js',
+    'lib\browser-sessions.mjs',
+    'scripts\windows-integration.ps1', 'scripts\launch-steam.ps1', 'scripts\apply-update.ps1', 'public\system.js', 'public\app-settings.js', 'public\ui-settings.js', 'public\i18n.js', 'public\backup.js', 'public\browser-session.js',
     'public\randomizer.js', 'public\style.css', 'public\responsive.css', 'public\icon.svg'
 )
 foreach ($relativeFile in $releaseFiles) {
@@ -79,6 +80,16 @@ foreach ($relativeFile in $releaseFiles) {
     if (-not (Test-Path -LiteralPath $parent)) { New-Item -ItemType Directory -Path $parent | Out-Null }
     Copy-Item -LiteralPath (Join-Path $sourceDirectory $relativeFile) -Destination $destination -ErrorAction Stop
 }
+$frameworkRoot = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319'
+$compiler = Join-Path $frameworkRoot 'csc.exe'
+if (-not (Test-Path -LiteralPath $compiler -PathType Leaf)) {
+    $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework\v4.0.30319\csc.exe'
+}
+if (-not (Test-Path -LiteralPath $compiler -PathType Leaf)) { throw 'The Windows .NET Framework compiler required for Play Next.exe was not found.' }
+$launcher = Join-Path $packageDirectory 'Play Next.exe'
+& $compiler /nologo /target:winexe /optimize+ "/out:$launcher" /reference:System.Windows.Forms.dll (Join-Path $sourceDirectory 'launcher\PlayNextLauncher.cs')
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $launcher -PathType Leaf)) { throw 'Could not build Play Next.exe.' }
+Copy-Item -LiteralPath $launcher -Destination (Join-Path $packageDirectory 'scripts\PlayNextLauncher.exe')
 $release = [ordered]@{
     app = 'Play Next'
     version = $package.version
@@ -90,11 +101,14 @@ $release = [ordered]@{
     personalDataIncluded = $false
 }
 $release | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $packageDirectory 'release.json') -Encoding UTF8
-$manifestFiles = Get-ChildItem -LiteralPath $packageDirectory -File -Recurse | ForEach-Object {
+$manifestFiles = Get-ChildItem -LiteralPath $packageDirectory -File -Recurse | Where-Object { $_.FullName -ne $launcher } | ForEach-Object {
     $relative = $_.FullName.Substring($packageDirectory.Length + 1).Replace('\', '/')
     [ordered]@{ path = $relative; bytes = [long]$_.Length; sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
 }
-$manifest = [ordered]@{ version = 1; appVersion = $package.version; files = @($manifestFiles) }
+$bootstrapFiles = @([ordered]@{ path = 'Play Next.exe'; bytes = [long](Get-Item -LiteralPath $launcher).Length; sha256 = (Get-FileHash -LiteralPath $launcher -Algorithm SHA256).Hash.ToLowerInvariant() })
+# bootstrapFiles is separate so updaters from 1.7/1.8 can ignore the new root
+# launcher and still install the verified copy under scripts. start.ps1 then syncs it.
+$manifest = [ordered]@{ version = 1; appVersion = $package.version; files = @($manifestFiles); bootstrapFiles = $bootstrapFiles }
 $manifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $packageDirectory 'release-manifest.json') -Encoding UTF8
 Compress-Archive -LiteralPath $packageDirectory -DestinationPath $zipPath -CompressionLevel Optimal
 $zipHash = (Get-FileHash -LiteralPath $zipPath).Hash.ToLowerInvariant()

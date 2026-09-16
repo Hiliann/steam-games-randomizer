@@ -59,6 +59,30 @@ export function randomIndex(length) {
   return buffer[0] % length;
 }
 
+// Builds a decorative draw sequence from shuffled bags. Every candidate is
+// shown once before the bag is reshuffled, and adjacent duplicates are avoided
+// at bag boundaries whenever there is more than one game.
+export function animationGames(games, count = 8, chooseIndex = randomIndex) {
+  if (!Array.isArray(games) || !Number.isSafeInteger(count) || count < 0 || count > 100) throw new Error('Invalid animation pool');
+  if (!games.length || count === 0) return [];
+  const output = [];
+  let bag = [];
+  while (output.length < count) {
+    if (!bag.length) {
+      bag = [...games];
+      for (let index = bag.length - 1; index > 0; index--) {
+        const swap = chooseIndex(index + 1);
+        if (!Number.isSafeInteger(swap) || swap < 0 || swap > index) throw new Error('Random index out of range');
+        [bag[index], bag[swap]] = [bag[swap], bag[index]];
+      }
+      const previous = output.at(-1);
+      if (previous && bag.length > 1 && bag[0]?.id === previous.id) [bag[0], bag[1]] = [bag[1], bag[0]];
+    }
+    output.push(bag.shift());
+  }
+  return output;
+}
+
 export function drawGame(games, state, chooseIndex = randomIndex, now = new Date().toISOString(), assignments = {}) {
   const eligible = eligibleGames(games, state, assignments);
   if (!eligible.length) return null;

@@ -1,41 +1,41 @@
 ﻿{
     "version":  1,
-    "appVersion":  "2.0.0",
+    "appVersion":  "2.0.1",
     "files":  [
                   {
                       "path":  "CHANGELOG.md",
-                      "bytes":  16555,
-                      "sha256":  "fdef7099f527dcad664e028f86366887e0acc7084acbaf0f719ce62536e7d4a1"
+                      "bytes":  18496,
+                      "sha256":  "8380d83b08cb92b63b6b8f502c65f12afed6313cfc197f2accebcaae0b906a82"
                   },
                   {
                       "path":  "package.json",
                       "bytes":  1464,
-                      "sha256":  "2f89a4df7f93c75c982aa2661edbf64bdc12b3b8af29f324a7d8068314b3231c"
+                      "sha256":  "57e58b7155300a85aad2ff14e1663c6e7a47e958604e7475a40f9f6437a93e30"
                   },
                   {
                       "path":  "READ ME FIRST.txt",
-                      "bytes":  11228,
-                      "sha256":  "b82e942258b9e0a966722fc55f2eceb91180dbd698853bc2afb36dee447123d4"
+                      "bytes":  11485,
+                      "sha256":  "205b870a53cfc34deb0805ce8c66d1ed9193c4795d2e4b92ae184748dd1dad3b"
                   },
                   {
                       "path":  "README.en.md",
                       "bytes":  11089,
-                      "sha256":  "ff81bce0fcd0ec4e68cfa66e0a678b260a4d316f58cb3db44ca2c80630492aac"
+                      "sha256":  "ef3cf25e4d8e950e1664b5e451a04579ac22f810ab08ff5cb312799ce44f06f0"
                   },
                   {
                       "path":  "README.md",
                       "bytes":  36527,
-                      "sha256":  "6fa8c9b1125f6bae9d81687719bf93fc6582df40ddf0653712d434f7a62b62b9"
+                      "sha256":  "88974db33d1fee7d7cdcfbf18b3e5806f70a49adcc81a3c06a2b3352e185a7a8"
                   },
                   {
                       "path":  "release.json",
                       "bytes":  556,
-                      "sha256":  "934270337bc3e0c1108c9ec1010eccce56671173898820c47daae671b6f22156"
+                      "sha256":  "3e28fc539448a8157caf0228d6781ae378cf58f77298f7333ba478a075dfb1fe"
                   },
                   {
                       "path":  "server.mjs",
-                      "bytes":  22265,
-                      "sha256":  "d46cc256fb347b29904bce0efc4423a4a910ed9d5b7155a6cf65e99c4e67cd96"
+                      "bytes":  22471,
+                      "sha256":  "d6b77585d14647a5ae15fbf493cf3f7adaa32d2d9769ff01f65048007c97a91a"
                   },
                   {
                       "path":  "start.ps1",
@@ -144,8 +144,8 @@
                   },
                   {
                       "path":  "public/app.js",
-                      "bytes":  84175,
-                      "sha256":  "8750c95709813297447f7ed5eee89f9cff92213197f2acccbdcfaf4cc1214cbc"
+                      "bytes":  85738,
+                      "sha256":  "f89258101d206e93f355c1ca52cbd73d8317fe011d5e0b4048ade5b2c5c86ef8"
                   },
                   {
                       "path":  "public/backup.js",
@@ -164,8 +164,8 @@
                   },
                   {
                       "path":  "public/desktop.css",
-                      "bytes":  22785,
-                      "sha256":  "754597b9b00873fe1a308f65e6791d2baed46a3f77dd5803c7b6b2118fdf02e7"
+                      "bytes":  23731,
+                      "sha256":  "1d3cdedd13bc0a0dc7809a948b4e1d63860ef3e93c0b15ebfdc7fc1edb81904d"
                   },
                   {
                       "path":  "public/display.js",
@@ -179,18 +179,28 @@
                   },
                   {
                       "path":  "public/i18n.js",
-                      "bytes":  37415,
-                      "sha256":  "584ac2afa5a1c01dcff867c0c21e53df4d04b60e774f0d5b1e25a53a57f56b92"
+                      "bytes":  38117,
+                      "sha256":  "f49d861c6a62460a100c75becd105f9269bb9563419063c83651cd3d341cb72d"
+                  },
+                  {
+                      "path":  "public/icon.ico",
+                      "bytes":  177383,
+                      "sha256":  "a410a9d95618314d05a0f661e05e9766e2fe8479bffe23eadaeee8da94019142"
+                  },
+                  {
+                      "path":  "public/icon.png",
+                      "bytes":  75233,
+                      "sha256":  "15dd330039e2b784a0d61651098bbbde78d1021cafe3cb0aa7829489ae806350"
                   },
                   {
                       "path":  "public/icon.svg",
-                      "bytes":  362,
-                      "sha256":  "b5759244cdd17c890d5bd7cc9a785b8130a79287f2e536ad8b966736e3813df7"
+                      "bytes":  119,
+                      "sha256":  "d76b689cdb1524cb7d09a46ec4150876718a5d920898049bc3a427a329f080e2"
                   },
                   {
                       "path":  "public/index.html",
-                      "bytes":  32285,
-                      "sha256":  "3e5fba292d71e81877d0e8fafc1f97b1c29705ac51c9b25fdf93207d07f74553"
+                      "bytes":  32959,
+                      "sha256":  "fd5c8072380b3931218f5046914546fc9dbe71096a6e82478b13aa0930997f49"
                   },
                   {
                       "path":  "public/online-sizes.js",
@@ -223,14 +233,19 @@
                       "sha256":  "4bec870ea2dc8a04ff85afa3c829fb90a7fd9467a218f43b621dd0378562795d"
                   },
                   {
+                      "path":  "public/toast.js",
+                      "bytes":  1956,
+                      "sha256":  "ef81aa9a9a2e2c17065640d7c502b2d277391247b5341b5f0eeacae38b2f02ac"
+                  },
+                  {
                       "path":  "public/ui-settings.js",
                       "bytes":  5370,
                       "sha256":  "32588dfcf4b9b19404895408153a60d92c1837ced578e1f3883e6ee6cf000c98"
                   },
                   {
                       "path":  "public/workspace.js",
-                      "bytes":  4907,
-                      "sha256":  "3fbfd27ebb6fc8246dc0e90873eb9318a43c1e37d3460eb9addd76174fd5db7f"
+                      "bytes":  5559,
+                      "sha256":  "6721cc0ac4761d2db5edeab94c3d328a05141503fb895f964a13b4d19cb71cdd"
                   },
                   {
                       "path":  "runtime/LICENSE",
@@ -279,25 +294,25 @@
                   },
                   {
                       "path":  "scripts/PlayNext.ico",
-                      "bytes":  2686,
-                      "sha256":  "871d55b10fe25ae0cf1118f573ace5f36c6679c2a789081388a86988e9cb25aa"
+                      "bytes":  177383,
+                      "sha256":  "a410a9d95618314d05a0f661e05e9766e2fe8479bffe23eadaeee8da94019142"
                   },
                   {
                       "path":  "scripts/PlayNextLauncher.exe",
-                      "bytes":  30208,
-                      "sha256":  "bf482eb9d2e926c826a41b63bc2f57ecb65ead85e9dd7a404f5aac67518b5123"
+                      "bytes":  205312,
+                      "sha256":  "e92e904dd67bb0d84ee0f0b285924398d7651f0f89c5e882d7125276a9c96527"
                   },
                   {
                       "path":  "scripts/windows-integration.ps1",
-                      "bytes":  3803,
-                      "sha256":  "fd54c2b046a38975eb4725ea46b71ec7ff996d56d5dc2573c6d094e5f8c05ac3"
+                      "bytes":  4530,
+                      "sha256":  "8d83c17b1b11e6e5e89de6951c0f05cb63927fea401e9e56e57b3cfc0d93c1a8"
                   }
               ],
     "bootstrapFiles":  [
                            {
                                "path":  "Play Next.exe",
-                               "bytes":  30208,
-                               "sha256":  "bf482eb9d2e926c826a41b63bc2f57ecb65ead85e9dd7a404f5aac67518b5123"
+                               "bytes":  205312,
+                               "sha256":  "e92e904dd67bb0d84ee0f0b285924398d7651f0f89c5e882d7125276a9c96527"
                            }
                        ]
 }

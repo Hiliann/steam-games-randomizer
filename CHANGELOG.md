@@ -1,5 +1,23 @@
 # Изменения
 
+## 2.0.1
+
+### Русский
+
+- Новая иконка Play Next: единый знак в приложении, ярлыках и файле запуска, семь размеров Windows от 16 до 256 пикселей с прозрачностью.
+- Добавлена отмена исключения и возврата игры прямо из уведомления. Уведомление не исчезает, пока над ним указатель или на кнопке находится клавиатурный фокус.
+- Библиотека фильтруется по установке, категориям, участию и названию одновременно. Статус установки запоминается вместе с видом и сортировкой.
+- Поиск получил кнопку очистки и очистку по Escape, все фильтры можно сбросить одним действием. Фильтры просмотра не меняют состав случайного выбора.
+- Сохранён прежний формат категорий, исключений, истории и настроек; обновление не заменяет папку data.
+
+### English
+
+- New Play Next app icon shared by the interface, executable and Windows shortcuts, with seven transparent Windows sizes from 16 to 256 pixels.
+- Undo participation changes directly from a notification. Hovering or focusing the action keeps the notification visible.
+- Combine installation status, categories, participation and name filters. Installation status is remembered alongside library view and sorting.
+- Clear search with a button or Escape, and reset all filters in one action. Browsing filters do not change the random draw pool.
+- Preserved existing categories, exclusions, history and settings formats. Updates do not replace the data folder.
+
 ## 2.0.0
 
 ### Русский

@@ -5,6 +5,10 @@ const attributeSources = new WeakMap();
 const listeners = new Set();
 
 const exact = new Map([
+  ['Установка', 'Installation'], ['Любой статус', 'Any status'], ['Установленные', 'Installed'], ['Неустановленные', 'Not installed'],
+  ['Очистить поиск', 'Clear search'], ['Участие игры восстановлено', 'Game participation restored'],
+  ['Сбрось поиск или выбери другой фильтр.', 'Clear the search or choose another filter.'],
+  ['Включи «Показывать неустановленные игры» над списком, чтобы увидеть всю библиотеку Steam.', 'Enable “Show uninstalled games” above the list to see your entire Steam library.'],
   ['Игры в подборке', 'Games in collection'], ['Выбрать из подборки', 'Pick from collection'], ['Сначала сохрани изменения текущей подборки или нажми «Отменить».', 'Save the changes to this collection first, or click “Cancel”.'],
   ['Навигация приложения', 'Application navigation'], ['Основные разделы', 'Main sections'], ['Play Next - выбор игры', 'Play Next - choose a game'],
   ['Выбор игры', 'Choose a game'], ['Библиотека', 'Library'], ['Папки Steam', 'Steam folders'], ['Недавний выбор', 'Recent picks'],

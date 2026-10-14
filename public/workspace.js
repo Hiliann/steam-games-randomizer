@@ -3,7 +3,15 @@ import { onLanguageChange, tr } from './i18n.js';
 export const PAGES = Object.freeze(['choose', 'library', 'categories', 'settings']);
 export const LIBRARY_VIEW_KEY = 'playnext-library-view-v1';
 export function cleanLibraryView(value) {
-  return { view: value?.view === 'list' ? 'list' : 'grid', sort: ['name', 'recent', 'size'].includes(value?.sort) ? value.sort : 'name' };
+  return { view: value?.view === 'list' ? 'list' : 'grid', sort: ['name', 'recent', 'size'].includes(value?.sort) ? value.sort : 'name', status: ['installed', 'uninstalled'].includes(value?.status) ? value.status : 'all' };
+}
+export function filterLibraryGames(games, { filter = 'all', excluded = [], category = 'all', assignments = {}, query = '', status = 'all' } = {}) {
+  const ids = new Set(excluded);
+  const term = query.trim().toLocaleLowerCase();
+  return games.filter(game => (filter === 'all' || (filter === 'excluded' ? ids.has(game.id) : !ids.has(game.id)))
+    && (category === 'all' || (assignments[game.id] ?? []).includes(category))
+    && (status === 'all' || (status === 'uninstalled') === (game.installed === false))
+    && game.name.toLocaleLowerCase().includes(term));
 }
 export function sortLibraryGames(games, sort = 'name', locale = 'ru') {
   const size = game => {

@@ -10,7 +10,8 @@ import { createBackupClient } from './backup.js';
 import { getLocale, setLanguage, startLocalization, tr } from './i18n.js';
 import { connectBrowserSession } from './browser-session.js';
 import { createDescriptionsClient } from './descriptions.js';
-import { createWorkspace, cleanLibraryView, sortLibraryGames, LIBRARY_VIEW_KEY } from './workspace.js';
+import { createWorkspace, cleanLibraryView, filterLibraryGames, sortLibraryGames, LIBRARY_VIEW_KEY } from './workspace.js';
+import { createToast } from './toast.js';
 
 const $ = id => document.getElementById(id);
 startLocalization();
@@ -55,7 +56,7 @@ let accentPreviewing = false;
 let accentPreviewMessage = 'Сохранённая палитра готова к предпросмотру.';
 let backupPending = false;
 let backupMessage = 'Данные остаются только на этом компьютере, пока ты сам не сохранишь файл.';
-let updateInfo = { status: 'not-checked', currentVersion: '2.0.0' };
+let updateInfo = { status: 'not-checked', currentVersion: '2.0.1' };
 let scanFailed = false;
 let updatePending = false;
 let updateInstalling = false;
@@ -73,7 +74,7 @@ let categoryGameFilter = 'all';
 let categoryFocusGameId = null;
 let launching = false;
 let previewId = state.current;
-let toastTimer;
+const notifications = createToast({ node: $('toast'), onError: error => toast(error.message) });
 let workspace;
 let libraryView = cleanLibraryView();
 try { libraryView = cleanLibraryView(JSON.parse(localStorage.getItem(LIBRARY_VIEW_KEY) ?? '{}')); }
@@ -212,12 +213,7 @@ async function loadExclusions() {
   exclusionsReady = true;
   save();
 }
-function toast(message) {
-  clearTimeout(toastTimer);
-  $('toast').textContent = message;
-  $('toast').hidden = false;
-  toastTimer = setTimeout(() => { $('toast').hidden = true; }, 4000);
-}
+function toast(message, action) { notifications.show(message, action); }
 function icon(name) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.classList.add('icon');
@@ -854,7 +850,7 @@ async function launchSelectedGame() {
 $('hero-image').addEventListener('load', () => { $('hero-image').hidden = false; });
 $('hero-image').addEventListener('error', () => { $('hero-image').hidden = true; $('cover-caption').textContent = ''; });
 
-async function setExcluded(id, excluded) {
+async function setExcluded(id, excluded, { notify = true } = {}) {
   if (busy || scanning || savingExclusion || !exclusionsReady) return false;
   const previous = state.excluded;
   const ids = new Set(state.excluded);
@@ -866,6 +862,21 @@ async function setExcluded(id, excluded) {
     state.excluded = await exclusionsClient.set(id, excluded);
     save();
     $('error-banner').hidden = true;
+    if (notify) {
+      const name = games.find(game => game.id === id)?.name ?? id;
+      toast(tr(`${name}: ${excluded ? 'исключена из выбора' : 'снова участвует'}`, `${name}: ${excluded ? 'excluded from picks' : 'included again'}`), {
+        label: tr('Отменить', 'Undo'),
+        async run() {
+          if (state.excluded.includes(id) !== excluded) return true;
+          const saved = await setExcluded(id, !excluded, { notify: false });
+          if (saved) {
+            toast('Участие игры восстановлено');
+            document.getElementById(`toggle-${id}`)?.focus({ preventScroll: true });
+          }
+          return saved;
+        },
+      });
+    }
     return true;
   } catch (error) {
     state.excluded = previous;
@@ -890,9 +901,12 @@ function renderGrid() {
   }
   $('online-size-note').hidden = !state.includeUninstalled || !displaySettings.showUninstalledSize;
   const term = $('search-input').value.trim().toLocaleLowerCase('ru');
+  const hasFilters = !!term || categoryFilter !== 'all' || libraryView.status !== 'all';
+  $('clear-search').hidden = !$('search-input').value;
+  $('reset-library-filters').hidden = !hasFilters;
   const excluded = new Set(state.excluded);
   const scoped = scopedGames();
-  const visible = sortLibraryGames(scoped.filter(game => (filter === 'all' || (filter === 'excluded' ? excluded.has(game.id) : !excluded.has(game.id))) && (categoryFilter === 'all' || (profile.assignments[game.id] ?? []).includes(categoryFilter)) && game.name.toLocaleLowerCase('ru').includes(term)), libraryView.sort, getLocale());
+  const visible = sortLibraryGames(filterLibraryGames(scoped, { filter, excluded: state.excluded, category: categoryFilter, assignments: profile.assignments, query: term, status: libraryView.status }), libraryView.sort, getLocale());
   $('game-grid').dataset.view = libraryView.view;
   const fragment = document.createDocumentFragment();
   for (const game of visible) {
@@ -944,12 +958,12 @@ function renderGrid() {
   }
   $('game-grid').setAttribute('aria-busy', String(scanning));
   $('empty-state').hidden = !!visible.length;
-  $('search-note').hidden = !term && categoryFilter === 'all';
+  $('search-note').hidden = !hasFilters;
   $('visible-count').textContent = `Показано ${visible.length} из ${scoped.length} игр`;
   if (!visible.length) {
-    $('empty-title').textContent = !scoped.length ? 'Игры пока не найдены' : term || categoryFilter !== 'all' ? 'Ничего не нашлось' : filter === 'excluded' ? 'Все игры в деле' : 'Все игры исключены';
-    $('empty-description').textContent = !scoped.length ? state.includeUninstalled ? 'Открой библиотеку в Steam онлайн и обнови список. При необходимости укажи папку клиента Steam.' : 'Укажи папку Steam или SteamLibrary. Сейчас учитываем только установки на диске.' : term || categoryFilter !== 'all' ? 'Сбрось поиск или выбери другую категорию.' : filter === 'excluded' ? 'Исключённые игры появятся здесь. Сейчас каждая может выпасть.' : 'Открой вкладку «Исключены» и верни игры в розыгрыш.';
-    $('empty-action').textContent = !scoped.length ? 'Указать папку' : term || categoryFilter !== 'all' ? 'Сбросить фильтры' : 'Показать все игры';
+    $('empty-title').textContent = !scoped.length ? 'Игры пока не найдены' : hasFilters ? 'Ничего не нашлось' : filter === 'excluded' ? 'Все игры в деле' : 'Все игры исключены';
+    $('empty-description').textContent = !scoped.length ? state.includeUninstalled ? 'Открой библиотеку в Steam онлайн и обнови список. При необходимости укажи папку клиента Steam.' : 'Укажи папку Steam или SteamLibrary. Сейчас учитываем только установки на диске.' : libraryView.status === 'uninstalled' && !state.includeUninstalled ? 'Включи «Показывать неустановленные игры» над списком, чтобы увидеть всю библиотеку Steam.' : hasFilters ? 'Сбрось поиск или выбери другой фильтр.' : filter === 'excluded' ? 'Исключённые игры появятся здесь. Сейчас каждая может выпасть.' : 'Открой вкладку «Исключены» и верни игры в розыгрыш.';
+    $('empty-action').textContent = !scoped.length ? 'Указать папку' : hasFilters ? 'Сбросить фильтры' : 'Показать все игры';
   }
 }
 function renderHistory() {
@@ -1255,13 +1269,19 @@ $('include-uninstalled').addEventListener('change', async event => {
   else { state.includeUninstalled = previous; renderCounts(); renderHero(); renderHistory(); renderGrid(); }
 });
 $('search-input').addEventListener('input', renderGrid);
+$('clear-search').addEventListener('click', () => { $('search-input').value = ''; renderGrid(); $('search-input').focus(); });
+$('search-input').addEventListener('keydown', event => {
+  if (event.key === 'Escape' && event.target.value) { event.preventDefault(); event.stopPropagation(); event.target.value = ''; renderGrid(); }
+});
+$('reset-library-filters').addEventListener('click', resetLibraryFilters);
+$('installation-filter').addEventListener('change', event => { libraryView.status = event.target.value; saveLibraryView(); });
 for (const tab of document.querySelectorAll('.filter-tab')) tab.addEventListener('click', () => setFilter(tab.dataset.filter));
 $('category-filter').addEventListener('change', event => { categoryFilter = event.target.value; renderGrid(); });
 $('draw-mode').addEventListener('change', event => updateDraw({ mode: event.target.value }, `Режим выбора: ${event.target.options[event.target.selectedIndex].textContent}`));
 $('no-repeats').addEventListener('change', event => updateDraw({ noRepeats: event.target.checked }));
 $('reset-cycle').addEventListener('click', () => updateDraw({ seen: [] }, 'Новый круг: все подходящие игры снова доступны'));
 $('clear-history').addEventListener('click', () => updateDraw({ history: [] }, 'История очищена. Текущий круг сохранён.'));
-$('exclude-current').addEventListener('click', async () => { if (previewId && await setExcluded(previewId, true)) toast('Исключение сохранено. Вернуть игру можно во вкладке «Исключены».'); });
+$('exclude-current').addEventListener('click', () => { if (previewId) setExcluded(previewId, true); });
 $('play-button').addEventListener('click', launchSelectedGame);
 $('libraries-button').addEventListener('click', () => { renderLibraries(); $('libraries-dialog').showModal(); });
 $('library-folders-shortcut').addEventListener('click', () => $('libraries-button').click());
@@ -1326,7 +1346,7 @@ $('add-path-form').addEventListener('submit', event => {
   if (state.customPaths.length >= 20) { $('path-error').textContent = 'Можно добавить не больше 20 ручных путей.'; $('path-error').hidden = false; return; }
   scan({ addedPath: value });
 });
-$('empty-action').addEventListener('click', () => { if (!scopedGames().length) $('libraries-dialog').showModal(); else { $('search-input').value = ''; categoryFilter = 'all'; renderCategorySelectors(); setFilter('all'); } });
+$('empty-action').addEventListener('click', () => { if (!scopedGames().length) $('libraries-dialog').showModal(); else resetLibraryFilters(); });
 document.addEventListener('keydown', event => {
   if ($('update-dialog').open || $('libraries-dialog').open) return;
   if (event.key === 'Escape') {
@@ -1374,8 +1394,13 @@ document.addEventListener('click', event => {
 });
 function renderLibraryView() {
   $('library-sort').value = libraryView.sort;
+  $('installation-filter').value = libraryView.status;
   for (const button of document.querySelectorAll('[data-library-view]')) button.setAttribute('aria-pressed', String(button.dataset.libraryView === libraryView.view));
   renderGrid();
+}
+function resetLibraryFilters() {
+  $('search-input').value = ''; categoryFilter = 'all'; libraryView.status = 'all';
+  renderCategorySelectors(); setFilter('all'); saveLibraryView();
 }
 function saveLibraryView() {
   try { localStorage.setItem(LIBRARY_VIEW_KEY, JSON.stringify(libraryView)); } catch { $('storage-banner').hidden = false; }

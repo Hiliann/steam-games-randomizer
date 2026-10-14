@@ -6,6 +6,7 @@ $ErrorActionPreference = 'Stop'
 $appDirectory = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $startScript = Join-Path $appDirectory 'start.ps1'
 $launcher = Join-Path $appDirectory 'Play Next.exe'
+$appIcon = Join-Path $appDirectory 'public\icon.ico'
 $root = $env:SystemRoot
 if (-not $root) { $root = $env:SYSTEMROOT }
 $powershell = Join-Path $root 'System32\WindowsPowerShell\v1.0\powershell.exe'
@@ -45,7 +46,7 @@ function Set-ManagedLink([string]$Path, [bool]$NoBrowser) {
     if (Test-Path -LiteralPath $launcher -PathType Leaf) {
         $shortcut.TargetPath = $launcher
         $shortcut.Arguments = Get-LauncherArguments $NoBrowser
-        $shortcut.IconLocation = $launcher + ',0'
+        $shortcut.IconLocation = $(if (Test-Path -LiteralPath $appIcon -PathType Leaf) { $appIcon } else { $launcher }) + ',0'
     } else {
         # Development checkout fallback; packaged copies always contain the launcher.
         $shortcut.TargetPath = $powershell
@@ -69,6 +70,16 @@ if (Test-Path -LiteralPath $launcher -PathType Leaf) {
     }
     if (Test-LegacyLink $desktopLink $false) { Set-ManagedLink $desktopLink $false }
     if (Test-LegacyLink $startupLink $true) { Set-ManagedLink $startupLink $true }
+    # Refresh only shortcuts already owned by this application copy. Changing
+    # the icon source also avoids reusing a cached icon from the old executable.
+    if (Test-Path -LiteralPath $appIcon -PathType Leaf) {
+        foreach ($entry in @(@{Path=$desktopLink;Minimized=$false}, @{Path=$startupLink;Minimized=$true})) {
+            if (Test-ManagedLink $entry.Path $entry.Minimized) {
+                $managed = $shell.CreateShortcut($entry.Path)
+                if ($managed.IconLocation -ne ($appIcon + ',0')) { Set-ManagedLink $entry.Path $entry.Minimized }
+            }
+        }
+    }
 }
 
 switch ($Action) {

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#111410">
   <meta name="description" content="Выбери, во что поиграть сегодня. Локальный рандомизатор установленных игр и библиотеки аккаунта Steam.">
   <title>Play Next - Steam Games Randomizer</title>
-  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="/icon.ico" type="image/x-icon">
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/responsive.css">
   <link rel="stylesheet" href="/desktop.css">
@@ -30,7 +30,7 @@
   </defs></svg>
   <div class="app-shell">
     <aside class="app-sidebar" aria-label="Навигация приложения">
-      <button class="brand" data-page="choose" aria-label="Play Next - выбор игры"><img src="/icon.svg" width="36" height="36" alt=""><span>play<span class="brand-next">next</span><small>ТВОЯ СЛЕДУЮЩАЯ ИГРА</small></span></button>
+      <button class="brand" data-page="choose" aria-label="Play Next - выбор игры"><img src="/icon.png" width="36" height="36" alt=""><span>play<span class="brand-next">next</span><small>ТВОЯ СЛЕДУЮЩАЯ ИГРА</small></span></button>
       <nav class="app-nav" aria-label="Основные разделы">
         <button class="nav-item" data-page="choose" aria-current="page"><svg class="icon" aria-hidden="true"><use href="#i-shuffle"/></svg><span>Выбор игры</span></button>
         <button class="nav-item" data-page="library"><svg class="icon" aria-hidden="true"><use href="#i-library"/></svg><span>Библиотека</span></button>
@@ -38,7 +38,7 @@
         <button id="settings-button" class="nav-item" data-page="settings"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg><span>Настройки</span></button>
       </nav>
       <div class="sidebar-library"><strong id="installed-count">-</strong><span>игр установлено</span><small id="library-count">Ищем библиотеки Steam…</small></div>
-      <div class="sidebar-bottom"><button id="libraries-button" class="nav-item" aria-label="Папки Steam"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg><span>Папки Steam</span></button><span class="connection-pill" id="connection-status" role="status">Подключаемся…</span><small>Play Next <span id="app-version">2.0.0</span></small></div>
+      <div class="sidebar-bottom"><button id="libraries-button" class="nav-item" aria-label="Папки Steam"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg><span>Папки Steam</span></button><span class="connection-pill" id="connection-status" role="status">Подключаемся…</span><small>Play Next <span id="app-version">2.0.1</span></small></div>
     </aside>
 
     <main>
@@ -72,8 +72,8 @@
       <section id="library-page" class="library-section workspace-page" data-workspace-page="library" aria-labelledby="library-title" hidden><div class="library-heading"><div><p class="eyebrow" id="library-kicker">ИГРЫ ИЗ STEAM</p><h2 id="library-title">Все игры <span id="library-total" class="count-pill">-</span></h2></div><button id="library-folders-shortcut" class="button button-quiet library-mobile-folders">Папки Steam</button><div class="library-view-controls" role="group" aria-label="Вид библиотеки"><button class="view-button" data-library-view="grid" aria-pressed="true">Карточки</button><button class="view-button" data-library-view="list" aria-pressed="false">Список</button></div></div>
         <div class="library-scope"><label class="scope-toggle" for="include-uninstalled"><input id="include-uninstalled" type="checkbox" aria-describedby="scope-note"><span>Показывать неустановленные игры<small>Они тоже будут участвовать в случайном выборе</small></span></label><p id="scope-note" class="scope-note" role="status">Сейчас выбираем только из установленных игр.</p></div>
         <p id="online-size-note" class="online-size-note" hidden>«Место» - объём по требованиям в Steam Store, не размер скачивания. Подгружается из интернета по мере просмотра карточек. «≈» - запасная оценка из локального Steam.</p>
-        <div class="library-toolbar"><div class="filter-tabs" role="group" aria-label="Фильтр библиотеки"><button class="filter-tab active" data-filter="included" aria-pressed="true">Участвуют <span id="included-count">0</span></button><button class="filter-tab" data-filter="all" aria-pressed="false">Все <span id="all-count">0</span></button><button class="filter-tab" data-filter="excluded" aria-pressed="false">Исключены <span id="excluded-count">0</span></button></div><div class="library-tools"><label class="category-filter"><span class="visually-hidden">Фильтр по категории</span><select id="category-filter" disabled><option value="all">Все категории</option></select></label><label class="search-box"><svg class="icon"><use href="#i-search"/></svg><input id="search-input" type="search" placeholder="Найти игру…" aria-label="Поиск по названию игры" autocomplete="off"></label></div></div>
-        <div class="library-help"><p>Нажми на обложку, чтобы открыть игру. Галочка определяет участие в случайном выборе.</p><label class="library-sort"><span>Сортировка</span><select id="library-sort"><option value="name">По названию</option><option value="recent">По последнему запуску</option><option value="size">По размеру</option></select></label><span id="search-note" hidden>Поиск и фильтр библиотеки не меняют список для розыгрыша</span></div>
+        <div class="library-toolbar"><div class="filter-tabs" role="group" aria-label="Фильтр библиотеки"><button class="filter-tab active" data-filter="included" aria-pressed="true">Участвуют <span id="included-count">0</span></button><button class="filter-tab" data-filter="all" aria-pressed="false">Все <span id="all-count">0</span></button><button class="filter-tab" data-filter="excluded" aria-pressed="false">Исключены <span id="excluded-count">0</span></button></div><div class="library-tools"><label class="category-filter"><span class="visually-hidden">Фильтр по категории</span><select id="category-filter" disabled><option value="all">Все категории</option></select></label><div class="search-box"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input id="search-input" type="search" placeholder="Найти игру…" aria-label="Поиск по названию игры" autocomplete="off"><button id="clear-search" class="search-clear" type="button" aria-label="Очистить поиск" title="Очистить поиск" hidden><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div></div></div>
+        <div class="library-help"><p>Нажми на обложку, чтобы открыть игру. Галочка определяет участие в случайном выборе.</p><div class="library-controls"><label class="library-sort"><span>Установка</span><select id="installation-filter"><option value="all">Любой статус</option><option value="installed">Установленные</option><option value="uninstalled">Неустановленные</option></select></label><label class="library-sort"><span>Сортировка</span><select id="library-sort"><option value="name">По названию</option><option value="recent">По последнему запуску</option><option value="size">По размеру</option></select></label><button id="reset-library-filters" type="button" class="text-button" hidden>Сбросить фильтры</button></div><span id="search-note" hidden>Поиск и фильтр библиотеки не меняют список для розыгрыша</span></div>
         <div id="game-grid" class="game-grid" aria-busy="true"></div>
         <div id="empty-state" class="empty-state" hidden><svg class="icon"><use href="#i-library"/></svg><h3 id="empty-title">Игры пока не найдены</h3><p id="empty-description">Добавь папку Steam или SteamLibrary в настройках библиотек.</p><button id="empty-action" class="button button-quiet">Указать папку</button></div>
         <div class="library-bottom"><span id="visible-count">Читаем данные Steam…</span><span id="exclusions-status" role="status">Загружаем исключения…</span></div>
@@ -134,7 +134,7 @@
       </div>
       <p id="app-settings-status" class="dialog-intro display-status" role="status">Загружаем настройки обновлений…</p>
       <button id="retry-app-settings" class="button button-quiet" hidden>Повторить загрузку</button>
-      <p id="update-status" class="dialog-intro display-status" role="status">Текущая версия: 2.0.0</p>
+      <p id="update-status" class="dialog-intro display-status" role="status">Текущая версия: 2.0.1</p>
       <div class="settings-actions"><button id="check-update" class="button button-quiet">Проверить сейчас</button><button id="install-update" class="button button-primary" hidden>Установить сейчас</button><a id="download-update" class="button button-quiet" target="_blank" rel="noreferrer noopener" hidden>Открыть страницу релиза</a></div>
       <p class="privacy-note">Обновления проверяются при запуске. Если автообновление включено, новая версия установится во время запуска программы. Иначе о ней сообщит отдельное окно, пока ты не отключишь его. Обновление всегда можно запустить вручную здесь. Архив и контрольная сумма загружаются с GitHub, а папка data не заменяется.</p>
     </section>

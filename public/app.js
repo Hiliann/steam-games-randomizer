@@ -1,4 +1,4 @@
-import { STORAGE_KEY, cleanState, eligibleGames, drawGame } from './randomizer.js';
+import { STORAGE_KEY, cleanState, gamesInScope, gameAction, eligibleGames, drawGame } from './randomizer.js';
 
 const $ = id => document.getElementById(id);
 // Bypass covers cached by older versions that did not resolve nested Steam assets.
@@ -13,6 +13,7 @@ let busy = false;
 let scanning = false;
 let previewId = state.current;
 let toastTimer;
+const scopedGames = () => gamesInScope(games, state);
 
 function save() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
@@ -62,13 +63,18 @@ function artwork(game, kind = 'cover') {
 function renderCounts() {
   const eligible = eligibleGames(games, state);
   const played = eligible.filter(game => state.seen.includes(game.id)).length;
-  $('installed-count').textContent = games.length;
+  const scoped = scopedGames();
+  $('installed-count').textContent = snapshot?.installedCount ?? games.filter(game => game.installed !== false).length;
   const count = snapshot?.libraries.filter(library => library.available && library.count).length ?? 0;
   $('library-count').textContent = `Библиотек: ${count}`;
-  $('library-total').textContent = games.length;
+  $('library-total').textContent = scoped.length;
   $('included-count').textContent = eligible.length;
-  $('all-count').textContent = games.length;
-  $('excluded-count').textContent = games.length - eligible.length;
+  $('all-count').textContent = scoped.length;
+  $('excluded-count').textContent = scoped.length - eligible.length;
+  $('include-uninstalled').checked = state.includeUninstalled;
+  $('include-uninstalled').disabled = busy || scanning;
+  $('library-kicker').textContent = state.includeUninstalled ? 'НА КОМПЬЮТЕРЕ И В ТВОЁМ STEAM' : 'ВСЁ УЖЕ НА ТВОЁМ КОМПЬЮТЕРЕ';
+  renderScopeNote();
   $('no-repeats').checked = state.noRepeats;
   $('no-repeats').disabled = busy;
   $('draw-button').disabled = busy || scanning || !eligible.length;
@@ -79,33 +85,47 @@ function renderCounts() {
   $('cycle-progress').value = state.noRepeats ? played : 0;
   $('cycle-progress').hidden = !state.noRepeats;
   $('reset-cycle').hidden = !state.noRepeats;
-  $('pool-note').textContent = !games.length ? 'Добавь библиотеку, чтобы начать.' : !eligible.length ? 'Все игры исключены. Верни хотя бы одну.' : state.noRepeats && played === eligible.length ? 'Следующий выбор начнёт новый круг.' : `В розыгрыше: ${eligible.length}. У каждой игры равный шанс.`;
+  $('pool-note').textContent = !scoped.length ? 'Добавь библиотеку, чтобы начать.' : !eligible.length ? 'Все игры исключены. Верни хотя бы одну.' : state.noRepeats && played === eligible.length ? 'Следующий выбор начнёт новый круг.' : `В розыгрыше: ${eligible.length}. У каждой игры равный шанс.`;
   $('draw-label').textContent = busy ? 'Выбираем…' : state.current ? 'Предложить другую' : 'Выбрать игру';
 }
+function renderScopeNote() {
+  const info = snapshot?.ownedLibrary;
+  let message = 'Сейчас выбираем только из установленных игр.';
+  if (state.includeUninstalled) {
+    if (scanning) message = 'Читаем локальную библиотеку аккаунта Steam…';
+    else if (info?.status === 'ready' || info?.status === 'partial') {
+      message = `${info.accountName} · добавлено неустановленных: ${info.addedCount}. ${info.message}`;
+    } else message = info?.message ?? 'Для загрузки библиотеки нажми «Обновить список».';
+  }
+  $('scope-note').textContent = message;
+}
 function renderHero() {
-  const selected = games.find(game => game.id === previewId);
-  const game = selected ?? games.find(item => !state.excluded.includes(item.id)) ?? games[0];
+  const scoped = scopedGames();
+  const selected = scoped.find(game => game.id === previewId);
+  const game = selected ?? scoped.find(item => !state.excluded.includes(item.id)) ?? scoped[0];
   const image = $('hero-image');
   if (game) {
     const url = `/art/${game.id}/hero?v=${ARTWORK_VERSION}`;
     if (image.getAttribute('src') !== url) { image.hidden = true; image.src = url; }
-    $('hero-disk').textContent = `${game.disk} · ${formatSize(game.size)}`;
+    $('hero-disk').textContent = game.installed === false ? 'Не установлена' : `${game.disk} · ${formatSize(game.size)}`;
     $('hero-disk').hidden = false;
   } else { image.removeAttribute('src'); image.hidden = true; $('hero-disk').hidden = true; }
   $('play-button').hidden = !selected;
   $('exclude-current').hidden = !selected || state.excluded.includes(selected.id);
   if (selected) {
     $('spotlight-tag').textContent = 'СЕГОДНЯ В ИГРЕ';
-    $('hero-kicker').textContent = state.excluded.includes(selected.id) ? 'ИСКЛЮЧЕНА ИЗ БУДУЩИХ РОЗЫГРЫШЕЙ' : 'СЛУЧАЙ ВЫБРАЛ. ОСТАЛОСЬ НАЖАТЬ PLAY.';
+    $('hero-kicker').textContent = state.excluded.includes(selected.id) ? 'ИСКЛЮЧЕНА ИЗ БУДУЩИХ РОЗЫГРЫШЕЙ' : selected.installed === false ? 'СЛУЧАЙ ВЫБРАЛ. НАЧНЁМ С УСТАНОВКИ.' : 'СЛУЧАЙ ВЫБРАЛ. ОСТАЛОСЬ НАЖАТЬ PLAY.';
     $('hero-title').textContent = selected.name;
-    $('hero-description').textContent = selected.updateRequired ? 'Игра установлена. Перед запуском Steam может предложить обновление.' : lastPlayedLabel(selected);
-    $('play-button').href = `steam://run/${selected.id}`;
+    $('hero-description').textContent = selected.installed === false ? 'Игра есть в библиотеке аккаунта, но не установлена на этом компьютере. Steam предложит выбрать диск и начать загрузку.' : selected.updateRequired ? 'Игра установлена. Перед запуском Steam может предложить обновление.' : lastPlayedLabel(selected);
+    const action = gameAction(selected);
+    $('play-button').href = action.href;
+    $('play-label').textContent = action.label;
     $('cover-caption').textContent = 'Обложка из твоей библиотеки Steam';
   } else {
     $('spotlight-tag').textContent = 'ТВОЯ СЛЕДУЮЩАЯ ИГРА';
-    $('hero-kicker').textContent = games.length ? 'БИБЛИОТЕКА ПОЛНА ВОЗМОЖНОСТЕЙ' : 'НАЧНЁМ С ТВОЕЙ БИБЛИОТЕКИ';
-    $('hero-title').textContent = games.length ? 'Вечер свободен. Игра найдётся.' : 'Твоя следующая игра уже где-то рядом.';
-    $('hero-description').textContent = games.length ? 'Нажми «Выбрать игру» — мы найдём, во что погрузиться сегодня.' : 'Если Steam установлен в необычной папке, укажи её в разделе «Библиотеки».';
+    $('hero-kicker').textContent = scoped.length ? 'БИБЛИОТЕКА ПОЛНА ВОЗМОЖНОСТЕЙ' : 'НАЧНЁМ С ТВОЕЙ БИБЛИОТЕКИ';
+    $('hero-title').textContent = scoped.length ? 'Вечер свободен. Игра найдётся.' : 'Твоя следующая игра уже где-то рядом.';
+    $('hero-description').textContent = scoped.length ? 'Нажми «Выбрать игру» — мы найдём, во что погрузиться сегодня.' : 'Если Steam установлен в необычной папке, укажи её в разделе «Библиотеки».';
     $('play-button').removeAttribute('href');
     $('cover-caption').textContent = game ? `На обложке: ${game.name}` : '';
   }
@@ -124,7 +144,8 @@ function setExcluded(id, excluded) {
 function renderGrid() {
   const term = $('search-input').value.trim().toLocaleLowerCase('ru');
   const excluded = new Set(state.excluded);
-  const visible = games.filter(game => (filter === 'all' || (filter === 'excluded' ? excluded.has(game.id) : !excluded.has(game.id))) && game.name.toLocaleLowerCase('ru').includes(term));
+  const scoped = scopedGames();
+  const visible = scoped.filter(game => (filter === 'all' || (filter === 'excluded' ? excluded.has(game.id) : !excluded.has(game.id))) && game.name.toLocaleLowerCase('ru').includes(term));
   const fragment = document.createDocumentFragment();
   for (const game of visible) {
     const isExcluded = excluded.has(game.id);
@@ -133,10 +154,10 @@ function renderGrid() {
     const fallback = element('div', 'game-placeholder');
     fallback.append(icon('game'), element('span', '', game.name));
     fallback.setAttribute('aria-hidden', 'true');
-    art.append(fallback, artwork(game), element('span', 'card-disk', game.disk));
+    art.append(fallback, artwork(game), element('span', 'card-disk', game.installed === false ? 'В Steam' : game.disk));
     const title = element('h3', '', game.name); title.title = game.name;
     const meta = element('div', 'game-meta');
-    meta.append(element('span', '', formatSize(game.size)), element('span', '', game.updateRequired ? 'Обновление' : 'Установлена'));
+    meta.append(element('span', '', game.installed === false ? 'В библиотеке' : formatSize(game.size)), element('span', '', game.installed === false ? 'Не установлена' : game.updateRequired ? 'Обновление' : 'Установлена'));
     const toggle = element('label', 'game-toggle');
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox'; checkbox.checked = !isExcluded; checkbox.disabled = busy;
@@ -157,15 +178,16 @@ function renderGrid() {
   $('game-grid').setAttribute('aria-busy', String(scanning));
   $('empty-state').hidden = !!visible.length;
   $('search-note').hidden = !term;
-  $('visible-count').textContent = `Показано ${visible.length} из ${games.length} игр`;
+  $('visible-count').textContent = `Показано ${visible.length} из ${scoped.length} игр`;
   if (!visible.length) {
-    $('empty-title').textContent = !games.length ? 'Игры пока не найдены' : term ? 'Ничего не нашлось' : filter === 'excluded' ? 'Все игры в деле' : 'Все игры исключены';
-    $('empty-description').textContent = !games.length ? 'Укажи папку Steam или SteamLibrary. Учитываем только установки, которые есть на диске.' : term ? 'Попробуй другое название или переключись на вкладку «Все».' : filter === 'excluded' ? 'Исключённые игры появятся здесь. Сейчас каждая может выпасть.' : 'Открой вкладку «Исключены» и верни игры в розыгрыш.';
-    $('empty-action').textContent = !games.length ? 'Указать папку' : term ? 'Сбросить поиск' : 'Показать все игры';
+    $('empty-title').textContent = !scoped.length ? 'Игры пока не найдены' : term ? 'Ничего не нашлось' : filter === 'excluded' ? 'Все игры в деле' : 'Все игры исключены';
+    $('empty-description').textContent = !scoped.length ? state.includeUninstalled ? 'Открой библиотеку в Steam онлайн и обнови список. При необходимости укажи папку клиента Steam.' : 'Укажи папку Steam или SteamLibrary. Сейчас учитываем только установки на диске.' : term ? 'Попробуй другое название или переключись на вкладку «Все».' : filter === 'excluded' ? 'Исключённые игры появятся здесь. Сейчас каждая может выпасть.' : 'Открой вкладку «Исключены» и верни игры в розыгрыш.';
+    $('empty-action').textContent = !scoped.length ? 'Указать папку' : term ? 'Сбросить поиск' : 'Показать все игры';
   }
 }
 function renderHistory() {
-  const entries = state.history.map(entry => ({ ...entry, game: games.find(game => game.id === entry.id) })).filter(entry => entry.game).slice(0, 7);
+  const scoped = scopedGames();
+  const entries = state.history.map(entry => ({ ...entry, game: scoped.find(game => game.id === entry.id) })).filter(entry => entry.game).slice(0, 7);
   const fragment = document.createDocumentFragment();
   for (const [i, entry] of entries.entries()) {
     const button = element('button', 'history-item');
@@ -269,7 +291,7 @@ async function scan({ addedPath } = {}) {
   let success = false;
   try {
     const paths = addedPath ? [...state.customPaths, addedPath] : state.customPaths;
-    const response = await fetch('/api/scan', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Randomizer': '1' }, body: JSON.stringify({ paths }) });
+    const response = await fetch('/api/scan', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Randomizer': '1' }, body: JSON.stringify({ paths, includeUninstalled: state.includeUninstalled }) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error ?? 'Не удалось прочитать библиотеки.');
     snapshot = data; games = data.games;
@@ -294,7 +316,14 @@ async function scan({ addedPath } = {}) {
 }
 
 $('draw-button').addEventListener('click', draw);
-$('refresh-button').addEventListener('click', async () => { if (await scan()) toast('Список установленных игр обновлён'); });
+$('refresh-button').addEventListener('click', async () => { if (await scan()) toast('Список игр обновлён'); });
+$('include-uninstalled').addEventListener('change', async event => {
+  if (scanning || busy) return;
+  const previous = state.includeUninstalled;
+  state.includeUninstalled = event.target.checked;
+  if (await scan()) save();
+  else { state.includeUninstalled = previous; renderCounts(); renderHero(); renderHistory(); renderGrid(); }
+});
 $('search-input').addEventListener('input', renderGrid);
 for (const tab of document.querySelectorAll('.filter-tab')) tab.addEventListener('click', () => setFilter(tab.dataset.filter));
 $('no-repeats').addEventListener('change', event => { state.noRepeats = event.target.checked; save(); renderCounts(); });
@@ -312,15 +341,20 @@ $('add-path-form').addEventListener('submit', event => {
   if (state.customPaths.length >= 20) { $('path-error').textContent = 'Можно добавить не больше 20 ручных путей.'; $('path-error').hidden = false; return; }
   scan({ addedPath: value });
 });
-$('empty-action').addEventListener('click', () => { if (!games.length) $('libraries-dialog').showModal(); else { $('search-input').value = ''; setFilter('all'); } });
+$('empty-action').addEventListener('click', () => { if (!scopedGames().length) $('libraries-dialog').showModal(); else { $('search-input').value = ''; setFilter('all'); } });
 document.addEventListener('keydown', event => {
   if (event.code !== 'Space' || event.repeat || event.ctrlKey || event.altKey || event.metaKey || $('libraries-dialog').open) return;
   if (event.target.closest('input,textarea,select,button,a,[contenteditable="true"]')) return;
   event.preventDefault(); draw();
 });
 window.addEventListener('storage', event => {
-  if (event.key !== STORAGE_KEY || busy) return;
-  try { state = cleanState(JSON.parse(event.newValue ?? '{}')); previewId = state.current; renderCounts(); renderHero(); renderHistory(); renderGrid(); renderLibraries(); }
+  if (event.key !== STORAGE_KEY || busy || scanning) return;
+  try {
+    const previous = state.includeUninstalled;
+    state = cleanState(JSON.parse(event.newValue ?? '{}')); previewId = state.current;
+    if (previous !== state.includeUninstalled) scan();
+    else { renderCounts(); renderHero(); renderHistory(); renderGrid(); renderLibraries(); }
+  }
   catch { /* Ignore malformed updates from another browser tab. */ }
 });
 scan();

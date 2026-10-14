@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import { scanSteam, normalizeLibrary, findArtwork } from './lib/steam.mjs';
 
 const base = path.dirname(fileURLToPath(import.meta.url));
-export const APP_VERSION = '1.1.0';
+export const APP_VERSION = '1.2.0';
 export function getInstanceId(directory = base) {
   const resolved = path.resolve(directory);
   return createHash('sha256').update(process.platform === 'win32' ? resolved.toLowerCase() : resolved).digest('hex').slice(0, 24);
@@ -42,9 +42,9 @@ export function createApp({ scan = scanSteam } = {}) {
   let snapshot;
   let scanQueue = Promise.resolve();
   const artworkCache = new Map();
-  const refresh = customPaths => {
+  const refresh = (customPaths, includeUninstalled = false) => {
     const task = scanQueue.then(async () => {
-      snapshot = await scan({ customPaths });
+      snapshot = await scan({ customPaths, includeUninstalled });
       artworkCache.clear();
       return snapshot;
     });
@@ -73,7 +73,8 @@ export function createApp({ scan = scanSteam } = {}) {
         if (request.headers['x-randomizer'] !== '1') return json(response, 403, { error: 'Отсутствует заголовок приложения.' });
         const body = await requestJson(request);
         if (!body || !Array.isArray(body.paths) || body.paths.length > 20 || body.paths.some(value => !normalizeLibrary(value))) return json(response, 400, { error: 'Укажите абсолютный путь к локальной папке Steam или SteamLibrary (до 20 папок).' });
-        return json(response, 200, publicSnapshot(await refresh(body.paths)));
+        if (body.includeUninstalled !== undefined && typeof body.includeUninstalled !== 'boolean') return json(response, 400, { error: 'Настройка неустановленных игр должна быть галочкой.' });
+        return json(response, 200, publicSnapshot(await refresh(body.paths, body.includeUninstalled === true)));
       }
       const artwork = /^\/art\/(\d+)\/(cover|hero)$/.exec(url.pathname);
       if (artwork && request.method === 'GET') {

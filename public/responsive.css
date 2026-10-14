@@ -143,3 +143,13 @@ dialog {
   .switch-track::before { width: 20px; height: 20px; }
   .switch input:checked + .switch-track::before { transform: translateX(16px); }
 }
+/* Library scope is a native, keyboard-accessible checkbox with a touch target. */
+.library-scope { display: flex; align-items: center; gap: 20px; margin-top: 20px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.scope-toggle { display: flex; align-items: center; gap: 12px; min-height: 44px; flex: 1 1 45%; cursor: pointer; font-size: 13px; line-height: 1.5; }
+.scope-toggle input { width: 18px; height: 18px; margin: 0; flex-shrink: 0; accent-color: var(--accent); }
+.scope-toggle small { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; }
+.scope-note { flex: 1 1 55%; min-width: 0; font-size: 11px; line-height: 1.7; color: var(--muted); overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .library-scope { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px; }
+  .scope-toggle { font-size: 12px; }
+}

@@ -7,6 +7,7 @@ export function cleanState(input = {}) {
     excluded: ids(input.excluded), seen: ids(input.seen),
     history: (Array.isArray(input.history) ? input.history : []).filter(entry => entry && /^\d+$/.test(entry.id) && typeof entry.at === 'string' && Number.isFinite(Date.parse(entry.at))).slice(0, 30).map(entry => ({ id: String(entry.id), at: entry.at })),
     noRepeats: input.noRepeats !== false,
+    includeUninstalled: input.includeUninstalled === true,
     customPaths: [...new Set((Array.isArray(input.customPaths) ? input.customPaths : []).filter(value => typeof value === 'string' && value.length > 0 && value.length <= 1024))].slice(0, 20),
     current: typeof input.current === 'string' && /^\d+$/.test(input.current) ? input.current : null,
   };
@@ -14,7 +15,18 @@ export function cleanState(input = {}) {
 
 export function eligibleGames(games, state) {
   const excluded = new Set(state.excluded);
-  return games.filter(game => !excluded.has(game.id));
+  return gamesInScope(games, state).filter(game => !excluded.has(game.id));
+}
+
+export function gamesInScope(games, state) {
+  return state.includeUninstalled ? games : games.filter(game => game.installed !== false);
+}
+
+export function gameAction(game) {
+  if (!/^\d+$/.test(game.id)) throw new Error('Invalid Steam app ID');
+  return game.installed === false
+    ? { href: `steam://install/${game.id}`, label: 'Установить в Steam' }
+    : { href: `steam://run/${game.id}`, label: 'Играть в Steam' };
 }
 
 export function randomIndex(length) {

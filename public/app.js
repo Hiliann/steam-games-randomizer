@@ -1,5 +1,6 @@
 import { STORAGE_KEY, cleanState, gamesInScope, gameAction, eligibleGames, drawGame } from './randomizer.js';
 import { createExclusionsClient } from './exclusions.js';
+import { DISPLAY_DEFAULTS, createDisplayClient, formatSize, uninstalledSize, sizeDescription, heroBadges } from './display.js';
 
 const $ = id => document.getElementById(id);
 // Bypass covers cached by older versions that did not resolve nested Steam assets.
@@ -15,6 +16,11 @@ let scanning = false;
 let exclusionsReady = false;
 let savingExclusion = false;
 const exclusionsClient = createExclusionsClient();
+const displayClient = createDisplayClient();
+let displaySettings = { ...DISPLAY_DEFAULTS };
+let displayReady = false;
+let displayPending = false;
+let displayMessage = 'Загружаем настройки…';
 let previewId = state.current;
 let toastTimer;
 const scopedGames = () => gamesInScope(games, state);
@@ -50,10 +56,47 @@ function element(tag, className, text) {
   if (text !== undefined) node.textContent = text;
   return node;
 }
-function formatSize(bytes) {
-  if (!bytes) return 'На диске';
-  if (bytes < 1024 ** 3) return `${Math.round(bytes / 1024 ** 2)} МБ`;
-  return `${(bytes / 1024 ** 3).toLocaleString('ru', { maximumFractionDigits: 1 })} ГБ`;
+function renderDisplaySettings() {
+  for (const key of Object.keys(DISPLAY_DEFAULTS)) {
+    $(key).checked = displaySettings[key];
+    $(key).disabled = !displayReady || displayPending;
+  }
+  $('display-status').textContent = displayMessage;
+  $('retry-display').hidden = displayReady || displayPending;
+}
+async function loadDisplaySettings() {
+  if (displayPending) return;
+  displayPending = true;
+  displayMessage = 'Загружаем настройки…';
+  renderDisplaySettings();
+  try {
+    displaySettings = await displayClient.load();
+    displayReady = true;
+    displayMessage = 'Настройки сохраняются автоматически в папке приложения.';
+  } catch (error) {
+    displayReady = false;
+    displayMessage = error instanceof TypeError ? 'Нет связи с приложением. Запусти его и повтори загрузку настроек.' : error.message;
+  } finally {
+    displayPending = false;
+    renderDisplaySettings(); renderHero(); renderGrid();
+  }
+}
+async function setDisplaySetting(key, value) {
+  if (!displayReady || displayPending) return;
+  displayPending = true;
+  displayMessage = 'Сохраняем…';
+  renderDisplaySettings();
+  try {
+    displaySettings = await displayClient.set(key, value);
+    displayMessage = 'Настройки сохранены.';
+  } catch (error) {
+    // A lost acknowledgement may still mean a successful write. Re-read first.
+    displayReady = false;
+    displayMessage = `Не удалось подтвердить сохранение. ${error instanceof TypeError ? 'Проверь, что приложение запущено.' : error.message} Нажми «Повторить загрузку».`;
+  } finally {
+    displayPending = false;
+    renderDisplaySettings(); renderHero(); renderGrid();
+  }
 }
 function lastPlayedLabel(game) {
   if (!game.lastPlayed) return 'Самое время познакомиться поближе.';
@@ -118,9 +161,13 @@ function renderHero() {
   if (game) {
     const url = `/art/${game.id}/hero?v=${ARTWORK_VERSION}`;
     if (image.getAttribute('src') !== url) { image.hidden = true; image.src = url; }
-    $('hero-disk').textContent = game.installed === false ? 'Не установлена' : `${game.disk} · ${formatSize(game.size)}`;
-    $('hero-disk').hidden = false;
-  } else { image.removeAttribute('src'); image.hidden = true; $('hero-disk').hidden = true; }
+  } else { image.removeAttribute('src'); image.hidden = true; }
+  const badges = heroBadges(game, displaySettings);
+  $('hero-disk').textContent = badges.status;
+  $('hero-disk').hidden = !badges.status;
+  $('hero-size').textContent = badges.size;
+  $('hero-size').title = badges.description;
+  $('hero-size').hidden = !badges.size;
   $('play-button').hidden = !selected;
   $('exclude-current').hidden = !selected || state.excluded.includes(selected.id);
   $('exclude-current').disabled = busy || scanning || savingExclusion || !exclusionsReady;
@@ -186,7 +233,9 @@ function renderGrid() {
     art.append(fallback, artwork(game), element('span', 'card-disk', game.installed === false ? 'В Steam' : game.disk));
     const title = element('h3', '', game.name); title.title = game.name;
     const meta = element('div', 'game-meta');
-    meta.append(element('span', '', game.installed === false ? 'В библиотеке' : formatSize(game.size)), element('span', '', game.installed === false ? 'Не установлена' : game.updateRequired ? 'Обновление' : 'Установлена'));
+    const size = element('span', '', game.installed === false ? displaySettings.showUninstalledSize ? uninstalledSize(game) : 'В библиотеке' : formatSize(game.size));
+    if (game.installed === false && displaySettings.showUninstalledSize) size.title = sizeDescription(game);
+    meta.append(size, element('span', '', game.installed === false ? 'Не установлена' : game.updateRequired ? 'Обновление' : 'Установлена'));
     const toggle = element('label', 'game-toggle');
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox'; checkbox.checked = !isExcluded; checkbox.disabled = busy || scanning || savingExclusion || !exclusionsReady;
@@ -330,7 +379,7 @@ async function scan({ addedPath } = {}) {
   renderCounts();
   let success = false;
   try {
-    await loadExclusions();
+    await Promise.all([loadExclusions(), loadDisplaySettings()]);
     const paths = addedPath ? [...state.customPaths, addedPath] : state.customPaths;
     const response = await fetch('/api/scan', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Randomizer': '1' }, body: JSON.stringify({ paths, includeUninstalled: state.includeUninstalled }) });
     const data = await response.json();
@@ -373,6 +422,11 @@ $('clear-history').addEventListener('click', () => { if (!busy) { state.history 
 $('exclude-current').addEventListener('click', async () => { if (previewId && await setExcluded(previewId, true)) toast('Исключение сохранено. Вернуть игру можно во вкладке «Исключены».'); });
 $('play-button').addEventListener('click', () => toast('Подтверди открытие Steam, если браузер попросит.'));
 $('libraries-button').addEventListener('click', () => { renderLibraries(); $('libraries-dialog').showModal(); });
+$('settings-button').addEventListener('click', () => { $('settings-dialog').showModal(); loadDisplaySettings(); });
+$('close-settings').addEventListener('click', () => $('settings-dialog').close());
+$('retry-display').addEventListener('click', loadDisplaySettings);
+for (const key of Object.keys(DISPLAY_DEFAULTS)) $(key).addEventListener('change', event => setDisplaySetting(key, event.target.checked));
+$('settings-dialog').addEventListener('click', event => { if (event.target === $('settings-dialog')) { const rect = $('settings-dialog').getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) $('settings-dialog').close(); } });
 $('close-dialog').addEventListener('click', () => $('libraries-dialog').close());
 $('libraries-dialog').addEventListener('click', event => { if (event.target === $('libraries-dialog')) { const rect = $('libraries-dialog').getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) $('libraries-dialog').close(); } });
 $('add-path-form').addEventListener('submit', event => {
@@ -384,7 +438,7 @@ $('add-path-form').addEventListener('submit', event => {
 });
 $('empty-action').addEventListener('click', () => { if (!scopedGames().length) $('libraries-dialog').showModal(); else { $('search-input').value = ''; setFilter('all'); } });
 document.addEventListener('keydown', event => {
-  if (event.code !== 'Space' || event.repeat || event.ctrlKey || event.altKey || event.metaKey || $('libraries-dialog').open) return;
+  if (event.code !== 'Space' || event.repeat || event.ctrlKey || event.altKey || event.metaKey || $('libraries-dialog').open || $('settings-dialog').open) return;
   if (event.target.closest('input,textarea,select,button,a,[contenteditable="true"]')) return;
   event.preventDefault(); draw();
 });

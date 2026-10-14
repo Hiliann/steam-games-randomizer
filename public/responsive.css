@@ -24,6 +24,16 @@ main, section, article, aside, .page-intro > div, .library-heading > div,
 .dialog-intro, .scan-notes, .path-error, .privacy-note { overflow-wrap: anywhere; }
 .path-input-row > input { flex: 1; }
 .library-path > div { min-width: 0; }
+.topbar-right { gap: 8px; }
+.hero-badges { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; min-width: 0; }
+.hero-badges .disk-tag { white-space: normal; text-align: center; }
+.spotlight-top { align-items: flex-start; gap: 12px; }
+.display-options { display: grid; gap: 8px; }
+.display-options .switch-row { gap: 20px; padding: 14px 0; font-size: 14px; line-height: 1.5; border-bottom: 1px solid var(--border); min-height: 60px; }
+.display-options .switch-row > span:first-child { min-width: 0; }
+.display-options .switch-row small { font-size: 12px; line-height: 1.6; margin-top: 4px; }
+.display-options .switch { flex-shrink: 0; }
+.display-status { margin-bottom: 12px; }
 dialog {
   max-height: calc(100vh - 32px);
   max-height: calc(100dvh - 32px);
@@ -55,6 +65,11 @@ dialog {
 }
 
 @media (max-width: 640px) {
+  .topbar-right .button { min-width: 44px; min-height: 44px; }
+  .topbar-right .button > span { display: none; }
+  .hero-badges { column-gap: 5px; row-gap: 4px; }
+  .spotlight-top { flex-wrap: wrap; }
+  .hero-badges { margin-left: auto; }
   .app-shell { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
   .page-intro { align-items: flex-start; flex-direction: column; gap: 12px; padding: 22px 0; }
   h1 { font-size: clamp(26px, 6.4vw, 36px); letter-spacing: -1px; }

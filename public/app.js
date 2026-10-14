@@ -61,7 +61,7 @@ let accentPreviewing = false;
 let accentPreviewMessage = 'Сохранённая палитра готова к предпросмотру.';
 let backupPending = false;
 let backupMessage = 'Данные остаются только на этом компьютере, пока ты сам не сохранишь файл.';
-let updateInfo = { status: 'not-checked', currentVersion: '2.1.1' };
+let updateInfo = { status: 'not-checked', currentVersion: '2.1.2' };
 let scanFailed = false;
 let updatePending = false;
 let updateInstalling = false;
@@ -84,7 +84,10 @@ const descriptionDisclosure = createDescriptionDisclosure({ description: $('hero
 const scrollActivity = createScrollActivity();
 window.addEventListener('pagehide', () => scrollActivity.dispose(), { once: true });
 const decisions = createDecisionDialog({ dialog: $('decision-dialog'), title: $('decision-title'), message: $('decision-message'), status: $('decision-status'), save: $('decision-save'), discard: $('decision-discard'), cancel: $('decision-cancel') });
-if (typeof ResizeObserver === 'function') new ResizeObserver(() => descriptionDisclosure.refresh()).observe($('hero-description-space'));
+if (typeof ResizeObserver === 'function') {
+  const descriptionObserver = new ResizeObserver(() => descriptionDisclosure.refresh());
+  descriptionObserver.observe($('hero-description-space')); descriptionObserver.observe($('spotlight'));
+}
 const compactChooser = window.matchMedia('(max-width: 850px)');
 const adaptDrawOptions = () => { $('draw-options').open = !compactChooser.matches; };
 compactChooser.addEventListener('change', adaptDrawOptions);
@@ -839,10 +842,12 @@ function renderHero() {
     const context = selected.installed === false ? 'Игра есть в библиотеке аккаунта, но не установлена на этом компьютере. Steam предложит выбрать диск и начать загрузку.' : lastPlayedLabel(selected);
     $('spotlight-tag').textContent = previewId === state.current ? 'ТВОЙ ВЫБОР' : 'ПРОСМОТР ИГРЫ';
     $('hero-kicker').textContent = selected.installed === false ? 'Доступна для установки' : selected.updateRequired ? 'Перед запуском нужно обновление' : 'Готова к запуску';
+    document.querySelector('.hero-state').dataset.status = selected.installed === false ? 'install' : selected.updateRequired ? 'update' : 'ready';
     $('hero-title').textContent = selected.name;
     $('hero-title').title = selected.name;
     $('hero-description').textContent = description?.description ?? (description?.status === 'loading' ? 'Загружаем краткое описание из Steam Store…' : context);
     $('hero-context').textContent = context;
+    $('hero-context').title = context;
     $('hero-context').hidden = !description?.description && description?.status !== 'loading';
     const action = gameAction(selected);
     $('play-label').textContent = action.label;
@@ -854,6 +859,7 @@ function renderHero() {
     const loadingLibrary = !snapshot && !scanFailed;
     $('spotlight-tag').textContent = 'ТВОЯ СЛЕДУЮЩАЯ ИГРА';
     $('hero-kicker').textContent = loadingLibrary ? 'ПОДКЛЮЧЕНО К STEAM' : scoped.length ? 'БИБЛИОТЕКА ПОЛНА ВОЗМОЖНОСТЕЙ' : 'НАЧНЁМ С ТВОЕЙ БИБЛИОТЕКИ';
+    document.querySelector('.hero-state').dataset.status = 'ready';
     $('hero-title').textContent = loadingLibrary ? 'Проверяем библиотеку Steam' : scoped.length ? 'Следующая игра - в один клик' : 'Подключи библиотеку Steam';
     $('hero-description').textContent = loadingLibrary ? 'Собираем установленные игры из Steam…' : scoped.length ? 'Нажми «Выбрать игру». Здесь появятся обложка, описание и кнопка запуска.' : 'Открой «Папки Steam» слева и укажи папку клиента или SteamLibrary.';
     $('hero-context').hidden = true;
@@ -1186,10 +1192,12 @@ async function draw() {
     renderCounts(); renderGrid(); renderHero(); renderHistory();
     return;
   }
+  $('spotlight').style.setProperty('--draw-media-height', `${document.querySelector('.spotlight-media').getBoundingClientRect().height}px`);
   $('play-button').hidden = true; $('exclude-current').hidden = true; $('hero-category-menu').hidden = true;
   $('hero-participation').hidden = true; $('toggle-description').hidden = true;
   $('hero-description').textContent = ''; $('hero-context').hidden = true; $('hero-categories').replaceChildren();
   $('spotlight').classList.add('is-drawing');
+  document.querySelector('.hero-state').dataset.status = 'drawing';
   $('hero-kicker').textContent = 'ПЕРЕМЕШИВАЕМ ТВОЮ БИБЛИОТЕКУ';
   const result = drawGame(games, state, undefined, undefined, profile.assignments);
   // The animation is decorative. Only one final draw consumes the random bag.
@@ -1210,6 +1218,7 @@ async function draw() {
   } catch (error) {
     profileFailure(error, 'Игра выбрана, но результат не удалось сохранить, поэтому розыгрыш отменён.');
     $('spotlight').classList.remove('is-drawing');
+    $('spotlight').style.removeProperty('--draw-media-height');
     busy = false; profilePending = false;
     renderCounts(); renderHero(); renderHistory(); renderGrid();
     return;
@@ -1217,6 +1226,7 @@ async function draw() {
   profilePending = false;
   busy = false;
   $('spotlight').classList.remove('is-drawing');
+  $('spotlight').style.removeProperty('--draw-media-height');
   renderCounts(); renderHero(); renderHistory(); renderGrid();
   toast(result.newCycle ? `Новый круг. Сегодня - ${result.game.name}` : `Твой выбор: ${result.game.name}`);
   if (matchMedia('(max-width: 640px)').matches) {

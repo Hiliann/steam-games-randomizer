@@ -1,46 +1,46 @@
 ﻿{
     "version":  1,
-    "appVersion":  "2.1.1",
+    "appVersion":  "2.1.2",
     "files":  [
                   {
                       "path":  "CHANGELOG.md",
-                      "bytes":  24509,
-                      "sha256":  "1c0e1ba33ca1b3b4c708b4ef9fa8f505493088664f9d4a1de941aa37bf383764"
+                      "bytes":  26600,
+                      "sha256":  "62a3bbb9c38a031e582e8b46315892d1e15675c59cc0ac54fceb1c5ad1b48e7a"
                   },
                   {
                       "path":  "DESIGN.md",
-                      "bytes":  8896,
-                      "sha256":  "1f51d9c5a940272f1ec888825373d1a0afaa70a55145c2013afdc020ac95d81f"
+                      "bytes":  10067,
+                      "sha256":  "b836d92f1fa0f414a2e1ebe61cde3f050e93fe3f1f99390a1e27b9b569ca0dae"
                   },
                   {
                       "path":  "package.json",
                       "bytes":  1464,
-                      "sha256":  "f0bca89fe05034a9af04f87ccb2ed159ae83e9e01b9475f0f233215d11056d21"
+                      "sha256":  "000ed92b9dd25568a806b9c7120e2ded0e933630b71c5d19d4accda0779ed0b6"
                   },
                   {
                       "path":  "READ ME FIRST.txt",
                       "bytes":  11485,
-                      "sha256":  "6847303b073b66e36881003d464c7bad9283fb2bac13e613055f7b8a7dc22ed7"
+                      "sha256":  "d6bb460680b4b46074a3e14104b1555418d9ef5480236a4eed0ae966c4b68163"
                   },
                   {
                       "path":  "README.en.md",
                       "bytes":  11089,
-                      "sha256":  "a38c7b471b9b025f3b462e7b11eaa3f0a4c495254dd8e41fc93a218f22cefd9a"
+                      "sha256":  "a51907ac70abc5f299107363fa9438d6cf1d2d1a5273e84a2dabc98bdbc0c89e"
                   },
                   {
                       "path":  "README.md",
                       "bytes":  36527,
-                      "sha256":  "155c56a93450ef06af8e13d733bf3f1926b376ad4d3d64c6a33715bfe819e3ce"
+                      "sha256":  "347c327cffba1280aea6f2ff254b5f74110ef817b35457e548ac03834b8dfcf4"
                   },
                   {
                       "path":  "release.json",
                       "bytes":  556,
-                      "sha256":  "898633de363b8c08896f4033ddf68e56b2bf985138edfd8f6537e850c511584e"
+                      "sha256":  "07d2dbbebc3c73e3dc1d58f6a9b17d12cebf7b76b647bf34d379896ac9f3be58"
                   },
                   {
                       "path":  "server.mjs",
                       "bytes":  22775,
-                      "sha256":  "9f12d528ee034273884def4bca9a72ea697efb30be43c7764112c9fd42468ef1"
+                      "sha256":  "aae598f0654c8a56f40a8d90d2c54c639a3bbb49cb28874a579b536d7464bea2"
                   },
                   {
                       "path":  "start.ps1",
@@ -149,8 +149,8 @@
                   },
                   {
                       "path":  "public/app.js",
-                      "bytes":  91767,
-                      "sha256":  "f0102a0e4450958bcfa66866a6ae65b4f62ba029531d5a3cee747e01306fd85a"
+                      "bytes":  92459,
+                      "sha256":  "4a52f07bf36cbddae03032c276d5ac350367f917a61a8f53eb6ac29e2a5da658"
                   },
                   {
                       "path":  "public/backup.js",
@@ -174,8 +174,8 @@
                   },
                   {
                       "path":  "public/desktop.css",
-                      "bytes":  37441,
-                      "sha256":  "31e72469eda93c2d2bcbc8e5bbaa43443d7d2cb24b39232557d38364eaa6913a"
+                      "bytes":  39159,
+                      "sha256":  "f66d41478100673b15708ed0dea9d2fa205f7536c5ee3966455f2727316979ed"
                   },
                   {
                       "path":  "public/display.js",
@@ -189,8 +189,8 @@
                   },
                   {
                       "path":  "public/game-details.js",
-                      "bytes":  1995,
-                      "sha256":  "a0857fd69ec49503fe25740cb266a628b165b2bf0f02ef9d63cc18edfa9c3ad1"
+                      "bytes":  2146,
+                      "sha256":  "62374d9fa3e47ce9d08cd11c41d4d38d439ed77ba288c9023ad06be2477950e9"
                   },
                   {
                       "path":  "public/i18n.js",
@@ -214,8 +214,8 @@
                   },
                   {
                       "path":  "public/index.html",
-                      "bytes":  35587,
-                      "sha256":  "54ddacedac4728819364a52109f315652ef1ba3c4b4d2dc9006d6e40acdbba20"
+                      "bytes":  35617,
+                      "sha256":  "626fbaf5217eb7ce63051f5dc774cedf8ddb6d6fef46838dc320573dae7bcaf5"
                   },
                   {
                       "path":  "public/online-sizes.js",
@@ -325,7 +325,7 @@
                   {
                       "path":  "scripts/PlayNextLauncher.exe",
                       "bytes":  208896,
-                      "sha256":  "24a780251478868c0153d58d255131e50cb422d173e0dfe98b0a8daa5204a258"
+                      "sha256":  "81184322b0b141e850234793fe81346435632e4d768bb26e01800b2d71215a1e"
                   },
                   {
                       "path":  "scripts/windows-integration.ps1",
@@ -337,7 +337,7 @@
                            {
                                "path":  "Play Next.exe",
                                "bytes":  208896,
-                               "sha256":  "24a780251478868c0153d58d255131e50cb422d173e0dfe98b0a8daa5204a258"
+                               "sha256":  "81184322b0b141e850234793fe81346435632e4d768bb26e01800b2d71215a1e"
                            }
                        ]
 }

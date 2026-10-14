@@ -92,19 +92,19 @@ button:disabled { cursor: default; }
 .hero-participation[data-state='excluded'] .participation-action { color: var(--text); border-color: var(--muted); }
 .hero-category-options { z-index: 6; max-height: 280px; overflow-y: auto; }
 .cover-caption { display: none; }
-.draw-panel { border-radius: 18px; padding: 24px 22px; background: var(--surface); }
-.panel-heading { margin-bottom: 16px; }
+.draw-panel { border-radius: 18px; padding: 22px; background: var(--surface); }
+.panel-heading { margin-bottom: 12px; }
 .small-label { font-size: 11px; letter-spacing: 1px; }
 .draw-panel h2 { font-size: 24px; font-weight: 650; line-height: 1.2; letter-spacing: -.6px; margin: 0 0 10px; }
-.draw-panel .panel-description { font-size: var(--type-body); line-height: 1.5; margin-bottom: var(--space-4); }
-.draw-panel > .button-primary { min-height: 52px; border-radius: 12px; font-size: 13px; }
+.draw-panel .panel-description { font-size: var(--type-body); line-height: 1.5; margin-bottom: 0; }
+.draw-panel > .button-primary { min-height: 52px; border-radius: 12px; font-size: 13px; margin-top: 18px; }
 .keyboard-note { font-size: var(--type-caption); margin-top: var(--space-2); color: var(--muted); }
-.draw-options { border-top: 1px solid var(--border); margin-top: var(--space-6); padding-top: var(--space-3); }
+.draw-options { border-top: 1px solid var(--border); margin-top: 20px; padding-top: var(--space-3); }
 .draw-options > summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; gap: 8px; color: var(--text); font-size: var(--type-caption); font-weight: 600; list-style: none; }
 .draw-options > summary::-webkit-details-marker { display: none; }
 .draw-options > summary::after { content: '+'; margin-left: auto; font-size: 18px; color: var(--muted); }
 .draw-options[open] > summary::after { content: '−'; }
-.draw-settings { margin-top: var(--space-3); padding-top: 0; border-top: 0; }
+.draw-settings { margin-top: var(--space-2); padding-top: 0; border-top: 0; }
 .draw-settings .select-row { display: block; }
 .draw-settings .select-row select { width: 100%; margin-top: 10px; }
 .draw-settings .select-row > span, .draw-settings .switch-row > span:first-child { font-size: var(--type-body); }
@@ -112,8 +112,9 @@ button:disabled { cursor: default; }
 .select-row small { display: block; margin-top: 4px; }
 .draw-settings .select-row > span { display: block; }
 .draw-settings .select-row small { text-align: left; }
-.draw-settings .switch-row { margin-block: 14px; }
-.cycle-meta { font-size: var(--type-caption); gap: var(--space-2); flex-wrap: wrap; }
+.draw-settings .switch-row { margin-block: 12px; }
+.cycle-meta { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; font-size: var(--type-caption); gap: var(--space-2); margin-top: 12px; }
+#cycle-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cycle-meta .text-button { font-size: var(--type-caption); min-height: 32px; }
 .pool-note { font-size: var(--type-caption); line-height: 1.5; color: var(--muted); }
 .history-section { margin-top: 24px; padding-top: 0; border: 0; }
@@ -381,32 +382,48 @@ dialog::backdrop { background: #0009; backdrop-filter: blur(4px); }
 }
 @media (prefers-reduced-motion: reduce) { .game-art img { transition: none; } }
 
-/* Stable game details: the description uses the remaining space. Full text
-   opens in a dialog, never pushes the actions or the history down. */
-.spotlight-body { height: 432px; display: grid; grid-template-rows: 20px auto 28px minmax(0, 1fr) 28px 20px 44px; row-gap: 4px; align-content: stretch; min-width: 0; }
-.hero-state { grid-row: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
-.hero-state .eyebrow { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.hero-state #hero-participation { flex: 0 0 auto; }
-.hero-state .participation-status { font-size: 11px; color: var(--warning); }
+/* The frame stays stable; artwork absorbs spare room, not the text area.
+   Hidden metadata never reserves empty rows. Longer text opens separately. */
+.selection-layout { align-items: stretch; }
+.spotlight { min-height: 560px; }
+.spotlight-media { flex: 1 1 0; height: auto; min-height: 176px; }
+.hero-shade { background: linear-gradient(180deg, #0005, #0000 35%, #0001 65%, #0006); }
+.spotlight-body { height: auto; flex: 0 0 auto; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.hero-state { position: absolute; z-index: 2; bottom: 16px; left: 16px; right: 16px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.hero-state .eyebrow, .hero-state .participation-status { display: inline-flex; align-items: center; gap: 8px; min-height: 28px; padding: 6px 10px; margin: 0; border: 1px solid #ffffff26; border-radius: 7px; background: #10170bdb; color: #edf2e6; font-size: 11px; line-height: 1.4; letter-spacing: .1px; backdrop-filter: blur(10px); }
+.hero-state .eyebrow::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: 0 0 6px; }
+.hero-state[data-status='update'] .eyebrow::before { background: var(--warning); }
+.hero-state .participation-status { color: var(--warning); }
 .hero-state .participation-status .icon { width: 14px; height: 14px; }
-.spotlight-body h2 { grid-row: 2; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin: 4px 0; min-width: 0; }
-.hero-category-strip { grid-row: 3; min-width: 0; overflow-x: auto; overflow-y: hidden; }
+.hero-heading { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.spotlight-body h2 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin: 0; min-width: 0; }
+.hero-category-strip { min-width: 0; overflow-x: auto; overflow-y: hidden; }
+.hero-category-strip:has(> [hidden]), .hero-category-strip:has(> :empty) { display: none; }
 .hero-category-strip .category-badges { flex-wrap: nowrap; width: max-content; min-width: 0; }
 .hero-category-strip .category-badge { flex-shrink: 0; max-width: 280px; }
-.hero-description-space { grid-row: 4; min-height: 0; overflow: hidden; }
+.hero-description-space { --description-max-lines: 3; min-height: 0; overflow: hidden; }
+.hero-description-space:has(> :empty) { display: none; }
 .spotlight-body p.game-description { -webkit-line-clamp: var(--description-lines, 3); max-width: none; margin: 0; }
-.spotlight-body .description-toggle { grid-row: 5; justify-self: start; margin: 0; min-height: 28px; }
-.spotlight-body p.hero-context { grid-row: 6; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#spotlight .hero-actions { grid-row: 7; margin: 0; display: flex; flex-wrap: nowrap; flex-direction: row; gap: 8px; align-items: stretch; min-width: 0; }
+.hero-details-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
+.hero-details-meta:has(> #hero-context[hidden]):has(> #toggle-description[hidden]) { display: none; }
+.spotlight-body .description-toggle { flex: 0 0 auto; margin: 0; min-height: 24px; color: var(--muted); white-space: nowrap; }
+.spotlight-body p.hero-context { flex: 1 1 auto; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#spotlight .hero-actions { margin: 4px 0 0; display: flex; flex-wrap: nowrap; flex-direction: row; gap: 8px; align-items: stretch; min-width: 0; }
 .hero-actions .participation-action { min-width: 44px; width: 44px; padding: 0; flex: 0 0 44px; }
 .hero-actions .participation-action .icon { width: 18px; height: 18px; }
+.is-drawing .spotlight-media { flex: 0 0 var(--draw-media-height, 280px); }
+.is-drawing .spotlight-body { flex: 1 1 0; justify-content: center; }
+.is-drawing .hero-actions { display: none !important; }
 .description-dialog { width: min(620px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); padding: 24px; }
 .description-dialog h2 { font-size: 24px; overflow-wrap: anywhere; }
 .description-dialog p { font-size: 14px; line-height: 1.7; white-space: pre-line; margin-top: 16px; }
-@media (min-width: 1600px) { .spotlight-body { height: 480px; } }
-@media (max-height: 620px) { .spotlight-body { height: 400px; } }
+@media (min-width: 1600px) { .spotlight { min-height: 640px; } .hero-description-space { --description-max-lines: 4; } }
+@media (max-width: 850px) { .spotlight { min-height: 560px; } }
+@media (max-height: 620px) { .spotlight { min-height: 540px; } .spotlight-media { min-height: 144px; } }
 @media (max-width: 640px) {
-  .hero-state .participation-status { font-size: 0; gap: 0; }
+  .spotlight-media { min-height: 160px; }
+  .hero-description-space { --description-max-lines: 4; }
+  .hero-state .participation-status { font-size: 0; gap: 0; padding: 6px 8px; }
   .hero-state .participation-status .icon { width: 16px; height: 16px; }
   #spotlight .hero-actions { display: grid; grid-template-columns: minmax(0, 1fr) 44px 44px; }
   .hero-actions .button-light { font-size: 13px; min-width: 0; }

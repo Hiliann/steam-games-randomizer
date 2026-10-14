@@ -42,7 +42,7 @@
         <button id="settings-button" class="nav-item" data-page="settings"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg><span>Настройки</span></button>
       </nav>
       <div class="sidebar-library"><strong id="installed-count">-</strong><span>игр установлено</span><small id="library-count">Ищем библиотеки Steam…</small></div>
-      <div class="sidebar-bottom"><button id="libraries-button" class="nav-item" aria-label="Папки Steam"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg><span>Папки Steam</span></button><span class="connection-pill" id="connection-status" role="status">Подключаемся…</span><small>Play Next <span id="app-version">2.1.1</span></small></div>
+      <div class="sidebar-bottom"><button id="libraries-button" class="nav-item" aria-label="Папки Steam"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg><span>Папки Steam</span></button><span class="connection-pill" id="connection-status" role="status">Подключаемся…</span><small>Play Next <span id="app-version">2.1.2</span></small></div>
     </aside>
 
     <main>
@@ -56,14 +56,11 @@
       <section id="choose-page" class="workspace-page" data-workspace-page="choose" aria-labelledby="page-title">
       <section class="selection-layout" aria-label="Выбор игры">
         <article id="spotlight" class="spotlight">
-          <div class="spotlight-media"><div class="hero-art-placeholder" aria-hidden="true"><svg class="icon"><use href="#i-game"/></svg></div><img id="hero-image" class="hero-image" alt="" hidden><div class="hero-shade"></div><div class="spotlight-top"><span class="spotlight-tag" id="spotlight-tag">ТВОЯ СЛЕДУЮЩАЯ ИГРА</span><div class="hero-badges"><span id="hero-disk" class="disk-tag" hidden></span><span id="hero-size" class="disk-tag" hidden></span><a id="hero-size-source" class="disk-tag size-source" target="_blank" rel="noreferrer noopener" aria-label="Источник размера в Steam" hidden>Steam ↗</a></div></div><span id="cover-caption" class="cover-caption"></span></div>
+          <div class="spotlight-media"><div class="hero-art-placeholder" aria-hidden="true"><svg class="icon"><use href="#i-game"/></svg></div><img id="hero-image" class="hero-image" alt="" hidden><div class="hero-shade"></div><div class="spotlight-top"><span class="spotlight-tag" id="spotlight-tag">ТВОЯ СЛЕДУЮЩАЯ ИГРА</span><div class="hero-badges"><span id="hero-disk" class="disk-tag" hidden></span><span id="hero-size" class="disk-tag" hidden></span><a id="hero-size-source" class="disk-tag size-source" target="_blank" rel="noreferrer noopener" aria-label="Источник размера в Steam" hidden>Steam ↗</a></div></div><div class="hero-state"><p class="eyebrow" id="hero-kicker">БИБЛИОТЕКА ПОЛНА ВОЗМОЖНОСТЕЙ</p><span id="hero-participation" hidden><span id="hero-participation-status" class="participation-status"></span></span></div><span id="cover-caption" class="cover-caption"></span></div>
           <div class="spotlight-body">
-            <div class="hero-state"><p class="eyebrow" id="hero-kicker">БИБЛИОТЕКА ПОЛНА ВОЗМОЖНОСТЕЙ</p><span id="hero-participation" hidden><span id="hero-participation-status" class="participation-status"></span></span></div>
-            <h2 id="hero-title">Вечер свободен.<br>Игра найдётся.</h2>
-            <div class="hero-category-strip"><div id="hero-categories" class="category-badges" hidden></div></div>
+            <div class="hero-heading"><h2 id="hero-title">Вечер свободен.<br>Игра найдётся.</h2><div class="hero-category-strip"><div id="hero-categories" class="category-badges" hidden></div></div></div>
             <div id="hero-description-space" class="hero-description-space"><p id="hero-description" class="game-description">Собираем установленные игры из Steam…</p></div>
-            <button id="toggle-description" class="text-button description-toggle" type="button" aria-haspopup="dialog" aria-controls="description-dialog" hidden>Подробнее об игре</button>
-            <p id="hero-context" class="hero-context" hidden></p>
+            <div class="hero-details-meta"><p id="hero-context" class="hero-context" hidden></p><button id="toggle-description" class="text-button description-toggle" type="button" aria-haspopup="dialog" aria-controls="description-dialog" hidden>Подробнее об игре</button></div>
             <div class="hero-actions">
               <button id="play-button" type="button" class="button button-light" hidden><svg class="icon" id="play-icon" aria-hidden="true"><use href="#i-play"/></svg><span id="play-label">Играть в Steam</span><svg class="icon arrow" aria-hidden="true"><use href="#i-arrow"/></svg></button>
               <details id="hero-category-menu" class="hero-category-menu" hidden><summary aria-label="Категории игры" title="Категории игры"><svg class="icon" aria-hidden="true"><use href="#i-tag"/></svg><span>Категории</span></summary><div id="hero-category-options" class="hero-category-options"></div></details>
@@ -148,7 +145,7 @@
       </div>
       <p id="app-settings-status" class="dialog-intro display-status" role="status">Загружаем настройки обновлений…</p>
       <button id="retry-app-settings" class="button button-quiet" hidden>Повторить загрузку</button>
-      <p id="update-status" class="dialog-intro display-status" role="status">Текущая версия: 2.1.1</p>
+      <p id="update-status" class="dialog-intro display-status" role="status">Текущая версия: 2.1.2</p>
       <div class="settings-actions"><button id="check-update" class="button button-quiet">Проверить сейчас</button><button id="install-update" class="button button-primary" hidden>Установить сейчас</button><a id="download-update" class="button button-quiet" target="_blank" rel="noreferrer noopener" hidden>Открыть страницу релиза</a></div>
       <p class="privacy-note">Обновления проверяются при запуске. Если автообновление включено, новая версия установится во время запуска программы. Иначе о ней сообщит отдельное окно, пока ты не отключишь его. Обновление всегда можно запустить вручную здесь. Архив и контрольная сумма загружаются с GitHub, а папка data не заменяется.</p>
     </section>

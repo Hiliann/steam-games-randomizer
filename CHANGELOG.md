@@ -1,5 +1,25 @@
 # Изменения
 
+## 2.1.2
+
+### Русский
+
+- Переработана большая карточка: убрана пустая область под короткими описаниями. Свободное место занимает обложка, информация и кнопки собраны в компактную панель.
+- Статус готовности или обновления перенесён на изображение. Скрытые категории и ссылка описания больше не оставляют пустые строки.
+- Высота внешнего блока не зависит от игры, а во время перемешивания сохраняется также размер изображения.
+- Длинное описание обрезается целыми строками; полный текст открывается отдельно. Исправлен расчёт строк при повторных измерениях компактного блока.
+- Уменьшены избыточные отступы панели выбора без уменьшения текста и кнопок. Настройки и сохранённые данные не меняются.
+- Исправлена ссылка на закреплённый SDK WebView2 в инструкции сборки.
+
+### English
+
+- Redesigned game details to remove the empty space below short descriptions. Artwork fills spare room; information and actions form a compact lower panel.
+- Moved readiness and update status onto the artwork. Hidden categories and description links no longer reserve empty rows.
+- The outer frame remains stable between games; artwork geometry is also held during shuffle animation.
+- Long descriptions clamp to whole lines and open separately. Repeated measurements no longer shrink compact descriptions.
+- Tightened excessive spacing in the draw panel without reducing text or button sizes. Saved user data stays unchanged.
+- Corrected the pinned WebView2 SDK link in build instructions.
+
 ## 2.1.1
 
 ### Русский

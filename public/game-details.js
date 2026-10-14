@@ -20,7 +20,8 @@ export function createDescriptionDisclosure({ description, space = description, 
   function measure() {
     queued = false;
     if (!space.getClientRects().length) return;
-    const lines = descriptionLineCount(space.clientHeight, parseFloat(style(description).lineHeight));
+    const limit = parseInt(style(space).getPropertyValue?.('--description-max-lines'), 10);
+    const lines = Number.isFinite(limit) ? Math.max(1, Math.min(8, limit)) : descriptionLineCount(space.clientHeight, parseFloat(style(description).lineHeight));
     description.style.setProperty('--description-lines', String(lines));
     button.hidden = !description.textContent || description.scrollHeight <= description.clientHeight + 1;
   }

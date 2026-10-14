@@ -1,0 +1,303 @@
+﻿{
+    "version":  1,
+    "appVersion":  "2.0.0",
+    "files":  [
+                  {
+                      "path":  "CHANGELOG.md",
+                      "bytes":  16555,
+                      "sha256":  "fdef7099f527dcad664e028f86366887e0acc7084acbaf0f719ce62536e7d4a1"
+                  },
+                  {
+                      "path":  "package.json",
+                      "bytes":  1464,
+                      "sha256":  "2f89a4df7f93c75c982aa2661edbf64bdc12b3b8af29f324a7d8068314b3231c"
+                  },
+                  {
+                      "path":  "READ ME FIRST.txt",
+                      "bytes":  11228,
+                      "sha256":  "b82e942258b9e0a966722fc55f2eceb91180dbd698853bc2afb36dee447123d4"
+                  },
+                  {
+                      "path":  "README.en.md",
+                      "bytes":  11089,
+                      "sha256":  "ff81bce0fcd0ec4e68cfa66e0a678b260a4d316f58cb3db44ca2c80630492aac"
+                  },
+                  {
+                      "path":  "README.md",
+                      "bytes":  36527,
+                      "sha256":  "6fa8c9b1125f6bae9d81687719bf93fc6582df40ddf0653712d434f7a62b62b9"
+                  },
+                  {
+                      "path":  "release.json",
+                      "bytes":  556,
+                      "sha256":  "934270337bc3e0c1108c9ec1010eccce56671173898820c47daae671b6f22156"
+                  },
+                  {
+                      "path":  "server.mjs",
+                      "bytes":  22265,
+                      "sha256":  "d46cc256fb347b29904bce0efc4423a4a910ed9d5b7155a6cf65e99c4e67cd96"
+                  },
+                  {
+                      "path":  "start.ps1",
+                      "bytes":  9136,
+                      "sha256":  "fbabf327d6d0ff75b017c4ec81c544cdf32e4d5bf995a8412a6dde22bb1a7b64"
+                  },
+                  {
+                      "path":  "THIRD_PARTY_NOTICES.md",
+                      "bytes":  2603,
+                      "sha256":  "8dd65bbb3b5f6e81e2fc19760426cc4530d297bccbf74bd0cb54eb55fe20f4d9"
+                  },
+                  {
+                      "path":  "lib/app-settings.mjs",
+                      "bytes":  2970,
+                      "sha256":  "1ee7e0016bbf720ff5441433c5a0caabb9fddf4053ffce3ac6bd58907445446b"
+                  },
+                  {
+                      "path":  "lib/backup.mjs",
+                      "bytes":  4543,
+                      "sha256":  "95505332c26207c85166611ce7dbefbf215fecdd996e7fda5432cc3d46a5d682"
+                  },
+                  {
+                      "path":  "lib/browser-sessions.mjs",
+                      "bytes":  1473,
+                      "sha256":  "c1a587e221b7380baf989b4045f94a50d71ca5634e4563d0074856e19a9f890f"
+                  },
+                  {
+                      "path":  "lib/desktop-owner.mjs",
+                      "bytes":  879,
+                      "sha256":  "e0ad3e4f6dbf550a7c269da0b17b12e1090cc28ca1311df465a6bb4c951b51c0"
+                  },
+                  {
+                      "path":  "lib/display-settings.mjs",
+                      "bytes":  3326,
+                      "sha256":  "3ed86a05e87ef2d779da8eb9119bbbebc336cc280e0c2e7930963ad9421efb9e"
+                  },
+                  {
+                      "path":  "lib/exclusions.mjs",
+                      "bytes":  4417,
+                      "sha256":  "bff081b3a2a2ea6862fab2df074fd0b58beb84aecfc7df154d1aea0ac7fa439d"
+                  },
+                  {
+                      "path":  "lib/install-size.mjs",
+                      "bytes":  4009,
+                      "sha256":  "1d2f35cbee1ce4baa22a108fed44f65947ffd418b558a61d4860cdf5da71d8de"
+                  },
+                  {
+                      "path":  "lib/online-sizes.mjs",
+                      "bytes":  13308,
+                      "sha256":  "ed267baff9a37bc7d1872825f986d3fec8f4b2d7d657132a29410484f8f919b7"
+                  },
+                  {
+                      "path":  "lib/owned.mjs",
+                      "bytes":  5589,
+                      "sha256":  "7eb0bc36cafd01d86e82d4b53603384960a87998459e6fc01b22bff173c4c8a9"
+                  },
+                  {
+                      "path":  "lib/profile.mjs",
+                      "bytes":  10286,
+                      "sha256":  "b116423a9ae731e52c2232fbd30c7a1dac28d947480ff5b8e47607536e0a2ec9"
+                  },
+                  {
+                      "path":  "lib/session-frames.mjs",
+                      "bytes":  1059,
+                      "sha256":  "b0e9df5ec922d56e83366c6db2489f64cb5ab4c232fc5d6e057f92eb96736ae6"
+                  },
+                  {
+                      "path":  "lib/steam-cache.mjs",
+                      "bytes":  7486,
+                      "sha256":  "3fca4b331cee18494672c091655b4f9cf033465d98e334389b2d9a42d2baa792"
+                  },
+                  {
+                      "path":  "lib/steam-launch.mjs",
+                      "bytes":  1909,
+                      "sha256":  "875983a72e80e1e95eaee3773a80c5b74ccbdcd4330420e972448b51b41ff129"
+                  },
+                  {
+                      "path":  "lib/steam.mjs",
+                      "bytes":  10882,
+                      "sha256":  "762dcc960361c6e4cad7c080d48199278467989e7b0e0cad06b91a9e7e2426aa"
+                  },
+                  {
+                      "path":  "lib/ui-settings.mjs",
+                      "bytes":  3950,
+                      "sha256":  "f3168af4d05fe3ba9280bb4c15ad1ee97921bc338f8d6c5c30dbe847ca3cb1fb"
+                  },
+                  {
+                      "path":  "lib/update-check.mjs",
+                      "bytes":  3882,
+                      "sha256":  "efabc6bbdc27ac6bd9160c3917cb372aee0bad9d96a17bc88e117d6a438ebb5d"
+                  },
+                  {
+                      "path":  "lib/update-installer.mjs",
+                      "bytes":  3015,
+                      "sha256":  "7f9c9d44e336b6cc9e491ce136040970fb9a38d469073a0341b58f90b3a0fe83"
+                  },
+                  {
+                      "path":  "lib/windows-integration.mjs",
+                      "bytes":  2649,
+                      "sha256":  "d938e46e7d4847f0f6cec6aaf9eb07d6ba0e7d9f05d47c9d38ccac206c515a16"
+                  },
+                  {
+                      "path":  "public/app-settings.js",
+                      "bytes":  1959,
+                      "sha256":  "af304f68109fc1c51bd95e56571c4496b6d61a9019d881e2d91d21be43828aca"
+                  },
+                  {
+                      "path":  "public/app.js",
+                      "bytes":  84175,
+                      "sha256":  "8750c95709813297447f7ed5eee89f9cff92213197f2acccbdcfaf4cc1214cbc"
+                  },
+                  {
+                      "path":  "public/backup.js",
+                      "bytes":  2261,
+                      "sha256":  "ae81511abb514dd073cbffda5124a2fb333379a94c630c51450f4d4b750c503b"
+                  },
+                  {
+                      "path":  "public/browser-session.js",
+                      "bytes":  2521,
+                      "sha256":  "c48ed15fb20f77a3b63e1c0e7bfad49d50e96e33a44757248142ea5b576877b7"
+                  },
+                  {
+                      "path":  "public/descriptions.js",
+                      "bytes":  2140,
+                      "sha256":  "8db036a052a8c71e09c8722b866d4b8ae505b488ccb6485fd30e58355fcdd039"
+                  },
+                  {
+                      "path":  "public/desktop.css",
+                      "bytes":  22785,
+                      "sha256":  "754597b9b00873fe1a308f65e6791d2baed46a3f77dd5803c7b6b2118fdf02e7"
+                  },
+                  {
+                      "path":  "public/display.js",
+                      "bytes":  5717,
+                      "sha256":  "a1aee584a28c510b6dfaf60ebfce2598753dfc94ca0fddfefa947d152b66ff3c"
+                  },
+                  {
+                      "path":  "public/exclusions.js",
+                      "bytes":  1559,
+                      "sha256":  "1435579371cf99ff02980caa8484f5ed087fae941272c87789e9020e73a93703"
+                  },
+                  {
+                      "path":  "public/i18n.js",
+                      "bytes":  37415,
+                      "sha256":  "584ac2afa5a1c01dcff867c0c21e53df4d04b60e774f0d5b1e25a53a57f56b92"
+                  },
+                  {
+                      "path":  "public/icon.svg",
+                      "bytes":  362,
+                      "sha256":  "b5759244cdd17c890d5bd7cc9a785b8130a79287f2e536ad8b966736e3813df7"
+                  },
+                  {
+                      "path":  "public/index.html",
+                      "bytes":  32285,
+                      "sha256":  "3e5fba292d71e81877d0e8fafc1f97b1c29705ac51c9b25fdf93207d07f74553"
+                  },
+                  {
+                      "path":  "public/online-sizes.js",
+                      "bytes":  2360,
+                      "sha256":  "0d7aeb58424256e5f971e06a6cb1b4672564839b4d9ff25c8bf03209feed1e4c"
+                  },
+                  {
+                      "path":  "public/profile.js",
+                      "bytes":  3328,
+                      "sha256":  "ebe80b7f4cfe5060effa19e80d98c740b330339f2df48b1446265c67f4c0c550"
+                  },
+                  {
+                      "path":  "public/randomizer.js",
+                      "bytes":  5218,
+                      "sha256":  "f9b006c4b06a47c30b3bd232348c88bafd7c04cfffbf549a45d63b61caaafc49"
+                  },
+                  {
+                      "path":  "public/responsive.css",
+                      "bytes":  12882,
+                      "sha256":  "0aa8f913f068d34b5180a74215338f68c41001780305c41fa760635ce96e6e5d"
+                  },
+                  {
+                      "path":  "public/style.css",
+                      "bytes":  28316,
+                      "sha256":  "5ec944037d70e8690c9d374355239299b54e7192ed6e03b2009cff0c9b82e0e8"
+                  },
+                  {
+                      "path":  "public/system.js",
+                      "bytes":  4146,
+                      "sha256":  "4bec870ea2dc8a04ff85afa3c829fb90a7fd9467a218f43b621dd0378562795d"
+                  },
+                  {
+                      "path":  "public/ui-settings.js",
+                      "bytes":  5370,
+                      "sha256":  "32588dfcf4b9b19404895408153a60d92c1837ced578e1f3883e6ee6cf000c98"
+                  },
+                  {
+                      "path":  "public/workspace.js",
+                      "bytes":  4907,
+                      "sha256":  "3fbfd27ebb6fc8246dc0e90873eb9318a43c1e37d3460eb9addd76174fd5db7f"
+                  },
+                  {
+                      "path":  "runtime/LICENSE",
+                      "bytes":  160555,
+                      "sha256":  "ed34dd8e3f0a78dbaf00d0444ce8e285b015b765379c2e17880455f70370f8e9"
+                  },
+                  {
+                      "path":  "runtime/node.exe",
+                      "bytes":  93381448,
+                      "sha256":  "5c976096e04e5c2c1f091938926234cc9fbebfe9787ddd149351b3b0ecc707b5"
+                  },
+                  {
+                      "path":  "runtime/desktop/LICENSE.txt",
+                      "bytes":  1487,
+                      "sha256":  "0af8f1b807512aae39c2ac1aa4d0cae65cabecb6fd554b8439a5162a0d6eca55"
+                  },
+                  {
+                      "path":  "runtime/desktop/Microsoft.Web.WebView2.Core.dll",
+                      "bytes":  698208,
+                      "sha256":  "d60e6e94245078cb56e44ebd5f360dc04bf18e460136be93bfc4cfca43b98505"
+                  },
+                  {
+                      "path":  "runtime/desktop/Microsoft.Web.WebView2.WinForms.dll",
+                      "bytes":  38752,
+                      "sha256":  "6a9e6856f23c463783c3afb0ca5d78f56324c86657162ccb16d5227b3233b32a"
+                  },
+                  {
+                      "path":  "runtime/desktop/NOTICE.txt",
+                      "bytes":  3894,
+                      "sha256":  "106423785c5b7eba0a8e61d1837f2132e9c828e20ad530f565d981c1df60dd90"
+                  },
+                  {
+                      "path":  "runtime/desktop/WebView2Loader.dll",
+                      "bytes":  194912,
+                      "sha256":  "3426dcc55fdfb8b5e7ac623cf33b4ccf283fbf68a0c5a65bddfdb4d749a8abee"
+                  },
+                  {
+                      "path":  "scripts/apply-update.ps1",
+                      "bytes":  9573,
+                      "sha256":  "740107617b6b47f7dd3127a1ffebf650cfff06726db8df249b87ca2ddc63f8e1"
+                  },
+                  {
+                      "path":  "scripts/launch-steam.ps1",
+                      "bytes":  208,
+                      "sha256":  "f31480bd6a9d613ecacfce13efe1a0b7d7052d288aef6f40aa403802c6165fc9"
+                  },
+                  {
+                      "path":  "scripts/PlayNext.ico",
+                      "bytes":  2686,
+                      "sha256":  "871d55b10fe25ae0cf1118f573ace5f36c6679c2a789081388a86988e9cb25aa"
+                  },
+                  {
+                      "path":  "scripts/PlayNextLauncher.exe",
+                      "bytes":  30208,
+                      "sha256":  "bf482eb9d2e926c826a41b63bc2f57ecb65ead85e9dd7a404f5aac67518b5123"
+                  },
+                  {
+                      "path":  "scripts/windows-integration.ps1",
+                      "bytes":  3803,
+                      "sha256":  "fd54c2b046a38975eb4725ea46b71ec7ff996d56d5dc2573c6d094e5f8c05ac3"
+                  }
+              ],
+    "bootstrapFiles":  [
+                           {
+                               "path":  "Play Next.exe",
+                               "bytes":  30208,
+                               "sha256":  "bf482eb9d2e926c826a41b63bc2f57ecb65ead85e9dd7a404f5aac67518b5123"
+                           }
+                       ]
+}

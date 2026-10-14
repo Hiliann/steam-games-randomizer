@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#111410">
   <meta name="description" content="Выбери, во что поиграть сегодня. Локальный рандомизатор установленных игр и библиотеки аккаунта Steam.">
-  <title>Play Next — Steam Games Randomizer</title>
+  <title>Play Next - Steam Games Randomizer</title>
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/responsive.css">
+  <link rel="stylesheet" href="/desktop.css">
   <script src="/app.js" type="module"></script>
 </head>
 <body>
@@ -25,60 +26,146 @@
     <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
     <symbol id="i-game" viewBox="0 0 24 24"><path d="M7 6h10c3 0 5 10 4 12s-4 0-6-2H9c-2 2-5 4-6 2S4 6 7 6Z"/><path d="M7 9v5m-2-2.5h4m7-2h.01m2 3h.01"/></symbol>
     <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h4m4 0h8M4 17h8m4 0h4"/><circle cx="10" cy="7" r="2"/><circle cx="14" cy="17" r="2"/></symbol>
+    <symbol id="i-tag" viewBox="0 0 24 24"><path d="M4 5a1 1 0 0 1 1-1h6l9 9-7 7-9-9Z"/><circle cx="8.5" cy="8.5" r="1"/></symbol>
   </defs></svg>
   <div class="app-shell">
-    <header class="topbar">
-      <a class="brand" href="/" aria-label="Play Next - главная"><img src="/icon.svg" width="40" height="40" alt=""><span>play<span class="brand-next">next</span><small>STEAM GAMES RANDOMIZER</small></span></a>
-      <div class="topbar-right"><button id="libraries-button" class="button button-quiet" aria-label="Открыть библиотеки Steam" title="Библиотеки"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg><span>Библиотеки</span></button><button id="settings-button" class="button button-quiet" aria-label="Открыть настройки отображения" title="Настройки"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg><span>Настройки</span></button></div>
-    </header>
+    <aside class="app-sidebar" aria-label="Навигация приложения">
+      <button class="brand" data-page="choose" aria-label="Play Next - выбор игры"><img src="/icon.svg" width="36" height="36" alt=""><span>play<span class="brand-next">next</span><small>ТВОЯ СЛЕДУЮЩАЯ ИГРА</small></span></button>
+      <nav class="app-nav" aria-label="Основные разделы">
+        <button class="nav-item" data-page="choose" aria-current="page"><svg class="icon" aria-hidden="true"><use href="#i-shuffle"/></svg><span>Выбор игры</span></button>
+        <button class="nav-item" data-page="library"><svg class="icon" aria-hidden="true"><use href="#i-library"/></svg><span>Библиотека</span></button>
+        <button id="categories-button" class="nav-item" data-page="categories"><svg class="icon" aria-hidden="true"><use href="#i-tag"/></svg><span>Категории</span></button>
+        <button id="settings-button" class="nav-item" data-page="settings"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg><span>Настройки</span></button>
+      </nav>
+      <div class="sidebar-library"><strong id="installed-count">-</strong><span>игр установлено</span><small id="library-count">Ищем библиотеки Steam…</small></div>
+      <div class="sidebar-bottom"><button id="libraries-button" class="nav-item" aria-label="Папки Steam"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg><span>Папки Steam</span></button><span class="connection-pill" id="connection-status" role="status">Подключаемся…</span><small>Play Next <span id="app-version">2.0.0</span></small></div>
+    </aside>
 
     <main>
-      <section class="page-intro" aria-labelledby="page-title"><div><p class="eyebrow">МЕНЬШЕ ВЫБОРА. БОЛЬШЕ ИГРЫ.</p><h1 id="page-title">Во что играем сегодня<span>?</span></h1></div><div class="installed-summary"><strong id="installed-count">—</strong><span>игр установлено<br><small id="library-count">Ищем библиотеки Steam…</small></span></div></section>
+      <header class="workspace-header"><div><h1 id="page-title" tabindex="-1">Выбор игры</h1><p id="page-subtitle">Найди следующую игру из своей библиотеки Steam.</p></div><button id="refresh-button" class="button button-quiet" title="Перечитать библиотеку Steam"><svg class="icon" aria-hidden="true"><use href="#i-refresh"/></svg><span>Обновить список</span></button></header>
 
       <div id="error-banner" class="banner" role="alert" hidden></div>
-      <div id="storage-banner" class="banner" role="status" hidden>Браузер запретил сохранение настроек: история и настройки страницы могут сброситься. Исключения сохраняются отдельно в папке приложения.</div>
+      <div id="connection-banner" class="banner connection-banner" role="status" hidden><span>Связь прервалась. Восстанавливаем подключение. Твои данные сохранены.</span><button id="connection-retry" class="button button-quiet">Восстановить связь</button></div>
+      <div id="storage-banner" class="banner" role="status" hidden>Браузер запретил сохранить настройки показа библиотеки. Категории, история, текущий круг и исключения сохраняются отдельно в папке приложения.</div>
 
+      <div id="app-pages">
+      <section id="choose-page" class="workspace-page" data-workspace-page="choose" aria-labelledby="page-title">
       <section class="selection-layout" aria-label="Выбор игры">
         <article id="spotlight" class="spotlight">
           <img id="hero-image" class="hero-image" alt="" hidden>
           <div class="hero-shade"></div>
-          <div class="spotlight-top"><span class="spotlight-tag" id="spotlight-tag"><span class="status-dot"></span>ТВОЯ СЛЕДУЮЩАЯ ИГРА</span><div class="hero-badges"><span id="hero-disk" class="disk-tag" hidden></span><span id="hero-size" class="disk-tag" hidden></span></div></div>
-          <div class="spotlight-body"><p class="eyebrow" id="hero-kicker">БИБЛИОТЕКА ПОЛНА ВОЗМОЖНОСТЕЙ</p><h2 id="hero-title">Вечер свободен.<br>Игра найдётся.</h2><p id="hero-description">Собираем установленные игры из Steam…</p><div class="hero-actions"><a id="play-button" class="button button-light" hidden><svg class="icon"><use href="#i-play"/></svg><span id="play-label">Играть в Steam</span><svg class="icon arrow"><use href="#i-arrow"/></svg></a><button id="exclude-current" class="hero-skip" hidden>Не предлагать эту игру</button></div></div>
+          <div class="spotlight-top"><span class="spotlight-tag" id="spotlight-tag"><span class="status-dot"></span>ТВОЯ СЛЕДУЮЩАЯ ИГРА</span><div class="hero-badges"><span id="hero-disk" class="disk-tag" hidden></span><span id="hero-size" class="disk-tag" hidden></span><a id="hero-size-source" class="disk-tag size-source" target="_blank" rel="noreferrer noopener" aria-label="Источник размера в Steam" hidden>Steam ↗</a></div></div>
+          <div class="spotlight-body"><p class="eyebrow" id="hero-kicker">БИБЛИОТЕКА ПОЛНА ВОЗМОЖНОСТЕЙ</p><h2 id="hero-title">Вечер свободен.<br>Игра найдётся.</h2><div id="hero-categories" class="category-badges" hidden></div><p id="hero-description">Собираем установленные игры из Steam…</p><p id="hero-context" class="hero-context" hidden></p><div class="hero-actions"><button id="play-button" type="button" class="button button-light" hidden><svg class="icon"><use href="#i-play"/></svg><span id="play-label">Играть в Steam</span><svg class="icon arrow"><use href="#i-arrow"/></svg></button><details id="hero-category-menu" class="hero-category-menu" hidden><summary><svg class="icon" aria-hidden="true"><use href="#i-tag"/></svg><span>Добавить в категорию</span></summary><div id="hero-category-options" class="hero-category-options"></div></details><button id="exclude-current" class="hero-skip" hidden>Не предлагать эту игру</button></div></div>
           <span id="cover-caption" class="cover-caption"></span>
         </article>
 
-        <aside class="draw-panel"><div class="panel-heading"><span class="small-label">ДОВЕРЬСЯ СЛУЧАЮ</span><svg class="icon accent-icon"><use href="#i-shuffle"/></svg></div><h2>Твоя библиотека.<br>Один счастливчик.</h2><p class="panel-description">Знакомая любимая или давно забытая —<br class="desktop-only"> пусть сегодня решит случай.</p>
+        <aside class="draw-panel"><div class="panel-heading"><span class="small-label">СЛУЧАЙНЫЙ ВЫБОР</span><svg class="icon accent-icon" aria-hidden="true"><use href="#i-shuffle"/></svg></div><h2>Во что поиграть?</h2><p class="panel-description">Выбери режим и нажми кнопку. Запустить игру можно сразу здесь.</p>
           <button id="draw-button" class="button button-primary" disabled><svg class="icon"><use href="#i-shuffle"/></svg><span id="draw-label">Выбрать игру</span><span class="key-hint" aria-hidden="true">↵</span></button><p class="keyboard-note">или нажми <kbd>Пробел</kbd></p>
-          <div class="draw-settings"><label class="switch-row" for="no-repeats"><span>Без повторов<small>Все игры получат свой шанс</small></span><span class="switch"><input id="no-repeats" type="checkbox" checked><span class="switch-track"></span></span></label><div class="cycle-meta"><span id="cycle-label">В этом круге ещё не было игр</span><button id="reset-cycle" class="text-button">Сбросить круг</button></div><progress id="cycle-progress" value="0" max="1" aria-label="Прогресс текущего круга"></progress><p id="pool-note" class="pool-note">Проверяем, что уже установлено.</p></div>
+          <div class="draw-settings"><label class="select-row" for="draw-mode"><span>Режим выбора<small>Сузь выбор без изменения шансов</small></span><select id="draw-mode" disabled><option value="all">Все участвующие</option></select></label><label class="switch-row" for="no-repeats"><span>Без повторов<small>Все игры получат свой шанс</small></span><span class="switch"><input id="no-repeats" type="checkbox" checked><span class="switch-track"></span></span></label><div class="cycle-meta"><span id="cycle-label">В этом круге ещё не было игр</span><button id="reset-cycle" class="text-button">Сбросить круг</button></div><progress id="cycle-progress" value="0" max="1" aria-label="Прогресс текущего круга"></progress><p id="pool-note" class="pool-note">Проверяем, что уже установлено.</p></div>
         </aside>
       </section>
 
-      <section class="history-section" aria-labelledby="history-title"><div class="section-line"><h2 id="history-title"><svg class="icon"><use href="#i-clock"/></svg>Недавно выпадали</h2><button id="clear-history" class="text-button" hidden>Очистить историю</button></div><div id="history-list" class="history-list"><p class="history-empty">Здесь появятся твои находки. Первый ход за тобой.</p></div></section>
+      <section class="history-section" aria-labelledby="history-title"><div class="section-line"><h2 id="history-title"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>Недавний выбор</h2><button id="clear-history" class="text-button" hidden>Очистить историю</button></div><div id="history-list" class="history-list"><p class="history-empty">Здесь появятся выбранные игры. Нажми «Выбрать игру», чтобы начать.</p></div></section>
+      <div class="chooser-library-link"><span>Хочешь выбрать сам или изменить список участников?</span><button class="text-button" data-page="library">Открыть библиотеку <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button></div>
+      </section>
 
-      <section class="library-section" aria-labelledby="library-title"><div class="library-heading"><div><p class="eyebrow" id="library-kicker">ВСЁ УЖЕ НА ТВОЁМ КОМПЬЮТЕРЕ</p><h2 id="library-title">Твоя библиотека <span id="library-total" class="count-pill">—</span></h2></div><button id="refresh-button" class="button button-quiet"><svg class="icon"><use href="#i-refresh"/></svg>Обновить список</button></div>
+      <section id="library-page" class="library-section workspace-page" data-workspace-page="library" aria-labelledby="library-title" hidden><div class="library-heading"><div><p class="eyebrow" id="library-kicker">ИГРЫ ИЗ STEAM</p><h2 id="library-title">Все игры <span id="library-total" class="count-pill">-</span></h2></div><button id="library-folders-shortcut" class="button button-quiet library-mobile-folders">Папки Steam</button><div class="library-view-controls" role="group" aria-label="Вид библиотеки"><button class="view-button" data-library-view="grid" aria-pressed="true">Карточки</button><button class="view-button" data-library-view="list" aria-pressed="false">Список</button></div></div>
         <div class="library-scope"><label class="scope-toggle" for="include-uninstalled"><input id="include-uninstalled" type="checkbox" aria-describedby="scope-note"><span>Показывать неустановленные игры<small>Они тоже будут участвовать в случайном выборе</small></span></label><p id="scope-note" class="scope-note" role="status">Сейчас выбираем только из установленных игр.</p></div>
-        <div class="library-toolbar"><div class="filter-tabs" role="group" aria-label="Фильтр библиотеки"><button class="filter-tab active" data-filter="included" aria-pressed="true">Участвуют <span id="included-count">0</span></button><button class="filter-tab" data-filter="all" aria-pressed="false">Все <span id="all-count">0</span></button><button class="filter-tab" data-filter="excluded" aria-pressed="false">Исключены <span id="excluded-count">0</span></button></div><label class="search-box"><svg class="icon"><use href="#i-search"/></svg><input id="search-input" type="search" placeholder="Найти игру…" aria-label="Поиск по названию игры" autocomplete="off"></label></div>
-        <div class="library-help"><p>Убери галочку под игрой, чтобы она не участвовала в розыгрыше.</p><span id="search-note" hidden>Поиск не меняет список для розыгрыша</span></div>
+        <p id="online-size-note" class="online-size-note" hidden>«Место» - объём по требованиям в Steam Store, не размер скачивания. Подгружается из интернета по мере просмотра карточек. «≈» - запасная оценка из локального Steam.</p>
+        <div class="library-toolbar"><div class="filter-tabs" role="group" aria-label="Фильтр библиотеки"><button class="filter-tab active" data-filter="included" aria-pressed="true">Участвуют <span id="included-count">0</span></button><button class="filter-tab" data-filter="all" aria-pressed="false">Все <span id="all-count">0</span></button><button class="filter-tab" data-filter="excluded" aria-pressed="false">Исключены <span id="excluded-count">0</span></button></div><div class="library-tools"><label class="category-filter"><span class="visually-hidden">Фильтр по категории</span><select id="category-filter" disabled><option value="all">Все категории</option></select></label><label class="search-box"><svg class="icon"><use href="#i-search"/></svg><input id="search-input" type="search" placeholder="Найти игру…" aria-label="Поиск по названию игры" autocomplete="off"></label></div></div>
+        <div class="library-help"><p>Нажми на обложку, чтобы открыть игру. Галочка определяет участие в случайном выборе.</p><label class="library-sort"><span>Сортировка</span><select id="library-sort"><option value="name">По названию</option><option value="recent">По последнему запуску</option><option value="size">По размеру</option></select></label><span id="search-note" hidden>Поиск и фильтр библиотеки не меняют список для розыгрыша</span></div>
         <div id="game-grid" class="game-grid" aria-busy="true"></div>
         <div id="empty-state" class="empty-state" hidden><svg class="icon"><use href="#i-library"/></svg><h3 id="empty-title">Игры пока не найдены</h3><p id="empty-description">Добавь папку Steam или SteamLibrary в настройках библиотек.</p><button id="empty-action" class="button button-quiet">Указать папку</button></div>
         <div class="library-bottom"><span id="visible-count">Читаем данные Steam…</span><span id="exclusions-status" role="status">Загружаем исключения…</span></div>
       </section>
+      </div>
     </main>
-    <footer><span>playnext <span class="footer-divider">/</span> Сделай паузу. Запусти игру.</span><span>Без аккаунтов · Без облака · Без лишнего</span></footer>
   </div>
 
-  <dialog id="libraries-dialog" aria-labelledby="dialog-title"><div class="dialog-heading"><div><p class="eyebrow">ПОДКЛЮЧЕНО К STEAM</p><h2 id="dialog-title">Твои библиотеки</h2></div><button id="close-dialog" class="icon-button" aria-label="Закрыть"><svg class="icon"><use href="#i-close"/></svg></button></div><p class="dialog-intro">Обычно мы находим их автоматически. Если чего-то не хватает, укажи папку Steam, SteamLibrary или steamapps.</p><div id="library-paths" class="library-paths"></div><form id="add-path-form"><label for="path-input">Добавить библиотеку</label><div class="path-input-row"><input id="path-input" placeholder="Например, D:\SteamLibrary" maxlength="1024" required autocomplete="off"><button class="button button-primary" type="submit">Добавить</button></div></form><p id="path-error" class="path-error" role="alert" hidden></p><div id="scan-notes" class="scan-notes"></div><p class="privacy-note">Читаем сведения об установке и обложки из кэша Steam. С галочкой «Показывать неустановленные игры» также читаем локальные лицензии активного или последнего аккаунта Steam. Пароль и API-ключ не нужны. Ничего не меняем и никуда не отправляем. Для игр может потребоваться вход, лицензия или обновление в Steam.</p></dialog>
-  <dialog id="settings-dialog" aria-labelledby="settings-title">
-    <div class="dialog-heading"><div><p class="eyebrow">КАК ТЕБЕ УДОБНЕЕ</p><h2 id="settings-title">Отображение</h2></div><button id="close-settings" class="icon-button" aria-label="Закрыть настройки"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div>
+  <dialog id="libraries-dialog" aria-labelledby="dialog-title"><div class="dialog-heading"><div><p class="eyebrow">ПОДКЛЮЧЕНО К STEAM</p><h2 id="dialog-title">Твои библиотеки</h2></div><button id="close-dialog" class="icon-button" aria-label="Закрыть"><svg class="icon"><use href="#i-close"/></svg></button></div><p class="dialog-intro">Обычно мы находим их автоматически. Если чего-то не хватает, укажи папку Steam, SteamLibrary или steamapps.</p><div id="library-paths" class="library-paths"></div><form id="add-path-form"><label for="path-input">Добавить библиотеку</label><div class="path-input-row"><input id="path-input" placeholder="Например, D:\SteamLibrary" maxlength="1024" required autocomplete="off"><button class="button button-primary" type="submit">Добавить</button></div></form><p id="path-error" class="path-error" role="alert" hidden></p><div id="scan-notes" class="scan-notes"></div><p class="privacy-note">Сведения об установке, обложки и лицензии аккаунта читаем из локального Steam. Файлы Steam не меняем. Размеры неустановленных игр и краткое описание выбранной игры подгружаем из Steam Store. Передаём только публичный номер игры и язык описания, без аккаунта, лицензий и путей к файлам. Сервис видит IP-адрес соединения. Размеры можно отключить в «Настройках»; описание запрашивается только для выпавшей игры. Пароль и API-ключ не нужны. Для запуска игр может потребоваться вход, лицензия или обновление в Steam.</p></dialog>
+  <section id="settings-dialog" class="workspace-page settings-page" data-workspace-page="settings" aria-labelledby="settings-title" hidden>
+    <h2 id="settings-title" class="visually-hidden">Настройки приложения</h2>
+    <div class="settings-tabs" role="tablist" aria-label="Разделы настроек"><button id="tab-appearance" role="tab" data-settings-tab="appearance" aria-controls="panel-appearance" aria-selected="true">Оформление</button><button id="tab-display" role="tab" data-settings-tab="display" aria-controls="panel-display" aria-selected="false" tabindex="-1">Игры</button><button id="tab-windows" role="tab" data-settings-tab="windows" aria-controls="panel-windows" aria-selected="false" tabindex="-1">Windows</button><button id="tab-updates" role="tab" data-settings-tab="updates" aria-controls="panel-updates" aria-selected="false" tabindex="-1">Обновления</button><button id="tab-data" role="tab" data-settings-tab="data" aria-controls="panel-data" aria-selected="false" tabindex="-1">Мои данные</button></div>
+    <section id="panel-appearance" role="tabpanel" aria-labelledby="tab-appearance" class="settings-section settings-section-first" data-settings-panel="appearance">
+      <h3 id="appearance-settings-title" class="settings-section-title">Язык и оформление</h3>
+      <div class="appearance-options">
+        <label class="option-row" for="interfaceLanguage"><span>Язык интерфейса<small>Русский или English</small></span><select id="interfaceLanguage" disabled><option value="ru">Русский</option><option value="en">English</option></select></label>
+        <label class="option-row" for="theme"><span>Тема<small>Подбери комфортный фон</small></span><select id="theme" disabled><option value="forest">Тёмный лес</option><option value="midnight">Полночь</option><option value="graphite">Графит</option></select></label>
+        <label class="option-row" for="accent"><span>Акцентный цвет<small>Кнопки, переключатели и подсветка</small></span><select id="accent" disabled><option value="lime">Лайм</option><option value="blue">Синий</option><option value="violet">Фиолетовый</option><option value="orange">Оранжевый</option><option value="custom">Своя палитра</option></select></label>
+      </div>
+      <div id="custom-accent-editor" class="accent-editor" aria-labelledby="accent-editor-title">
+        <div class="accent-editor-heading"><div><strong id="accent-editor-title">Своя палитра</strong><small>Создай случайный вариант, настрой цвета и сохрани только если понравится</small></div><button id="randomize-accent" class="button button-quiet" type="button" disabled>Случайные цвета</button></div>
+        <div class="accent-color-fields">
+          <label for="accent-base"><span>Основной</span><input id="accent-base" type="color" value="#72e6c1" disabled></label>
+          <label for="accent-hover"><span>Наведение</span><input id="accent-hover" type="color" value="#a1f2d8" disabled></label>
+          <label for="accent-contrast"><span>Текст на кнопках</span><input id="accent-contrast" type="color" value="#102a23" disabled></label>
+        </div>
+        <div class="accent-editor-footer"><p id="accent-preview-status" role="status">Сохранённая палитра готова к предпросмотру.</p><div><button id="cancel-accent-preview" class="button button-quiet" type="button" disabled>Отменить</button><button id="save-custom-accent" class="button button-primary" type="button" disabled>Сохранить палитру</button></div></div>
+      </div>
+      <p id="ui-settings-status" class="dialog-intro display-status" role="status">Загружаем язык и оформление…</p>
+      <button id="retry-ui-settings" class="button button-quiet" hidden>Повторить загрузку</button>
+    </section>
+    <section id="panel-display" role="tabpanel" aria-labelledby="tab-display" class="settings-section" data-settings-panel="display" hidden>
+    <h3 class="settings-section-title">Информация об играх</h3>
     <p class="dialog-intro">Выбери, какую информацию показывать об играх.</p>
     <div class="display-options">
       <label class="switch-row" for="showUninstalledSize"><span>Размер неустановленных игр<small>Рядом с «Не установлена» на большой обложке и в списке библиотеки</small></span><span class="switch"><input id="showUninstalledSize" type="checkbox" checked disabled aria-describedby="size-explanation"><span class="switch-track"></span></span></label>
       <label class="switch-row" for="showInstalledBadge"><span>Плашка установленной игры<small>Диск и занятое место в верхнем углу большой обложки</small></span><span class="switch"><input id="showInstalledBadge" type="checkbox" disabled><span class="switch-track"></span></span></label>
     </div>
-    <p id="size-explanation" class="privacy-note">Знак ≈ — примерный объём основной игры на диске по локальным данным Steam, без DLC и дополнительных компонентов. Это не размер загрузки. Язык и обновления могут повлиять на итоговый объём. Если данных не хватает, покажем «Размер неизвестен».</p>
+    <p id="size-explanation" class="privacy-note">Размеры неустановленных игр запрашиваются из Steam Store. «Место» - требуемый объём на диске по данным издателя, не размер скачивания. Ссылка Steam рядом с размером открывает источник. Данные сохраняются на 7 дней и остаются доступны без интернета. Запасной вариант «≈» - оценка основной игры из локального Steam без DLC. Если оба источника не содержат размера, покажем «Размер не указан». Выключи этот переключатель, чтобы скрыть размеры и остановить новые интернет-запросы.</p>
+    <p class="privacy-note">В Steam Store передаётся только публичный номер запрашиваемой игры, а для краткого описания - выбранный язык интерфейса; сервис также видит IP-адрес соединения. Аккаунт, лицензии, пути к файлам и исключения не отправляются. Сохранённые размеры и описания находятся в папке data приложения и не входят в ZIP для друзей.</p>
     <p id="display-status" class="dialog-intro display-status" role="status">Загружаем настройки…</p>
     <button id="retry-display" class="button button-quiet" hidden>Повторить загрузку</button>
+    </section>
+    <section id="panel-windows" role="tabpanel" aria-labelledby="tab-windows" class="settings-section" data-settings-panel="windows" hidden>
+      <h3 id="windows-settings-title" class="settings-section-title">Windows</h3>
+      <div class="display-options">
+        <label class="switch-row" for="desktopShortcut"><span>Ярлык на рабочем столе<small>Открывает именно эту копию Play Next</small></span><span class="switch"><input id="desktopShortcut" type="checkbox" disabled><span class="switch-track"></span></span></label>
+        <label class="switch-row" for="startup"><span>Запуск вместе с Windows<small>Окно приложения открывается свёрнутым</small></span><span class="switch"><input id="startup" type="checkbox" disabled><span class="switch-track"></span></span></label>
+      </div>
+      <p id="windows-status" class="dialog-intro display-status" role="status">Проверяем настройки Windows…</p>
+      <button id="retry-windows" class="button button-quiet" hidden>Повторить проверку</button>
+    </section>
+    <section id="panel-updates" role="tabpanel" aria-labelledby="tab-updates" class="settings-section" data-settings-panel="updates" hidden>
+      <h3 id="update-settings-title" class="settings-section-title">Обновления</h3>
+      <div class="display-options">
+        <label class="switch-row" for="automaticUpdates"><span>Автообновление при запуске<small>При следующем запуске программа сама скачает, проверит и применит новую версию</small></span><span class="switch"><input id="automaticUpdates" type="checkbox" disabled><span class="switch-track"></span></span></label>
+        <label class="switch-row" for="showUpdateNotifications"><span>Сообщать о новой версии отдельным окном<small>Само обновление всегда остаётся доступно в настройках</small></span><span class="switch"><input id="showUpdateNotifications" type="checkbox" checked disabled><span class="switch-track"></span></span></label>
+      </div>
+      <p id="app-settings-status" class="dialog-intro display-status" role="status">Загружаем настройки обновлений…</p>
+      <button id="retry-app-settings" class="button button-quiet" hidden>Повторить загрузку</button>
+      <p id="update-status" class="dialog-intro display-status" role="status">Текущая версия: 2.0.0</p>
+      <div class="settings-actions"><button id="check-update" class="button button-quiet">Проверить сейчас</button><button id="install-update" class="button button-primary" hidden>Установить сейчас</button><a id="download-update" class="button button-quiet" target="_blank" rel="noreferrer noopener" hidden>Открыть страницу релиза</a></div>
+      <p class="privacy-note">Обновления проверяются при запуске. Если автообновление включено, новая версия установится во время запуска программы. Иначе о ней сообщит отдельное окно, пока ты не отключишь его. Обновление всегда можно запустить вручную здесь. Архив и контрольная сумма загружаются с GitHub, а папка data не заменяется.</p>
+    </section>
+    <section id="panel-data" role="tabpanel" aria-labelledby="tab-data" class="settings-section" data-settings-panel="data" hidden>
+      <h3 id="data-settings-title" class="settings-section-title">Резервная копия</h3>
+      <p class="dialog-intro">Сохрани категории, историю, исключения и настройки одним файлом. Его можно использовать после переустановки или переноса программы.</p>
+      <div class="settings-actions"><button id="export-backup" class="button button-quiet" type="button">Скачать копию</button><button id="import-backup" class="button button-quiet" type="button">Восстановить из файла</button><input id="backup-file" type="file" accept="application/json,.json" hidden></div>
+      <p id="backup-status" class="dialog-intro display-status" role="status">Данные остаются только на этом компьютере, пока ты сам не сохранишь файл.</p>
+    </section>
+  </section>
+  <dialog id="update-dialog" class="update-dialog" aria-labelledby="update-dialog-title">
+    <div class="dialog-heading"><div><p class="eyebrow">ДОСТУПНО ОБНОВЛЕНИЕ</p><h2 id="update-dialog-title">Вышла новая версия Play Next</h2></div><button id="close-update-dialog" class="icon-button" aria-label="Закрыть уведомление об обновлении"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div>
+    <p id="update-dialog-description" class="dialog-intro">Можно установить новую версию сейчас или вернуться к этому позже.</p>
+    <div class="update-dialog-actions"><button id="update-dialog-install" class="button button-primary" type="button">Установить обновление</button><button id="update-dialog-later" class="button button-quiet" type="button">Позже</button></div>
+    <button id="disable-update-dialog" class="text-button update-dialog-disable" type="button">Больше не показывать это окно</button>
   </dialog>
+  <section id="categories-dialog" class="workspace-page categories-page" data-workspace-page="categories" aria-labelledby="categories-title" hidden>
+    <h2 id="categories-title" class="visually-hidden">Категории игр</h2>
+    <p id="categories-intro" class="dialog-intro">Выбери подборку, отметь сразу несколько игр и сохрани одним действием.</p>
+    <div class="categories-layout"><aside class="category-sidebar"><h3>Мои подборки</h3><div id="category-picker" class="category-picker" role="group" aria-label="Выбор категории"></div><form id="add-category-form" class="add-category-form"><label for="category-name">Новая категория</label><div class="path-input-row"><input id="category-name" maxlength="32" placeholder="Название подборки" required autocomplete="off"><button class="button button-primary" type="submit" aria-label="Создать категорию">+</button></div></form></aside><div class="category-workspace">
+    <section id="category-bulk-editor" class="category-bulk-editor" hidden aria-label="Игры в категории">
+      <div class="category-editor-heading"><h3 id="category-editor-title">Игры в подборке</h3><button id="category-draw" class="button button-quiet" type="button"><svg class="icon" aria-hidden="true"><use href="#i-shuffle"/></svg>Выбрать из подборки</button></div>
+      <div class="category-editor-toolbar"><label class="search-box category-search"><svg class="icon"><use href="#i-search"/></svg><input id="category-search" type="search" placeholder="Найти игру…" aria-label="Поиск игры для категории" autocomplete="off"></label><div class="category-game-filters" role="group" aria-label="Фильтр игр"><button type="button" class="category-game-filter active" data-category-filter="all" aria-pressed="true">Все</button><button type="button" class="category-game-filter" data-category-filter="added" aria-pressed="false">Добавлены</button><button type="button" class="category-game-filter" data-category-filter="missing" aria-pressed="false">Не добавлены</button></div></div>
+      <div class="category-bulk-actions"><button id="category-add-visible" type="button" class="text-button">Добавить найденные</button><button id="category-remove-visible" type="button" class="text-button">Убрать найденные</button></div>
+      <div id="category-game-list" class="category-game-list" aria-live="polite"></div>
+      <div class="category-save-bar"><span id="category-draft-count">Нет изменений</span><div><button id="category-cancel" type="button" class="button button-quiet">Отменить</button><button id="category-save" type="button" class="button button-primary">Сохранить</button></div></div>
+    </section>
+    <details class="category-management"><summary>Переименовать или удалить категории</summary><div id="category-list" class="category-list" aria-live="polite"></div></details>
+    </div></div>
+    <p id="category-status" class="dialog-intro category-status" role="status">Загружаем категории…</p>
+  </section>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   <noscript><p class="noscript">Для выбора игры включи JavaScript в браузере.</p></noscript>
 </body>

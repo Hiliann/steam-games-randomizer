@@ -32,6 +32,14 @@ test('sorting is deterministic, does not mutate the draw pool and puts missing s
   assert.deepEqual(games, original);
 });
 
+test('reused name collators preserve natural and international ordering', () => {
+  const games=['Game 10','game 2','éclair','Éclair','Игра 20','Игра 3','A','A'].map((name,index)=>({id:String(100-index),name}));
+  for(const locale of ['ru','en']) {
+    const expected=[...games].sort((a,b)=>a.name.localeCompare(b.name,locale,{numeric:true,sensitivity:'base'})||a.id.localeCompare(b.id));
+    assert.deepEqual(sortLibraryGames(games,'name',locale),expected);
+  }
+});
+
 function fakeDocument() {
   const node = (dataset = {}) => ({ dataset, attrs: {}, hidden: true, tabIndex: 0, textContent: '', events: {}, children: [], classList: { contains: name => name === 'nav-item' },
     setAttribute(name, value) { this.attrs[name] = value; }, removeAttribute(name) { delete this.attrs[name]; },

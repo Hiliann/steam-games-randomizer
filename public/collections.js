@@ -1,10 +1,11 @@
 export function collectionView(games, { query = '', filter = 'all', draft = new Set(), focusId = null, locale = 'ru' } = {}) {
   const selected = draft instanceof Set ? draft : new Set(draft);
   const term = query.trim().toLocaleLowerCase(locale);
+  const compare = new Intl.Collator(locale, { numeric: true, sensitivity: 'base' }).compare;
   return games.filter(game => game.name.toLocaleLowerCase(locale).includes(term)
     && (filter === 'all' || (filter === 'added') === selected.has(game.id)))
     .sort((left, right) => Number(right.id === focusId) - Number(left.id === focusId)
-      || left.name.localeCompare(right.name, locale, { numeric: true, sensitivity: 'base' })
+      || compare(left.name, right.name)
       || String(left.id).localeCompare(String(right.id)));
 }
 

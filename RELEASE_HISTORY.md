@@ -1,6 +1,6 @@
 # История версий / Release history
 
-Актуальная версия приложения: **2.3.0**. [Скачать / Download](https://github.com/Hiliann/steam-games-randomizer/releases/latest).
+Актуальная версия приложения: **2.3.1**. [Скачать / Download](https://github.com/Hiliann/steam-games-randomizer/releases/latest).
 
 ## Русский
 
@@ -33,6 +33,7 @@ on `main`; restoration dates are not presented as original publication dates.
 
 | Версия / Version | Архив / Archive | SHA-256 |
 | --- | --- | --- |
+| [2.3.1](https://github.com/Hiliann/steam-games-randomizer/releases/tag/v2.3.1) | `PlayNext-2.3.1-win-x64.zip` | `bb3f80dab1f9a99b6fd299a6a7f8fce2d577b0004d2c8b9245eac2506f0020c7` |
 | [2.3.0](https://github.com/Hiliann/steam-games-randomizer/releases/tag/v2.3.0) | `PlayNext-2.3.0-win-x64.zip` | `9937d3b1f3001744b425ca4eb6b3473b959510464ba3491c54d4cec58575b436` |
 | [1.1.0](https://github.com/Hiliann/steam-games-randomizer/releases/tag/v1.1.0) | `PlayNext-Portable-1.1.0-win-x64.zip` | `f103a1614261bae0051bd477375d9486a09da179ea23c09e27c189289f1a2988` |
 | [1.2.0](https://github.com/Hiliann/steam-games-randomizer/releases/tag/v1.2.0) | `PlayNext-Portable-1.2.0-win-x64.zip` | `1ecb590635020f4ae3d5980cbcc93444cb643711a50bc4c660dc1359aefd40da` |

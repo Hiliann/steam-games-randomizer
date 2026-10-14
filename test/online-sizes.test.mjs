@@ -205,6 +205,23 @@ test('client rejects malicious source links and exposes nonblocking offline stat
   assert.equal(client.get('10').size, null);
   client.retryUnavailable(); assert.equal(client.get('10'), undefined);
 });
+
+test('size requests keep draining when a view update or local error reporter throws', async () => {
+  const calls = [], release = [], updates = [], errors = [];
+  const client = createOnlineSizesClient({ send: async (_, options) => {
+    const { id } = JSON.parse(options.body); calls.push(id);
+    return new Promise(resolve => release.push(() => resolve(new Response(JSON.stringify({ status:'not-found', size:null })))));
+  }, onUpdate(id) { updates.push(id); if (id === '10') throw new Error('Simulated detached view'); },
+  onError(error,id) { errors.push({id,message:error.message}); throw new Error('Simulated reporter failure'); } });
+  for (const id of ['10','20','30']) client.request(id);
+  assert.deepEqual(calls, ['10','20']);
+  release[0](); await setImmediate();
+  assert.deepEqual(calls, ['10','20','30']);
+  release[1](); release[2](); await setImmediate();
+  assert.deepEqual(updates, ['10','20','30']);
+  assert.deepEqual(errors, [{id:'10',message:'Simulated detached view'}]);
+  for (const id of calls) assert.equal(client.get(id).status, 'not-found');
+});
 test('description client requests only a scoped ID and validates returned text', async () => {
   let complete;
   const updated = new Promise(resolve => { complete = resolve; });

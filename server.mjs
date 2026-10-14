@@ -21,7 +21,7 @@ import { desktopOwnerId, watchDesktopOwner } from './lib/desktop-owner.mjs';
 import { attachSessionFrames } from './lib/session-frames.mjs';
 
 const base = path.dirname(fileURLToPath(import.meta.url));
-export const APP_VERSION = '2.3.0';
+export const APP_VERSION = '2.3.1';
 export function getInstanceId(directory = base) {
   const resolved = path.resolve(directory);
   return createHash('sha256').update(process.platform === 'win32' ? resolved.toLowerCase() : resolved).digest('hex').slice(0, 24);

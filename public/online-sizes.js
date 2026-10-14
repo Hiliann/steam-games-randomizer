@@ -1,5 +1,6 @@
 // A small visible-card queue; the random draw never waits for internet access.
-export function createOnlineSizesClient({ send = globalThis.fetch, onUpdate = () => {}, now = Date.now } = {}) {
+export function createOnlineSizesClient({ send = globalThis.fetch, onUpdate = () => {}, now = Date.now,
+  onError = error => { if (typeof globalThis.reportError === 'function') globalThis.reportError(error); else console.error(error); } } = {}) {
   const records = new Map();
   const queue = [];
   let active = 0;
@@ -15,8 +16,10 @@ export function createOnlineSizesClient({ send = globalThis.fetch, onUpdate = ()
     } catch { result = { status: 'offline', size: null }; }
     records.set(id, { ...result, expires: now() + (result.status === 'ready' ? 3600000 : result.status === 'not-found' ? 86400000 : 30000) });
     active--;
-    onUpdate(id, result);
-    pump();
+    // A failed DOM refresh must not strand the remaining visible-card queue.
+    try { onUpdate(id, result); }
+    catch (error) { try { onError(error, id); } catch { /* Error reporting must not strand the queue either. */ } }
+    finally { pump(); }
   }
   function pump() {
     while (active < 2 && queue.length) {

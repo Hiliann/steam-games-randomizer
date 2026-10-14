@@ -1,5 +1,23 @@
 # Изменения
 
+## 2.3.1
+
+### Русский
+
+- Ускорена сортировка библиотеки и подборок: механизм сравнения названий создаётся один раз на операцию, а не для каждой пары игр. Естественный порядок чисел, языков и одинаковых названий сохранён.
+- Изменение категории из карточки больше не перестраивает скрытый массовый редактор. Его список обновляется при открытии.
+- Ошибка отображения полученного размера не останавливает очередь остальных игр. Ошибка остаётся доступна в локальной диагностике; дополнительные данные никуда не отправляются.
+- У поиска теперь единая рамка фокуса вместо двойной подсветки поля и внутреннего ввода.
+- Добавлен отдельный тест производительности на искусственных библиотеках без чтения Steam и без телеметрии. Сохранённые данные и вероятность выбора не меняются.
+
+### English
+
+- Faster library and collection sorting: the name collator is reused within each operation instead of being recreated for every comparison. Natural numeric, international and equal-name ordering is preserved.
+- Editing a category from game details no longer rebuilds the hidden bulk editor. Its list refreshes when opened.
+- A size display failure cannot stall requests for other games. Errors remain locally diagnosable; no extra data is transmitted.
+- Search uses one consistent focus outline rather than separate outlines around its container and input.
+- Added a developer-only benchmark using synthetic libraries, without Steam access or telemetry. Saved data and random-selection odds remain unchanged.
+
 ## 2.3.0
 
 ### Русский

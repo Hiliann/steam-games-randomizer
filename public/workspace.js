@@ -14,13 +14,14 @@ export function filterLibraryGames(games, { filter = 'all', excluded = [], categ
     && game.name.toLocaleLowerCase().includes(term));
 }
 export function sortLibraryGames(games, sort = 'name', locale = 'ru') {
+  const compare = new Intl.Collator(locale, { numeric: true, sensitivity: 'base' }).compare;
   const size = game => {
     const bytes = game.installed === false ? game.onlineSize?.bytes ?? game.installSize?.bytes : game.size;
     return Number.isSafeInteger(bytes) && bytes > 0 ? bytes : -1;
   };
   return [...games].sort((a, b) => {
     const order = sort === 'recent' ? (b.lastPlayed || 0) - (a.lastPlayed || 0) : sort === 'size' ? size(b) - size(a) : 0;
-    return order || a.name.localeCompare(b.name, locale, { numeric: true, sensitivity: 'base' }) || String(a.id).localeCompare(String(b.id));
+    return order || compare(a.name, b.name) || String(a.id).localeCompare(String(b.id));
   });
 }
 

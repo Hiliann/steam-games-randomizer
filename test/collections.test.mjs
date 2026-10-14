@@ -54,6 +54,9 @@ test('category editor exposes scoped search, safe counts and narrow-window headi
   assert.match(app,/categoryGameFilter === 'all'\) renderCategoryDraftSummary\(visible\)/);
   assert.match(app,/workspace.current === 'categories'\) \{ event.preventDefault\(\); \$\('category-search'\).focus\(\)/);
   assert.match(app,/if \(gameId\) resetCategoryFilters\(\)/);
+  assert.match(app,/function renderCategoriesDialog\(\) \{[\s\S]*?if \(workspace && workspace.current !== 'categories'\) return;/);
   assert.match(css,/\.category-editor-heading h3[^}]*min-width: 0[^}]*overflow-wrap: anywhere/);
   assert.match(css,/\.category-search \{ flex: 0 0 auto; height: 44px/);
+  assert.match(css,/\.search-box input:focus-visible \{ outline: none; \}/);
+  assert.match(css,/\.search-box:focus-within \{ outline: 2px solid var\(--accent\)/);
 });

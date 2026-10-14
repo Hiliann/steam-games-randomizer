@@ -1130,6 +1130,9 @@ function renderCategoryGameList() {
   renderCategoryDraftSummary(visible);
 }
 function renderCategoriesDialog() {
+  // Build collection rows only when that workspace is visible. Opening it
+  // refreshes the draft from the saved revision, so hidden menus need no rebuild.
+  if (workspace && workspace.current !== 'categories') return;
   if (profile.categories.length && !profile.categories.some(item => item.id === categorySelectedId)) {
     categorySelectedId = profile.categories[0].id;
     categoryDraft = new Set(games.filter(game => (profile.assignments[game.id] ?? []).includes(categorySelectedId)).map(game => game.id));

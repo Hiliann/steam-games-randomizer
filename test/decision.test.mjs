@@ -79,3 +79,18 @@ test('exceptions stay visible, and a second request cannot overwrite an open dec
   assert.equal(f.status.textContent, 'No connection');
   assert.equal(f.dialog.open, true);
 });
+
+test('restore decisions support safe cancellation and custom pending text', async () => {
+  const f=fixture(); let cancelled=0, writes=0, finish;
+  const request=()=>f.controller.request({onCancel:()=>cancelled++,pendingMessage:'Restoring data…',
+    onDiscard:()=>{writes++; return new Promise(resolve=>{finish=resolve;});}});
+  request(); f.cancel.events.click(); f.cancel.events.click();
+  assert.equal(cancelled,1); assert.equal(writes,0);
+  request(); const operation=f.discard.events.click();
+  assert.equal(f.status.textContent,'Restoring data…');
+  f.dialog.events.cancel({preventDefault(){}});
+  assert.equal(cancelled,1); assert.equal(f.dialog.open,true);
+  finish(); await operation; assert.equal(writes,1); assert.equal(f.dialog.open,false);
+  request(); f.dialog.events.cancel({preventDefault(){}});
+  assert.equal(cancelled,2); assert.equal(writes,1);
+});

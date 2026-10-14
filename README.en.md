@@ -14,7 +14,7 @@ The website includes a fictional demo, project information and downloads. It can
 
 ## Run on Windows
 
-1. Download **PlayNext-2.3.1-win-x64.zip** from [Releases](https://github.com/Hiliann/steam-games-randomizer/releases/latest). Do not use **Code > Download ZIP**: that archive contains source code without the bundled runtime.
+1. Download **PlayNext-2.4.0-win-x64.zip** from [Releases](https://github.com/Hiliann/steam-games-randomizer/releases/latest). Do not use **Code > Download ZIP**: that archive contains source code without the bundled runtime.
 2. Extract the entire archive to a writable folder. Do not run the program from inside the ZIP.
 3. Open **Play Next.exe**. The program opens in its own desktop window, without a browser tab. Its local address is chosen automatically.
 4. Press **Pick a game**, then **Play on Steam**. An uninstalled game instead offers **Install on Steam**. The local program passes the command to Steam without leaving a technical browser tab open.
@@ -63,7 +63,9 @@ Update checks use the repository's public GitHub release API and are cached for 
 
 The updater accepts only this repository's release archive, verifies its published SHA-256 and per-file manifest, and replaces program files only. The `data` folder is never included or modified. Update checks do not send your Steam library, settings or file paths. GitHub can see the connection's IP address.
 
-The **Backup** section downloads one JSON file containing categories, assignments, history, the current round, exclusions, manual library paths and settings. The entire file is validated before restoration starts. If one write fails, Play Next attempts to restore the previous data. Keep personal backups separate from the clean ZIP shared with friends.
+The **Backup** section downloads one JSON file containing categories, assignments, history, the current round, exclusions, manual library paths and settings. The selected file is fully validated without changing saved data. A confirmation then shows the backup date, app version and counts of categories, assigned games, history and exclusions. Cancel is focused by default; replacement starts only after pressing **Replace data**. To keep your current data, cancel and download a backup first.
+
+If one write fails, Play Next attempts to restore the previous data. A successful restore reloads the page. If the connection is interrupted after confirmation, check the result before retrying: a missing response does not by itself mean that data was unchanged. Keep personal backups separate from the clean ZIP shared with friends.
 
 Only the uninstalled-games checkbox and manually added library paths remain in browser storage. They are specific to the browser and local address. Clearing browser data can reset these preferences, but does not remove categories, history or other settings saved in `data`.
 

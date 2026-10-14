@@ -21,8 +21,8 @@ using Microsoft.Web.WebView2.WinForms;
 [assembly: AssemblyDescription("Steam Games Randomizer")]
 [assembly: AssemblyProduct("Play Next")]
 [assembly: AssemblyCompany("Hiliann")]
-[assembly: AssemblyVersion("2.3.1.0")]
-[assembly: AssemblyFileVersion("2.3.1.0")]
+[assembly: AssemblyVersion("2.4.0.0")]
+[assembly: AssemblyFileVersion("2.4.0.0")]
 
 internal static class PlayNextLauncher
 {

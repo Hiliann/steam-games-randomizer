@@ -6,8 +6,8 @@ export function createDecisionDialog({ dialog, title, message, status, save, dis
   let current;
   let pending = false;
   const buttons = [save, discard, cancel];
-  const close = () => { dialog.close(); current = undefined; };
-  const cancelDecision = () => { if (!pending) close(); };
+  const close = () => { current = undefined; dialog.close(); };
+  const cancelDecision = () => { if (!pending) { const decision = current; close(); decision?.onCancel?.(); } };
   cancel.addEventListener('click', cancelDecision);
   dialog.addEventListener('cancel', event => { event.preventDefault(); cancelDecision(); });
   dialog.addEventListener('close', () => { if (!dialog.open) current = undefined; });
@@ -19,7 +19,7 @@ export function createDecisionDialog({ dialog, title, message, status, save, dis
     pending = true;
     buttons.forEach(button => { button.disabled = true; });
     status.hidden = false;
-    status.textContent = tr('Сохраняем изменения…', 'Saving changes…');
+    status.textContent = decision.pendingMessage ?? tr('Сохраняем изменения…', 'Saving changes…');
     try {
       const saved = await operation();
       if (saved === false) {

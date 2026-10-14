@@ -21,7 +21,7 @@ import { desktopOwnerId, watchDesktopOwner } from './lib/desktop-owner.mjs';
 import { attachSessionFrames } from './lib/session-frames.mjs';
 
 const base = path.dirname(fileURLToPath(import.meta.url));
-export const APP_VERSION = '2.3.1';
+export const APP_VERSION = '2.4.0';
 export function getInstanceId(directory = base) {
   const resolved = path.resolve(directory);
   return createHash('sha256').update(process.platform === 'win32' ? resolved.toLowerCase() : resolved).digest('hex').slice(0, 24);
@@ -205,6 +205,10 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
       if (url.pathname === '/api/ui-settings' && request.method === 'POST') {
         if (request.headers['x-randomizer'] !== '1') return json(response, 403, { error: 'Отсутствует заголовок приложения.' });
         return json(response, 200, await uiSettings.change(await requestJson(request, MAX_UI_SETTINGS_BYTES)));
+      }
+      if (url.pathname === '/api/backup/preview' && request.method === 'POST') {
+        if (request.headers['x-randomizer'] !== '1') return json(response, 403, { error: 'Отсутствует заголовок приложения.' });
+        return json(response, 200, backup.preview(await requestJson(request, MAX_BACKUP_BYTES)));
       }
       if (url.pathname === '/api/backup' && request.method === 'POST') {
         if (request.headers['x-randomizer'] !== '1') return json(response, 403, { error: 'Отсутствует заголовок приложения.' });

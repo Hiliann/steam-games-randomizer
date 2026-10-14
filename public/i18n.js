@@ -5,6 +5,27 @@ const attributeSources = new WeakMap();
 const listeners = new Set();
 
 const exact = new Map([
+  ['Восстанавливаем данные…', 'Restoring data…'],
+  ['Слишком большой запрос.', 'The request is too large.'],
+  ['Проверяем резервную копию. Данные пока не изменяются…', 'Checking backup. Your data has not been changed…'],
+  ['Восстановление отменено. Данные не изменены.', 'Restore cancelled. Your data was not changed.'],
+  ['Восстановление не подтверждено. Проверь данные перед повторной попыткой.', 'Restore was not confirmed. Check your data before trying again.'],
+  ['Нет связи с приложением. Данные не изменены.', 'No connection to the app. Your data was not changed.'],
+  ['Нет связи с приложением. Запусти его и повтори.', 'No connection to the app. Start it and try again.'],
+  ['Некорректные локальные настройки библиотек.', 'Invalid local library settings.'],
+  ['Не удалось создать резервную копию.', 'Could not create a backup.'],
+  ['Не удалось проверить резервную копию.', 'Could not validate the backup.'],
+  ['Не удалось восстановить резервную копию.', 'Could not restore the backup.'],
+  ['Выбери файл резервной копии Play Next размером до 6 МБ.', 'Choose a Play Next backup file up to 6 MB.'],
+  ['Файл не является корректной резервной копией JSON.', 'The file is not a valid JSON backup.'],
+  ['В резервной копии повреждены настройки библиотек.', 'The backup contains invalid library settings.'],
+  ['В резервной копии отсутствует часть данных.', 'The backup is missing some data.'],
+  ['В резервной копии повреждены категории, история или исключения.', 'The backup contains invalid categories, history or exclusions.'],
+  ['В резервной копии повреждены настройки программы.', 'The backup contains invalid application settings.'],
+  ['Это не резервная копия Play Next или её формат не поддерживается.', 'This is not a Play Next backup, or its format is not supported.'],
+  ['Сначала выбери и проверь файл резервной копии.', 'Choose and validate a backup file first.'],
+  ['Приложение восстановило данные, но не вернуло настройки библиотек.', 'The app restored data but did not return the library settings.'],
+  ['Восстановление прервано, а автоматический откат не завершился. Не закрывай программу и сохрани содержимое папки data.', 'Restore was interrupted and rollback could not finish. Do not close the app; preserve the contents of its data folder.'],
   ['Сохраняем изменения…', 'Saving changes…'], ['Подборка сохранена', 'Collection saved'],
   ['ВЫБИРАЕМ ИГРУ', 'PICKING A GAME'], ['Без категории', 'Uncategorized'],
   ['Параметры выбора', 'Pick options'],
@@ -81,6 +102,7 @@ const exact = new Map([
 ]);
 
 const patterns = [
+  [/^Не удалось восстановить данные\. Прежние данные возвращены\. ([\s\S]*)$/, match => `Could not restore data. Your previous data was restored. ${match[1]}`],
   [/^Библиотек: (\d+)$/, match => `Libraries: ${match[1]}`],
   [/^Выпало (\d+) из (\d+) в этом круге$/, match => `Drawn ${match[1]} of ${match[2]} this round`],
   [/^Показано (\d+) из (\d+) игр$/, match => `Showing ${match[1]} of ${match[2]} games`],

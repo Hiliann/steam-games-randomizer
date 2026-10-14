@@ -62,6 +62,20 @@ test('damaged backup is rejected before any saved data changes', async t => {
   assert.deepEqual((await stores.exclusions.read()).excluded, ['42']);
 });
 
+test('backup preview validates the whole file without changing or reading saved stores', async t => {
+  const stores = await fixture(t);
+  const backup = { ...(await stores.service.export()), browser: { includeUninstalled: false, customPaths: ['D:\\SteamLibrary'] } };
+  backup.data.profile.categories = [{id:'evening',name:'Evening',color:'violet'}];
+  backup.data.profile.assignments = {10:['evening'],20:[]};
+  backup.data.profile.draw.history = [{id:'10',at:'2026-09-03T12:00:00.000Z'}];
+  backup.data.exclusions = ['30','40'];
+  const never = () => { throw new Error('Preview must not access saved data.'); };
+  const readonly = createBackupService(Object.fromEntries(['exclusions','displaySettings','appSettings','uiSettings','profile'].map(key=>[key,{read:never,replace:never}])));
+  assert.deepEqual(readonly.preview(backup), {createdAt:backup.createdAt,appVersion:'1.8.0',categories:1,assignedGames:1,history:1,exclusions:2,customPaths:1});
+  backup.data.profile.assignments['10']=['missing'];
+  assert.throws(()=>readonly.preview(backup), {status:400});
+});
+
 test('backup from before custom palettes restores with a safe editable default', async t => {
   const stores = await fixture(t);
   const backup = { ...(await stores.service.export()), browser: { includeUninstalled: false, customPaths: [] } };

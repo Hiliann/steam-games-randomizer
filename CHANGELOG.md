@@ -1,5 +1,23 @@
 # Изменения
 
+## 2.4.0
+
+### Русский
+
+- Восстановление резервной копии стало понятнее: весь файл проверяется до подтверждения, без изменения сохранённых данных.
+- Новое окно показывает дату копии, версию программы, количество категорий, игр с категориями, записей истории, исключений и дополнительных папок Steam. По умолчанию фокус на отмене; замена начинается только по явной кнопке.
+- После подтверждения восстанавливается именно проверенное содержимое, без повторного чтения файла. Повреждённые копии отклоняются, ошибка записи оставляет возможность повторить или отменить; отмена до замены не меняет данные.
+- Исправлен английский перевод ошибок резервного копирования. При разрыве связи после подтверждения приложение не обещает, что данные точно не изменились, а просит проверить результат.
+- Начальная подпись версии в настройках берётся из версии интерфейса, а не из устаревшего значения. Формат копий остаётся совместимым с предыдущими версиями.
+
+### English
+
+- Backup restoration now validates the entire file before confirmation, without changing saved data.
+- A clear confirmation shows its date, app version and counts of categories, categorized games, history, exclusions and custom Steam folders. Cancel is focused by default; replacing data requires an explicit button press.
+- Confirmation restores the exact inspected payload without rereading the file. Invalid backups are rejected; a failed write allows retry or cancellation. Cancelling before replacement does not alter saved data.
+- Localized backup errors in English. A connection failure after confirmation no longer incorrectly promises that data was untouched; it asks the user to check the result.
+- Initial version text uses the interface version rather than an obsolete constant. The backup format remains compatible with earlier versions.
+
 ## 2.3.1
 
 ### Русский

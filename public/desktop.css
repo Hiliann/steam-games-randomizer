@@ -270,6 +270,7 @@ dialog::backdrop { background: #0009; backdrop-filter: blur(4px); }
 .decision-dialog { width: min(520px, calc(100vw - 32px)); padding: var(--space-6); }
 .decision-dialog h2 { font-size: 22px; margin: 0; letter-spacing: -.3px; }
 .decision-dialog p { margin-top: var(--space-4); font-size: var(--type-body); line-height: 1.6; color: var(--muted); }
+.decision-dialog #decision-message { white-space: pre-line; overflow-wrap: anywhere; }
 .decision-dialog #decision-status { color: var(--warning); font-size: var(--type-caption); }
 .decision-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-6); }
 .button-danger { color: var(--danger); border-color: var(--danger); }

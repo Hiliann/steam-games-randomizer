@@ -65,7 +65,7 @@ let accentPreviewing = false;
 let accentPreviewMessage = 'Сохранённая палитра готова к предпросмотру.';
 let backupPending = false;
 let backupMessage = 'Данные остаются только на этом компьютере, пока ты сам не сохранишь файл.';
-let updateInfo = { status: 'not-checked', currentVersion: '2.2.0' };
+let updateInfo = { status: 'not-checked', currentVersion: $('app-version').textContent.trim() };
 let scanFailed = false;
 let updatePending = false;
 let updateInstalling = false;
@@ -396,19 +396,36 @@ async function exportBackup() {
 }
 async function restoreBackup(file) {
   if (backupPending || !file) return;
-  if (!confirm(tr('Текущие категории, история, исключения и настройки будут заменены данными из файла. Продолжить?', 'Current categories, history, exclusions and settings will be replaced with data from the file. Continue?'))) return;
   backupPending = true;
-  backupMessage = 'Проверяем и восстанавливаем данные…';
+  backupMessage = 'Проверяем резервную копию. Данные пока не изменяются…';
   renderBackup();
   try {
-    const result = await backupClient.restoreBackup(file);
-    state = cleanState({ ...state, ...result.browser });
-    save();
-    backupMessage = 'Данные восстановлены. Перезапускаем страницу…';
-    renderBackup();
-    location.reload();
+    const prepared = await backupClient.prepareBackup(file);
+    const summary = prepared.summary;
+    const date = new Date(summary.createdAt).toLocaleString(getLocale());
+    let restoreAttempted = false;
+    const unlock = () => { backupPending = false; backupMessage = restoreAttempted
+      ? 'Восстановление не подтверждено. Проверь данные перед повторной попыткой.'
+      : 'Восстановление отменено. Данные не изменены.'; renderBackup(); };
+    const opened = decisions.request({ title: tr('Восстановить резервную копию?', 'Restore this backup?'),
+      message: tr(`Создана: ${date} · Play Next ${summary.appVersion}\nКатегорий: ${summary.categories} · игр в категориях: ${summary.assignedGames}\nЗаписей истории: ${summary.history} · исключений: ${summary.exclusions}\nДополнительных папок Steam: ${summary.customPaths}\n\nФайл проверен. Текущие категории, история, исключения и настройки будут заменены. Если хочешь сохранить нынешние данные, сначала отмени и скачай их копию.`,
+        `Created: ${date} · Play Next ${summary.appVersion}\nCategories: ${summary.categories} · games in categories: ${summary.assignedGames}\nHistory entries: ${summary.history} · exclusions: ${summary.exclusions}\nCustom Steam folders: ${summary.customPaths}\n\nThe file is valid. Your current categories, history, exclusions and settings will be replaced. To keep your current data, cancel and download a backup first.`),
+      discardLabel: tr('Заменить данные', 'Replace data'), cancelLabel: tr('Отмена', 'Cancel'), danger: true,
+      pendingMessage: tr('Восстанавливаем данные…', 'Restoring data…'), onCancel: unlock,
+      onDiscard: async () => {
+        restoreAttempted = true;
+        backupMessage = 'Восстанавливаем данные…'; renderBackup();
+        try {
+          const result = await backupClient.restorePrepared(prepared);
+          state = cleanState({ ...state, ...result.browser }); save();
+          backupPending = false;
+          backupMessage = 'Данные восстановлены. Перезапускаем страницу…'; renderBackup();
+        } catch (error) { throw error instanceof TypeError || ['AbortError', 'TimeoutError'].includes(error.name)
+          ? new Error(tr('Связь прервалась. Не удалось подтвердить восстановление. Проверь данные перед повторной попыткой.', 'Connection interrupted. Restore could not be confirmed. Check your data before trying again.')) : error; }
+      }, proceed: () => location.reload() });
+    if (!opened) unlock();
   } catch (error) {
-    backupMessage = error instanceof TypeError ? 'Нет связи с приложением. Данные не изменены.' : error.message;
+    backupMessage = error instanceof TypeError || ['AbortError', 'TimeoutError'].includes(error.name) ? 'Нет связи с приложением. Данные не изменены.' : error.message;
     backupPending = false;
     renderBackup();
   }

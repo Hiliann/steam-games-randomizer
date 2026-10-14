@@ -69,12 +69,20 @@ try {
   const health = await fetch(base + '/api/health').then(response => response.json());
   assert.equal(health.version, APP_VERSION);
   assert.equal(health.instanceId, record.instanceId);
-  for (const asset of ['/', '/app.js', '/exclusions.js', '/profile.js', '/display.js', '/app-settings.js', '/online-sizes.js', '/descriptions.js', '/system.js', '/responsive.css', '/style.css']) {
+  for (const asset of ['/', '/app.js', '/exclusions.js', '/profile.js', '/display.js', '/app-settings.js', '/online-sizes.js', '/descriptions.js', '/system.js', '/responsive.css', '/style.css', '/backup.js', '/collections.js', '/draw-animation.js', '/decision.js', '/i18n.js', '/ui-settings.js', '/workspace.js', '/startup.js', '/desktop.css']) {
     const response = await fetch(base + asset);
     assert.equal(response.status, 200);
     await response.arrayBuffer();
   }
   const games = await fetch(base + '/api/games').then(response => response.json());
+  const originalBackup = await fetch(base + '/api/backup').then(response => response.json());
+  const previewCopy = { ...structuredClone(originalBackup), browser: { includeUninstalled: false, customPaths: [] } };
+  previewCopy.data.exclusions = ['900000005'];
+  const previewResponse = await fetch(base + '/api/backup/preview', { method:'POST', headers:{'Content-Type':'application/json','X-Randomizer':'1'}, body:JSON.stringify(previewCopy) });
+  assert.equal(previewResponse.status,200);
+  const preview = await previewResponse.json();
+  assert.equal(preview.appVersion,APP_VERSION); assert.equal(preview.exclusions,1);
+  assert.deepEqual((await fetch(base+'/api/backup').then(response=>response.json())).data,originalBackup.data,'Preview cannot change any saved data');
   const windowsSettings = await fetch(base + '/api/windows-settings').then(response => response.json());
   assert.equal(windowsSettings.supported, true);
   assert.equal(typeof windowsSettings.desktopShortcut, 'boolean');
@@ -171,7 +179,7 @@ try {
   await invoke(['-Stop']);
   await assert.rejects(fetch(restartedBase + '/api/health', { signal: AbortSignal.timeout(1500) }));
   assert.equal(await fetch(`http://127.0.0.1:${blockedPort}`).then(response => response.text()), 'another application');
-  console.log(JSON.stringify({ applicationLaunch: 'passed', systemNodeRequired: false, occupiedPort: 'handled', sameProcessOnRelaunch: true, installedGames: games.games.length, includingUninstalled: expanded.games.length, estimatedSizes: expanded.games.filter(game => game.installed === false && game.installSize?.bytes > 0).length, onlineSizeAndPersistentCache: onlineCheck ? 'passed' : 'not requested', libraryStatus: expanded.ownedLibrary.status, switchingModes: 'passed', exclusionsSurviveRestartAndPortChange: true, categoriesAndHistorySurviveRestartAndPortChange: true, displaySettingsSurviveRestartAndPortChange: true, appSettingsSurviveRestartAndPortChange: true, releaseManifestVerified: true, emptyBrowserStorage: 'handled', staleImport: 'ignored', cleanStop: true }, null, 2));
+  console.log(JSON.stringify({ applicationLaunch: 'passed', systemNodeRequired: false, occupiedPort: 'handled', sameProcessOnRelaunch: true, installedGames: games.games.length, includingUninstalled: expanded.games.length, estimatedSizes: expanded.games.filter(game => game.installed === false && game.installSize?.bytes > 0).length, onlineSizeAndPersistentCache: onlineCheck ? 'passed' : 'not requested', libraryStatus: expanded.ownedLibrary.status, switchingModes: 'passed', exclusionsSurviveRestartAndPortChange: true, categoriesAndHistorySurviveRestartAndPortChange: true, displaySettingsSurviveRestartAndPortChange: true, appSettingsSurviveRestartAndPortChange: true, backupPreviewWithoutWrites: 'passed', releaseManifestVerified: true, emptyBrowserStorage: 'handled', staleImport: 'ignored', cleanStop: true }, null, 2));
 } finally {
   await invoke(['-Stop']).catch(() => {});
   occupied.closeAllConnections();

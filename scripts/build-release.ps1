@@ -65,14 +65,14 @@ if ($RuntimeDirectory) {
 # cached covers, settings, source archives and any other machine-specific files.
 $releaseFiles = @(
     'package.json', 'server.mjs', 'start.ps1',
-    'README.md', 'README.en.md', 'READ ME FIRST.txt', 'THIRD_PARTY_NOTICES.md', 'CHANGELOG.md', 'DESIGN.md',
+    'README.md', 'README.en.md', 'READ ME FIRST.txt', 'THIRD_PARTY_NOTICES.md', 'CHANGELOG.md', 'DESIGN.md', 'PLAN.md',
     'lib\steam.mjs', 'lib\owned.mjs', 'lib\steam-cache.mjs', 'lib\exclusions.mjs', 'lib\profile.mjs', 'public\index.html', 'public\app.js', 'public\exclusions.js', 'public\profile.js',
     'lib\install-size.mjs', 'lib\display-settings.mjs', 'public\display.js',
     'lib\online-sizes.mjs', 'public\online-sizes.js', 'public\descriptions.js',
     'lib\windows-integration.mjs', 'lib\update-check.mjs', 'lib\update-installer.mjs', 'lib\steam-launch.mjs', 'lib\app-settings.mjs', 'lib\ui-settings.mjs', 'lib\backup.mjs',
     'lib\browser-sessions.mjs', 'lib\desktop-owner.mjs', 'lib\session-frames.mjs',
     'scripts\windows-integration.ps1', 'scripts\launch-steam.ps1', 'scripts\apply-update.ps1', 'public\system.js', 'public\app-settings.js', 'public\ui-settings.js', 'public\i18n.js', 'public\backup.js', 'public\browser-session.js',
-    'public\randomizer.js', 'public\workspace.js', 'public\toast.js', 'public\game-details.js', 'public\draw-animation.js', 'public\decision.js', 'public\scroll-activity.js', 'public\startup.js', 'public\style.css', 'public\responsive.css', 'public\desktop.css', 'public\icon.svg', 'public\icon.png', 'public\icon.ico'
+    'public\randomizer.js', 'public\workspace.js', 'public\collections.js', 'public\toast.js', 'public\game-details.js', 'public\draw-animation.js', 'public\decision.js', 'public\scroll-activity.js', 'public\startup.js', 'public\style.css', 'public\responsive.css', 'public\desktop.css', 'public\icon.svg', 'public\icon.png', 'public\icon.ico'
 )
 foreach ($relativeFile in $releaseFiles) {
     $destination = Join-Path $packageDirectory $relativeFile

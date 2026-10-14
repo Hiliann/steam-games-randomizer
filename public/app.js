@@ -17,6 +17,7 @@ import { createDecisionDialog } from './decision.js';
 import { createScrollActivity } from './scroll-activity.js';
 import { createStartupScreen } from './startup.js';
 import { createHeroArtwork, playDrawFrames } from './draw-animation.js';
+import { collectionView, collectionChanges, collectionFocusAfterToggle, collectionCounts } from './collections.js';
 
 const $ = id => document.getElementById(id);
 const startup = createStartupScreen({ node: $('startup-screen'), status: $('startup-status'), content: document.querySelector('.app-shell'), skip: $('skip-startup') });
@@ -1064,10 +1065,37 @@ function selectCategory(categoryId, { force = false } = {}) {
   return true;
 }
 function visibleCategoryGames() {
-  const term = $('category-search').value.trim().toLocaleLowerCase('ru');
-  return games.filter(game => game.name.toLocaleLowerCase('ru').includes(term)
-    && (categoryGameFilter === 'all' || (categoryGameFilter === 'added') === categoryDraft.has(game.id)))
-    .sort((left, right) => Number(right.id === categoryFocusGameId) - Number(left.id === categoryFocusGameId) || left.name.localeCompare(right.name, 'ru'));
+  return collectionView(games, { query: $('category-search').value, filter: categoryGameFilter,
+    draft: categoryDraft, focusId: categoryFocusGameId, locale: getLocale() });
+}
+function renderCategoryDraftSummary(visible) {
+  const changes = collectionChanges(categoryDraftOriginal, categoryDraft);
+  const changed = changes.added + changes.removed;
+  const hasFilters = !!$('category-search').value || categoryGameFilter !== 'all';
+  $('category-clear-search').hidden = !$('category-search').value;
+  $('category-reset-filters').hidden = !hasFilters;
+  $('category-visible-count').textContent = tr(`Показано ${visible.length} из ${games.length} игр`, `Showing ${visible.length} of ${games.length} games`);
+  $('category-draft-count').textContent = changed
+    ? tr(`В подборке: ${changes.total} · добавить: ${changes.added}, убрать: ${changes.removed}`, `In collection: ${changes.total} · add: ${changes.added}, remove: ${changes.removed}`)
+    : tr(`В подборке: ${changes.total} · изменений нет`, `In collection: ${changes.total} · no changes`);
+  const locked = !profileReady || profilePending || scanning;
+  $('category-save').disabled = !changed || locked;
+  $('category-cancel').disabled = !changed || profilePending;
+  $('category-draw').disabled = !categorySelectedId || !!changed || locked;
+  const add = visible.filter(game => !categoryDraft.has(game.id)).length;
+  const remove = visible.length - add;
+  $('category-add-visible').textContent = tr(`Добавить найденные (${add})`, `Add visible (${add})`);
+  $('category-remove-visible').textContent = tr(`Убрать найденные (${remove})`, `Remove visible (${remove})`);
+  $('category-add-visible').disabled = !add || locked;
+  $('category-remove-visible').disabled = !remove || locked;
+}
+function resetCategoryFilters() {
+  $('category-search').value = ''; categoryGameFilter = 'all';
+  for (const button of document.querySelectorAll('.category-game-filter')) {
+    const active = button.dataset.categoryFilter === 'all';
+    button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active));
+  }
+  renderCategoryGameList();
 }
 function renderCategoryGameList() {
   const visible = visibleCategoryGames();
@@ -1076,27 +1104,30 @@ function renderCategoryGameList() {
     const label = element('label', 'category-game-row' + (game.id === categoryFocusGameId ? ' category-game-focus' : ''));
     const input = document.createElement('input');
     input.type = 'checkbox'; input.checked = categoryDraft.has(game.id); input.disabled = !profileReady || profilePending;
-    input.setAttribute('aria-label', `Добавить в категорию: ${game.name}`);
+    input.setAttribute('aria-label', tr(`Добавить в категорию: ${game.name}`, `Add to category: ${game.name}`));
     input.id = `category-game-${game.id}`;
     input.addEventListener('change', () => {
       if (input.checked) categoryDraft.add(game.id); else categoryDraft.delete(game.id);
-      renderCategoryGameList();
-      document.getElementById(`category-game-${game.id}`)?.focus({ preventScroll: true });
+      const target = collectionFocusAfterToggle(visible, game.id, categoryDraft, categoryGameFilter);
+      // In the full list a check only changes the draft and summary, not hundreds
+      // of DOM rows. Filtered rows may disappear, so restore the next valid target.
+      if (categoryGameFilter === 'all') renderCategoryDraftSummary(visible);
+      else {
+        const scroll = $('category-game-list').scrollTop;
+        renderCategoryGameList(); $('category-game-list').scrollTop = scroll;
+      }
+      if (target) document.getElementById(`category-game-${target}`)?.focus();
+      else $('category-search').focus({ preventScroll: true });
     });
     const copy = element('span', 'category-game-copy');
+    copy.title = game.name;
     copy.append(element('strong', '', game.name), element('small', '', game.installed === false ? 'Не установлена' : 'Установлена'));
     label.append(input, copy);
     fragment.append(label);
   }
   if (!visible.length) fragment.append(element('p', 'category-empty', 'По этому фильтру игр не найдено.'));
   $('category-game-list').replaceChildren(fragment);
-  const changed = [...new Set([...categoryDraft, ...categoryDraftOriginal])].filter(id => categoryDraft.has(id) !== categoryDraftOriginal.has(id)).length;
-  $('category-draft-count').textContent = changed ? `Изменений: ${changed} · в подборке: ${categoryDraft.size}` : `В подборке: ${categoryDraft.size} · изменений нет`;
-  $('category-save').disabled = !changed || !profileReady || profilePending;
-  $('category-cancel').disabled = !changed || profilePending;
-  $('category-draw').disabled = !categorySelectedId || !!changed || !profileReady || profilePending || scanning;
-  $('category-add-visible').disabled = !visible.some(game => !categoryDraft.has(game.id)) || profilePending;
-  $('category-remove-visible').disabled = !visible.some(game => categoryDraft.has(game.id)) || profilePending;
+  renderCategoryDraftSummary(visible);
 }
 function renderCategoriesDialog() {
   if (profile.categories.length && !profile.categories.some(item => item.id === categorySelectedId)) {
@@ -1111,16 +1142,18 @@ function renderCategoriesDialog() {
     categoryDraftOriginal = new Set(categoryDraft); categoryDraftRevision = profile.revision;
   }
   $('category-editor-title').textContent = profile.categories.find(category => category.id === categorySelectedId)?.name ?? 'Игры в подборке';
+  $('category-editor-title').title = $('category-editor-title').textContent;
   $('category-draw').disabled = !categorySelectedId || categoryDraftDirty() || !profileReady || profilePending || scanning;
   const picker = document.createDocumentFragment();
+  const counts = collectionCounts(games, profile.assignments);
   for (const category of profile.categories) {
-    const count = games.filter(game => (profile.assignments[game.id] ?? []).includes(category.id)).length;
+    const count = counts.get(category.id) ?? 0;
     const button = element('button', `category-picker-button category-${category.color}`);
     button.type = 'button'; button.disabled = !profileReady || profilePending;
     button.classList.toggle('active', category.id === categorySelectedId);
     button.setAttribute('aria-pressed', String(category.id === categorySelectedId));
     button.append(element('span', '', category.name), element('small', '', String(count)));
-    button.addEventListener('click', () => selectCategory(category.id));
+    button.addEventListener('click', () => { if (selectCategory(category.id)) $('category-search').focus({ preventScroll: true }); });
     picker.append(button);
   }
   if (!profile.categories.length) picker.append(element('p', 'category-empty', 'Категорий пока нет. Создай первую подборку ниже.'));
@@ -1158,6 +1191,8 @@ function renderCategoriesDialog() {
 function openCategories(gameId = null) {
   if (categoryDraftDirty()) { resolveCategoryDraft(() => openCategories(gameId)); return; }
   categoryFocusGameId = gameId;
+  // Opening a particular game must not hide it behind an earlier search/filter.
+  if (gameId) resetCategoryFilters();
   const assigned = gameId ? profile.assignments[gameId] ?? [] : [];
   selectCategory(assigned.find(id => profile.categories.some(item => item.id === id)) ?? categorySelectedId ?? profile.categories[0]?.id ?? null, { force: true });
   workspace.navigate('categories');
@@ -1387,6 +1422,11 @@ $('backup-file').addEventListener('change', async event => {
 $('close-dialog').addEventListener('click', () => $('libraries-dialog').close());
 $('libraries-dialog').addEventListener('click', event => { if (event.target === $('libraries-dialog')) { const rect = $('libraries-dialog').getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) $('libraries-dialog').close(); } });
 $('category-search').addEventListener('input', renderCategoryGameList);
+$('category-clear-search').addEventListener('click', () => { $('category-search').value = ''; renderCategoryGameList(); $('category-search').focus(); });
+$('category-search').addEventListener('keydown', event => {
+  if (event.key === 'Escape' && event.target.value) { event.preventDefault(); event.stopPropagation(); event.target.value = ''; renderCategoryGameList(); }
+});
+$('category-reset-filters').addEventListener('click', () => { resetCategoryFilters(); $('category-search').focus(); });
 for (const button of document.querySelectorAll('.category-game-filter')) button.addEventListener('click', () => {
   categoryGameFilter = button.dataset.categoryFilter;
   for (const item of document.querySelectorAll('.category-game-filter')) { const active = item === button; item.classList.toggle('active', active); item.setAttribute('aria-pressed', String(active)); }
@@ -1425,8 +1465,12 @@ document.addEventListener('keydown', event => {
     return;
   }
   if ((event.ctrlKey || event.metaKey) && !event.altKey && (event.code === 'KeyF' || event.key.toLowerCase() === 'f')) {
+    if (workspace.current === 'categories') { event.preventDefault(); $('category-search').focus(); return; }
     if (workspace.navigate('library', { focus: false })) { event.preventDefault(); $('search-input').focus(); }
     return;
+  }
+  if (workspace.current === 'categories' && (event.ctrlKey || event.metaKey) && !event.altKey && event.code === 'KeyS') {
+    event.preventDefault(); saveCategoryDraft(); return;
   }
   if (workspace.current !== 'choose') return;
   if (event.code !== 'Space' || event.repeat || event.ctrlKey || event.altKey || event.metaKey) return;

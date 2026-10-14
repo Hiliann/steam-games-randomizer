@@ -241,7 +241,10 @@ select { min-height: 40px; border-radius: 8px; color: var(--text); background: v
 .category-workspace { min-width: 0; }
 .category-bulk-editor { padding: 20px; margin: 0; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); }
 .category-editor-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
-.category-editor-heading h3 { font-size: 17px; font-weight: 600; }
+.category-editor-heading h3 { min-width: 0; flex: 1; font-size: 17px; font-weight: 600; overflow-wrap: anywhere; }
+.category-editor-heading .button { flex-shrink: 0; }
+.category-results-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 12px; color: var(--muted); font-size: var(--type-caption); }
+.category-game-row:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -2px; }
 .category-editor-heading .button { min-height: 36px; font-size: 10px; }
 .category-editor-toolbar { flex-wrap: wrap; gap: 12px; }
 .category-search { flex: 1 1 220px; min-width: 0; }
@@ -366,6 +369,7 @@ dialog::backdrop { background: #0009; backdrop-filter: blur(4px); }
   .category-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .category-sidebar { padding: 14px; }
   .category-bulk-editor { padding: 14px; }
+  .category-search { flex: 0 0 auto; height: 44px; min-height: 44px; }
   .category-game-list { max-height: 370px; }
   .category-save-bar > div { display: flex; gap: 8px; }
   .connection-banner { flex-direction: column; align-items: stretch; }

@@ -42,7 +42,7 @@
         <button id="settings-button" class="nav-item" data-page="settings"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg><span>Настройки</span></button>
       </nav>
       <div class="sidebar-library"><strong id="installed-count">-</strong><span>игр установлено</span><small id="library-count">Ищем библиотеки Steam…</small></div>
-      <div class="sidebar-bottom"><button id="libraries-button" class="nav-item" aria-label="Папки Steam"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg><span>Папки Steam</span></button><span class="connection-pill" id="connection-status" role="status">Подключаемся…</span><small>Play Next <span id="app-version">2.2.0</span></small></div>
+      <div class="sidebar-bottom"><button id="libraries-button" class="nav-item" aria-label="Папки Steam"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg><span>Папки Steam</span></button><span class="connection-pill" id="connection-status" role="status">Подключаемся…</span><small>Play Next <span id="app-version">2.3.0</span></small></div>
     </aside>
 
     <main>
@@ -145,7 +145,7 @@
       </div>
       <p id="app-settings-status" class="dialog-intro display-status" role="status">Загружаем настройки обновлений…</p>
       <button id="retry-app-settings" class="button button-quiet" hidden>Повторить загрузку</button>
-      <p id="update-status" class="dialog-intro display-status" role="status">Текущая версия: 2.2.0</p>
+      <p id="update-status" class="dialog-intro display-status" role="status">Текущая версия: 2.3.0</p>
       <div class="settings-actions"><button id="check-update" class="button button-quiet">Проверить сейчас</button><button id="install-update" class="button button-primary" hidden>Установить сейчас</button><a id="download-update" class="button button-quiet" target="_blank" rel="noreferrer noopener" hidden>Открыть страницу релиза</a></div>
       <p class="privacy-note">Обновления проверяются при запуске. Если автообновление включено, новая версия установится во время запуска программы. Иначе о ней сообщит отдельное окно, пока ты не отключишь его. Обновление всегда можно запустить вручную здесь. Архив и контрольная сумма загружаются с GitHub, а папка data не заменяется.</p>
     </section>
@@ -168,10 +168,11 @@
     <div class="categories-layout"><aside class="category-sidebar"><h3>Мои подборки</h3><div id="category-picker" class="category-picker" role="group" aria-label="Выбор категории"></div><form id="add-category-form" class="add-category-form"><label for="category-name">Новая категория</label><div class="path-input-row"><input id="category-name" maxlength="32" placeholder="Название подборки" required autocomplete="off"><button class="button button-primary" type="submit" aria-label="Создать категорию">+</button></div></form></aside><div class="category-workspace">
     <section id="category-bulk-editor" class="category-bulk-editor" hidden aria-label="Игры в категории">
       <div class="category-editor-heading"><h3 id="category-editor-title">Игры в подборке</h3><button id="category-draw" class="button button-quiet" type="button"><svg class="icon" aria-hidden="true"><use href="#i-shuffle"/></svg>Выбрать из подборки</button></div>
-      <div class="category-editor-toolbar"><label class="search-box category-search"><svg class="icon"><use href="#i-search"/></svg><input id="category-search" type="search" placeholder="Найти игру…" aria-label="Поиск игры для категории" autocomplete="off"></label><div class="category-game-filters" role="group" aria-label="Фильтр игр"><button type="button" class="category-game-filter active" data-category-filter="all" aria-pressed="true">Все</button><button type="button" class="category-game-filter" data-category-filter="added" aria-pressed="false">Добавлены</button><button type="button" class="category-game-filter" data-category-filter="missing" aria-pressed="false">Не добавлены</button></div></div>
+      <div class="category-editor-toolbar"><div class="search-box category-search"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input id="category-search" type="search" placeholder="Найти игру…" aria-label="Поиск игры для категории" autocomplete="off"><button id="category-clear-search" class="search-clear" type="button" aria-label="Очистить поиск" title="Очистить поиск" hidden><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div><div class="category-game-filters" role="group" aria-label="Фильтр игр"><button type="button" class="category-game-filter active" data-category-filter="all" aria-pressed="true">Все</button><button type="button" class="category-game-filter" data-category-filter="added" aria-pressed="false">Добавлены</button><button type="button" class="category-game-filter" data-category-filter="missing" aria-pressed="false">Не добавлены</button></div></div>
+      <div class="category-results-bar"><p id="category-visible-count" role="status"></p><button id="category-reset-filters" type="button" class="text-button" hidden>Сбросить фильтры</button></div>
       <div class="category-bulk-actions"><button id="category-add-visible" type="button" class="text-button">Добавить найденные</button><button id="category-remove-visible" type="button" class="text-button">Убрать найденные</button></div>
-      <div id="category-game-list" class="category-game-list" aria-live="polite"></div>
-      <div class="category-save-bar"><span id="category-draft-count">Нет изменений</span><div><button id="category-cancel" type="button" class="button button-quiet">Отменить</button><button id="category-save" type="button" class="button button-primary">Сохранить</button></div></div>
+      <div id="category-game-list" class="category-game-list"></div>
+      <div class="category-save-bar"><span id="category-draft-count" role="status">Нет изменений</span><div><button id="category-cancel" type="button" class="button button-quiet">Отменить</button><button id="category-save" type="button" class="button button-primary">Сохранить</button></div></div>
     </section>
     <details class="category-management"><summary>Переименовать или удалить категории</summary><div id="category-list" class="category-list" aria-live="polite"></div></details>
     </div></div>

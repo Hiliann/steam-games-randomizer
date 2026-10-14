@@ -21,7 +21,7 @@ import { desktopOwnerId, watchDesktopOwner } from './lib/desktop-owner.mjs';
 import { attachSessionFrames } from './lib/session-frames.mjs';
 
 const base = path.dirname(fileURLToPath(import.meta.url));
-export const APP_VERSION = '2.2.0';
+export const APP_VERSION = '2.3.0';
 export function getInstanceId(directory = base) {
   const resolved = path.resolve(directory);
   return createHash('sha256').update(process.platform === 'win32' ? resolved.toLowerCase() : resolved).digest('hex').slice(0, 24);
@@ -30,6 +30,7 @@ const staticFiles = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/workspace.js', ['workspace.js', 'text/javascript; charset=utf-8']],
+  ['/collections.js', ['collections.js', 'text/javascript; charset=utf-8']],
   ['/toast.js', ['toast.js', 'text/javascript; charset=utf-8']],
   ['/game-details.js', ['game-details.js', 'text/javascript; charset=utf-8']],
   ['/draw-animation.js', ['draw-animation.js', 'text/javascript; charset=utf-8']],

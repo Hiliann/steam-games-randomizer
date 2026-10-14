@@ -1,5 +1,27 @@
 # Изменения
 
+## 2.3.0
+
+### Русский
+
+- Редактор категорий показывает, сколько игр найдено, сколько будет добавлено и удалено. Массовые действия показывают число затрагиваемых игр.
+- Добавлены очистка поиска, очистка по Escape и сброс всех фильтров подборки. Открытие конкретной игры сбрасывает старые фильтры, которые могли её скрывать.
+- При работе с клавиатуры фокус переходит к следующей игре, если отмеченная игра исчезла из фильтра. В полном списке отметка больше не перестраивает все строки.
+- Ctrl+F ищет внутри текущей подборки, Ctrl+S сохраняет её без перехода на другой экран. Сохранение и защита несохранённых изменений остаются прежними.
+- Длинные названия подборок переносятся в заголовке. Исправлено растяжение поля поиска в узком окне.
+- Подсчёт игр во всех категориях выполняется одним проходом. Убрано озвучивание всего списка при каждом изменении; отдельно объявляются результаты и состояние черновика.
+- Подготовлена история сохранённых релизов без изменения оригинальных архивов и существующих тегов. Формат пользовательских данных не меняется.
+
+### English
+
+- Collection editing shows visible game counts and separate addition/removal totals. Bulk actions indicate how many games they affect.
+- Added search clearing, Escape to clear search and a collection filter reset. Opening a specific game clears older filters that could hide it.
+- Keyboard focus moves to a surviving game when a checked row disappears from a membership filter. Unfiltered edits no longer rebuild every row.
+- Ctrl+F searches the current collection and Ctrl+S saves it without navigating away. Existing save and unsaved-draft protections remain intact.
+- Long collection headings wrap safely. Fixed stretched search boxes in narrow windows.
+- Collection counts use a single pass. Screen readers receive result and draft updates rather than announcements of the entire game list.
+- Prepared original release history without modifying archived builds or existing tags. Saved user data formats remain unchanged.
+
 ## 2.2.0
 
 ### Русский

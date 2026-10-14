@@ -5,6 +5,7 @@ const attributeSources = new WeakMap();
 const listeners = new Set();
 
 const exact = new Map([
+  ['Сохраняем изменения…', 'Saving changes…'], ['Подборка сохранена', 'Collection saved'],
   ['ВЫБИРАЕМ ИГРУ', 'PICKING A GAME'], ['Без категории', 'Uncategorized'],
   ['Параметры выбора', 'Pick options'],
   ['Доступна для установки', 'Available to install'], ['Перед запуском нужно обновление', 'Update required before launch'], ['Готова к запуску', 'Ready to play'],

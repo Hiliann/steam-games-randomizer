@@ -4,6 +4,8 @@
 
 **[Project website](https://hiliann.github.io/steam-games-randomizer/en/) · [Download for Windows](https://github.com/Hiliann/steam-games-randomizer/releases/latest) · [Report a problem](https://github.com/Hiliann/steam-games-randomizer/issues)**
 
+[Release history and checksums](https://github.com/Hiliann/steam-games-randomizer/blob/main/RELEASE_HISTORY.md) · [Development plan](PLAN.md)
+
 Play Next is a Windows application with its own desktop window that helps you pick a random game from your Steam library. It finds installed games automatically. An optional checkbox also includes uninstalled games from the active account's local license cache.
 
 Spend less time browsing your library and more time playing. Exclude games you do not feel like playing, choose without repeats, and launch the selected game in Steam when you are ready.
@@ -12,7 +14,7 @@ The website includes a fictional demo, project information and downloads. It can
 
 ## Run on Windows
 
-1. Download **PlayNext-2.2.0-win-x64.zip** from [Releases](https://github.com/Hiliann/steam-games-randomizer/releases/latest). Do not use **Code > Download ZIP**: that archive contains source code without the bundled runtime.
+1. Download **PlayNext-2.3.0-win-x64.zip** from [Releases](https://github.com/Hiliann/steam-games-randomizer/releases/latest). Do not use **Code > Download ZIP**: that archive contains source code without the bundled runtime.
 2. Extract the entire archive to a writable folder. Do not run the program from inside the ZIP.
 3. Open **Play Next.exe**. The program opens in its own desktop window, without a browser tab. Its local address is chosen automatically.
 4. Press **Pick a game**, then **Play on Steam**. An uninstalled game instead offers **Install on Steam**. The local program passes the command to Steam without leaving a technical browser tab open.
@@ -53,7 +55,7 @@ Turn size information off in **«Настройки»** (Settings) to hide it an
 
 ## Saved settings and updates
 
-Exclusions, categories, category assignments, pick history, the current round, the selected draw mode, display settings and cached online sizes are stored in the `data` folder next to the program. **Keep this folder when updating or moving your own copy.** Close the last Play Next tab before copying files.
+Exclusions, categories, category assignments, pick history, the current round, the selected draw mode, display settings and cached online sizes are stored in the `data` folder next to the program. **Keep this folder when updating or moving your own copy.** Close the Play Next window before copying files.
 
 The Windows section in **«Настройки»** (Settings) creates a shortcut for the current program folder and can enable background startup without opening the browser at sign-in. Play Next removes only shortcuts that belong to the current copy.
 

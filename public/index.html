@@ -35,7 +35,7 @@
       <section class="page-intro" aria-labelledby="page-title"><div><p class="eyebrow">МЕНЬШЕ ВЫБОРА. БОЛЬШЕ ИГРЫ.</p><h1 id="page-title">Во что играем сегодня<span>?</span></h1></div><div class="installed-summary"><strong id="installed-count">—</strong><span>игр установлено<br><small id="library-count">Ищем библиотеки Steam…</small></span></div></section>
 
       <div id="error-banner" class="banner" role="alert" hidden></div>
-      <div id="storage-banner" class="banner" role="status" hidden>Браузер запретил сохранение настроек. Выбор работает, но после закрытия страницы история и исключения могут сброситься.</div>
+      <div id="storage-banner" class="banner" role="status" hidden>Браузер запретил сохранение настроек: история и настройки страницы могут сброситься. Исключения сохраняются отдельно в папке приложения.</div>
 
       <section class="selection-layout" aria-label="Выбор игры">
         <article id="spotlight" class="spotlight">
@@ -60,7 +60,7 @@
         <div class="library-help"><p>Убери галочку под игрой, чтобы она не участвовала в розыгрыше.</p><span id="search-note" hidden>Поиск не меняет список для розыгрыша</span></div>
         <div id="game-grid" class="game-grid" aria-busy="true"></div>
         <div id="empty-state" class="empty-state" hidden><svg class="icon"><use href="#i-library"/></svg><h3 id="empty-title">Игры пока не найдены</h3><p id="empty-description">Добавь папку Steam или SteamLibrary в настройках библиотек.</p><button id="empty-action" class="button button-quiet">Указать папку</button></div>
-        <div class="library-bottom"><span id="visible-count">Читаем данные Steam…</span><span>Файлы игр остаются без изменений</span></div>
+        <div class="library-bottom"><span id="visible-count">Читаем данные Steam…</span><span id="exclusions-status" role="status">Загружаем исключения…</span></div>
       </section>
     </main>
     <footer><span>playnext <span class="footer-divider">/</span> Сделай паузу. Запусти игру.</span><span>Без аккаунтов · Без облака · Без лишнего</span></footer>

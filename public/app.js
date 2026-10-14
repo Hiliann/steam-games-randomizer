@@ -1,4 +1,5 @@
 import { STORAGE_KEY, cleanState, gamesInScope, gameAction, eligibleGames, drawGame } from './randomizer.js';
+import { createExclusionsClient } from './exclusions.js';
 
 const $ = id => document.getElementById(id);
 // Bypass covers cached by older versions that did not resolve nested Steam assets.
@@ -11,6 +12,9 @@ let snapshot = null;
 let filter = 'included';
 let busy = false;
 let scanning = false;
+let exclusionsReady = false;
+let savingExclusion = false;
+const exclusionsClient = createExclusionsClient();
 let previewId = state.current;
 let toastTimer;
 const scopedGames = () => gamesInScope(games, state);
@@ -18,6 +22,12 @@ const scopedGames = () => gamesInScope(games, state);
 function save() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
   catch { $('storage-banner').hidden = false; }
+}
+async function loadExclusions() {
+  exclusionsReady = false;
+  state.excluded = await exclusionsClient.load(state.excluded);
+  exclusionsReady = true;
+  save();
 }
 function toast(message) {
   clearTimeout(toastTimer);
@@ -72,13 +82,14 @@ function renderCounts() {
   $('all-count').textContent = scoped.length;
   $('excluded-count').textContent = scoped.length - eligible.length;
   $('include-uninstalled').checked = state.includeUninstalled;
-  $('include-uninstalled').disabled = busy || scanning;
+  $('include-uninstalled').disabled = busy || scanning || savingExclusion;
   $('library-kicker').textContent = state.includeUninstalled ? 'НА КОМПЬЮТЕРЕ И В ТВОЁМ STEAM' : 'ВСЁ УЖЕ НА ТВОЁМ КОМПЬЮТЕРЕ';
   renderScopeNote();
   $('no-repeats').checked = state.noRepeats;
   $('no-repeats').disabled = busy;
-  $('draw-button').disabled = busy || scanning || !eligible.length;
-  $('refresh-button').disabled = busy || scanning;
+  $('draw-button').disabled = busy || scanning || savingExclusion || !exclusionsReady || !eligible.length;
+  $('refresh-button').disabled = busy || scanning || savingExclusion;
+  $('exclusions-status').textContent = savingExclusion ? 'Сохраняем исключения…' : exclusionsReady ? 'Исключения сохранены в приложении' : 'Исключения ещё не загружены';
   $('reset-cycle').disabled = busy || !state.seen.length;
   $('cycle-label').textContent = state.noRepeats ? `Выпало ${played} из ${eligible.length} в этом круге` : 'Повторы разрешены';
   $('cycle-progress').max = Math.max(1, eligible.length);
@@ -112,6 +123,7 @@ function renderHero() {
   } else { image.removeAttribute('src'); image.hidden = true; $('hero-disk').hidden = true; }
   $('play-button').hidden = !selected;
   $('exclude-current').hidden = !selected || state.excluded.includes(selected.id);
+  $('exclude-current').disabled = busy || scanning || savingExclusion || !exclusionsReady;
   if (selected) {
     $('spotlight-tag').textContent = 'СЕГОДНЯ В ИГРЕ';
     $('hero-kicker').textContent = state.excluded.includes(selected.id) ? 'ИСКЛЮЧЕНА ИЗ БУДУЩИХ РОЗЫГРЫШЕЙ' : selected.installed === false ? 'СЛУЧАЙ ВЫБРАЛ. НАЧНЁМ С УСТАНОВКИ.' : 'СЛУЧАЙ ВЫБРАЛ. ОСТАЛОСЬ НАЖАТЬ PLAY.';
@@ -133,13 +145,30 @@ function renderHero() {
 $('hero-image').addEventListener('load', () => { $('hero-image').hidden = false; });
 $('hero-image').addEventListener('error', () => { $('hero-image').hidden = true; $('cover-caption').textContent = ''; });
 
-function setExcluded(id, excluded) {
-  if (busy) return;
+async function setExcluded(id, excluded) {
+  if (busy || scanning || savingExclusion || !exclusionsReady) return false;
+  const previous = state.excluded;
   const ids = new Set(state.excluded);
   if (excluded) ids.add(id); else ids.delete(id);
   state.excluded = [...ids];
-  save();
+  savingExclusion = true;
   renderCounts(); renderGrid(); renderHero();
+  try {
+    state.excluded = await exclusionsClient.set(id, excluded);
+    save();
+    $('error-banner').hidden = true;
+    return true;
+  } catch (error) {
+    state.excluded = previous;
+    exclusionsReady = false; // The response may have been lost after a successful write.
+    save();
+    $('error-banner').textContent = `Не удалось подтвердить сохранение исключения. ${error instanceof TypeError ? 'Запусти приложение, если оно закрыто.' : error.message} Нажми «Обновить список», чтобы перечитать сохранённые данные.`;
+    $('error-banner').hidden = false;
+    return false;
+  } finally {
+    savingExclusion = false;
+    renderCounts(); renderGrid(); renderHero();
+  }
 }
 function renderGrid() {
   const term = $('search-input').value.trim().toLocaleLowerCase('ru');
@@ -160,11 +189,11 @@ function renderGrid() {
     meta.append(element('span', '', game.installed === false ? 'В библиотеке' : formatSize(game.size)), element('span', '', game.installed === false ? 'Не установлена' : game.updateRequired ? 'Обновление' : 'Установлена'));
     const toggle = element('label', 'game-toggle');
     const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox'; checkbox.checked = !isExcluded; checkbox.disabled = busy;
+    checkbox.type = 'checkbox'; checkbox.checked = !isExcluded; checkbox.disabled = busy || scanning || savingExclusion || !exclusionsReady;
     checkbox.setAttribute('aria-label', `Участвует в розыгрыше: ${game.name}`);
-    checkbox.addEventListener('change', () => {
+    checkbox.addEventListener('change', async () => {
       const nextId = visible[visible.indexOf(game) + 1]?.id ?? visible[visible.indexOf(game) - 1]?.id;
-      setExcluded(game.id, !checkbox.checked);
+      await setExcluded(game.id, !checkbox.checked);
       // Restore a useful keyboard target after rebuilding the filtered list.
       const target = document.getElementById(`toggle-${game.id}`) ?? document.getElementById(`toggle-${nextId}`);
       target?.focus({ preventScroll: true });
@@ -213,9 +242,20 @@ function setFilter(value) {
 }
 
 async function draw() {
-  if (busy || scanning || !eligibleGames(games, state).length) return;
+  if (busy || scanning || savingExclusion || !exclusionsReady || !eligibleGames(games, state).length) return;
   busy = true;
   renderCounts(); renderGrid(); renderHistory();
+  try {
+    // Another browser/port may have changed the shared exclusions since our scan.
+    await loadExclusions();
+    if (!eligibleGames(games, state).length) { busy = false; renderCounts(); renderGrid(); renderHero(); renderHistory(); return; }
+  } catch (error) {
+    busy = false;
+    $('error-banner').textContent = 'Не удалось загрузить сохранённые исключения. Запусти приложение и нажми «Обновить список».';
+    $('error-banner').hidden = false;
+    renderCounts(); renderGrid(); renderHero(); renderHistory();
+    return;
+  }
   $('play-button').hidden = true; $('exclude-current').hidden = true;
   $('spotlight').classList.add('is-drawing');
   $('hero-kicker').textContent = 'ПЕРЕМЕШИВАЕМ ТВОЮ БИБЛИОТЕКУ';
@@ -281,7 +321,7 @@ function renderLibraries() {
 }
 
 async function scan({ addedPath } = {}) {
-  if (scanning || busy) return false;
+  if (scanning || busy || savingExclusion) return false;
   scanning = true;
   $('error-banner').hidden = true; $('path-error').hidden = true;
   $('refresh-button').classList.add('is-refreshing');
@@ -290,6 +330,7 @@ async function scan({ addedPath } = {}) {
   renderCounts();
   let success = false;
   try {
+    await loadExclusions();
     const paths = addedPath ? [...state.customPaths, addedPath] : state.customPaths;
     const response = await fetch('/api/scan', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Randomizer': '1' }, body: JSON.stringify({ paths, includeUninstalled: state.includeUninstalled }) });
     const data = await response.json();
@@ -318,7 +359,7 @@ async function scan({ addedPath } = {}) {
 $('draw-button').addEventListener('click', draw);
 $('refresh-button').addEventListener('click', async () => { if (await scan()) toast('Список игр обновлён'); });
 $('include-uninstalled').addEventListener('change', async event => {
-  if (scanning || busy) return;
+  if (scanning || busy || savingExclusion) return;
   const previous = state.includeUninstalled;
   state.includeUninstalled = event.target.checked;
   if (await scan()) save();
@@ -329,7 +370,7 @@ for (const tab of document.querySelectorAll('.filter-tab')) tab.addEventListener
 $('no-repeats').addEventListener('change', event => { state.noRepeats = event.target.checked; save(); renderCounts(); });
 $('reset-cycle').addEventListener('click', () => { if (!busy) { state.seen = []; save(); renderCounts(); toast('Новый круг: все участвующие игры снова доступны'); } });
 $('clear-history').addEventListener('click', () => { if (!busy) { state.history = []; save(); renderHistory(); toast('История очищена. Текущий круг сохранён.'); } });
-$('exclude-current').addEventListener('click', () => { if (previewId && !busy) { setExcluded(previewId, true); toast('Игра больше не участвует. Вернуть её можно во вкладке «Исключены».'); } });
+$('exclude-current').addEventListener('click', async () => { if (previewId && await setExcluded(previewId, true)) toast('Исключение сохранено. Вернуть игру можно во вкладке «Исключены».'); });
 $('play-button').addEventListener('click', () => toast('Подтверди открытие Steam, если браузер попросит.'));
 $('libraries-button').addEventListener('click', () => { renderLibraries(); $('libraries-dialog').showModal(); });
 $('close-dialog').addEventListener('click', () => $('libraries-dialog').close());
@@ -348,11 +389,13 @@ document.addEventListener('keydown', event => {
   event.preventDefault(); draw();
 });
 window.addEventListener('storage', event => {
-  if (event.key !== STORAGE_KEY || busy || scanning) return;
+  if (event.key !== STORAGE_KEY || busy || scanning || savingExclusion) return;
   try {
     const previous = state.includeUninstalled;
-    state = cleanState(JSON.parse(event.newValue ?? '{}')); previewId = state.current;
-    if (previous !== state.includeUninstalled) scan();
+    const next = cleanState(JSON.parse(event.newValue ?? '{}'));
+    const exclusionsChanged = JSON.stringify(next.excluded) !== JSON.stringify(state.excluded);
+    state = { ...next, excluded: state.excluded }; previewId = state.current;
+    if (previous !== state.includeUninstalled || exclusionsChanged) scan();
     else { renderCounts(); renderHero(); renderHistory(); renderGrid(); renderLibraries(); }
   }
   catch { /* Ignore malformed updates from another browser tab. */ }

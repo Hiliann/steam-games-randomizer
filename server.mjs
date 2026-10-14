@@ -4,9 +4,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { scanSteam, normalizeLibrary, findArtwork } from './lib/steam.mjs';
+import { createExclusionsStore, MAX_EXCLUSIONS_BYTES } from './lib/exclusions.mjs';
 
 const base = path.dirname(fileURLToPath(import.meta.url));
-export const APP_VERSION = '1.2.0';
+export const APP_VERSION = '1.2.1';
 export function getInstanceId(directory = base) {
   const resolved = path.resolve(directory);
   return createHash('sha256').update(process.platform === 'win32' ? resolved.toLowerCase() : resolved).digest('hex').slice(0, 24);
@@ -15,6 +16,7 @@ const staticFiles = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/randomizer.js', ['randomizer.js', 'text/javascript; charset=utf-8']],
+  ['/exclusions.js', ['exclusions.js', 'text/javascript; charset=utf-8']],
   ['/style.css', ['style.css', 'text/css; charset=utf-8']],
   ['/responsive.css', ['responsive.css', 'text/css; charset=utf-8']],
   ['/icon.svg', ['icon.svg', 'image/svg+xml']],
@@ -25,20 +27,21 @@ function json(response, status, body) {
   response.end(JSON.stringify(body));
 }
 
-async function requestJson(request) {
+async function requestJson(request, limit = 32768) {
   if (!request.headers['content-type']?.startsWith('application/json')) throw Object.assign(new Error('Ожидается JSON.'), { status: 415 });
   const chunks = [];
   let bytes = 0;
   for await (const chunk of request) {
     bytes += chunk.length;
-    if (bytes > 32768) throw Object.assign(new Error('Слишком большой запрос.'), { status: 413 });
+    if (bytes > limit) throw Object.assign(new Error('Слишком большой запрос.'), { status: 413 });
     chunks.push(chunk);
   }
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); }
   catch { throw Object.assign(new Error('Некорректный JSON.'), { status: 400 }); }
 }
 
-export function createApp({ scan = scanSteam } = {}) {
+export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, 'data/exclusions.json') } = {}) {
+  const exclusions = createExclusionsStore(exclusionsFile);
   let snapshot;
   let scanQueue = Promise.resolve();
   const artworkCache = new Map();
@@ -68,6 +71,11 @@ export function createApp({ scan = scanSteam } = {}) {
       const url = new URL(request.url, `http://${host}`);
       if (request.headers['sec-fetch-site'] === 'cross-site' && (url.pathname.startsWith('/api/') || url.pathname.startsWith('/art/'))) return json(response, 403, { error: 'Запрос с другого сайта запрещён.' });
       if (url.pathname === '/api/health' && request.method === 'GET') return json(response, 200, { app: 'steam-games-randomizer', version: APP_VERSION, instanceId: getInstanceId() });
+      if (url.pathname === '/api/exclusions' && request.method === 'GET') return json(response, 200, await exclusions.read());
+      if (url.pathname === '/api/exclusions' && request.method === 'POST') {
+        if (request.headers['x-randomizer'] !== '1') return json(response, 403, { error: 'Отсутствует заголовок приложения.' });
+        return json(response, 200, await exclusions.change(await requestJson(request, MAX_EXCLUSIONS_BYTES)));
+      }
       if (url.pathname === '/api/games' && request.method === 'GET') return json(response, 200, publicSnapshot(snapshot ?? await refresh([])));
       if (url.pathname === '/api/scan' && request.method === 'POST') {
         if (request.headers['x-randomizer'] !== '1') return json(response, 403, { error: 'Отсутствует заголовок приложения.' });

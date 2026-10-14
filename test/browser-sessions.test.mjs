@@ -90,3 +90,25 @@ test('browser client opens one local socket and reconnects after a restored page
   disconnect();
   assert.equal(sockets[1].closed, true);
 });
+
+test('an unexpectedly disconnected client retries, reports recovery and cancels retries on close', () => {
+  const clock = fakeClock(); const sockets = []; const states = []; const listeners = {};
+  class Socket { constructor() { sockets.push(this); } close() { this.onclose?.(); } }
+  const disconnect = connectBrowserSession({ windowObject: { location: { protocol: 'http:', host: '127.0.0.1:3210' }, addEventListener: (name, cb) => { listeners[name] = cb; } }, WebSocketClass: Socket, setTimer: clock.setTimer, clearTimer: clock.clearTimer, onState: (...args) => states.push(args) });
+  sockets[0].onopen(); sockets[0].onclose(); clock.advance(300);
+  assert.equal(sockets.length, 2);
+  sockets[1].onopen();
+  assert.deepEqual(states.at(-1), ['connected', true]);
+  sockets[0].onclose(); clock.advance(10000);
+  assert.equal(sockets.length, 2, 'stale sockets cannot trigger a second reconnect');
+  sockets[1].onclose(); disconnect(); clock.advance(10000);
+  assert.equal(sockets.length, 2, 'closing cancels pending recovery');
+});
+
+test('socket construction errors recover with bounded delays without throwing into the UI', () => {
+  const clock = fakeClock(); let calls = 0;
+  class Socket { constructor() { calls++; throw new Error('temporarily unavailable'); } }
+  const disconnect = connectBrowserSession({ windowObject: { location: { protocol: 'http:', host: 'localhost:3210' }, addEventListener() {} }, WebSocketClass: Socket, setTimer: clock.setTimer, clearTimer: clock.clearTimer });
+  clock.advance(10000); assert.ok(calls >= 4 && calls < 12);
+  disconnect(); const previous = calls; clock.advance(10000); assert.equal(calls, previous);
+});

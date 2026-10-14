@@ -1,4 +1,4 @@
-param([switch]$Stop, [switch]$NoBrowser, [int]$Port = 0)
+param([switch]$Stop, [switch]$NoBrowser, [int]$Port = 0, [int]$DesktopOwner = 0)
 $ErrorActionPreference = 'Stop'
 $appDirectory = [IO.Path]::GetFullPath($PSScriptRoot)
 $serverPath = Join-Path $appDirectory 'server.mjs'
@@ -7,6 +7,7 @@ $pidPath = Join-Path $appDirectory '.server-process.json'
 $packagedLauncher = Join-Path $appDirectory 'scripts\PlayNextLauncher.exe'
 $launcherPath = Join-Path $appDirectory 'Play Next.exe'
 $originalPort = $env:PORT
+$originalOwner = $env:PLAYNEXT_DESKTOP_OWNER
 $preferredPort = if ($Port) { $Port } elseif ($env:PORT) { [int]$env:PORT } else { 3210 }
 $sha = [Security.Cryptography.SHA256]::Create()
 try { $hashBytes = $sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($appDirectory.ToLowerInvariant())) }
@@ -50,11 +51,12 @@ function Show-App([int]$ReadyPort) {
     $url = "http://127.0.0.1:$ReadyPort"
     if (-not $NoBrowser) { Start-Process -FilePath $url }
     Write-Host "Play Next is ready: $url"
-    Write-Host 'Play Next stops automatically after its last browser tab closes.'
+    Write-Host 'Close the Play Next window to exit the desktop application.'
 }
 
 try {
     Sync-Launcher
+    if ($DesktopOwner -lt 0) { throw 'Invalid desktop owner.' }
     if ($preferredPort -lt 1024 -or $preferredPort -gt 65535) { throw 'Choose a port between 1024 and 65535.' }
     $record = $null
     if (Test-Path -LiteralPath $pidPath) {
@@ -63,6 +65,7 @@ try {
     }
     $matchingProcess = Get-MatchingProcess $record
     if ($Stop) {
+        if ($DesktopOwner -and $record.desktopOwner -ne $DesktopOwner) { exit 0 }
         if ($matchingProcess) {
             $savedPort = if ($record.port) { [int]$record.port } else { $preferredPort }
             $health = Get-AppHealth $savedPort
@@ -80,7 +83,7 @@ try {
     if ($matchingProcess) {
         $savedPort = if ($record.port) { [int]$record.port } else { $preferredPort }
         $health = Get-AppHealth $savedPort
-        if ($health.app -eq 'steam-games-randomizer' -and $health.version -eq $expectedVersion -and $health.instanceId -eq $instanceId -and [int]$health.processId -eq [int]$record.processId) {
+        if ($health.app -eq 'steam-games-randomizer' -and $health.version -eq $expectedVersion -and $health.instanceId -eq $instanceId -and [int]$health.processId -eq [int]$record.processId -and [int]$health.desktopOwner -eq $DesktopOwner) {
             Show-App $savedPort
             exit 0
         }
@@ -107,6 +110,7 @@ try {
     for ($offset = 0; $offset -lt 10 -and ($preferredPort + $offset) -le 65535; $offset++) {
         $candidatePort = $preferredPort + $offset
         $env:PORT = [string]$candidatePort
+        $env:PLAYNEXT_DESKTOP_OWNER = [string]$DesktopOwner
         $errorLog = Join-Path $appDirectory '.server-error.log'
         $outputLog = Join-Path $appDirectory '.server-output.log'
         $process = Start-Process -FilePath $nodeExecutable -ArgumentList ('"' + $serverPath + '"') -WorkingDirectory $appDirectory -WindowStyle Hidden -RedirectStandardError $errorLog -RedirectStandardOutput $outputLog -PassThru
@@ -121,7 +125,7 @@ try {
         if ($ready) {
             try {
                 $process.Refresh()
-                @{ processId = $process.Id; createdAt = $process.StartTime.ToUniversalTime().ToString('o'); executablePath = $process.Path; port = $candidatePort; instanceId = $instanceId } | ConvertTo-Json | Set-Content -LiteralPath $pidPath -Encoding UTF8
+                @{ processId = $process.Id; createdAt = $process.StartTime.ToUniversalTime().ToString('o'); executablePath = $process.Path; port = $candidatePort; instanceId = $instanceId; desktopOwner = $DesktopOwner } | ConvertTo-Json | Set-Content -LiteralPath $pidPath -Encoding UTF8
             } catch {
                 if (-not $process.HasExited) { $process.Kill() }
                 throw 'The app folder is not writable. Move the extracted folder to Desktop or Documents and try again.'
@@ -134,10 +138,10 @@ try {
         $portUnavailable = $errorText -match 'already in use|EADDRINUSE|listen EACCES: permission denied 127\.0\.0\.1:'
         if (-not $portUnavailable) { throw "Could not start Play Next. $errorText" }
         $existing = Get-AppHealth $candidatePort
-        if ($existing.app -eq 'steam-games-randomizer' -and $existing.version -eq $expectedVersion -and $existing.instanceId -eq $instanceId -and $existing.processId) { Show-App $candidatePort; exit 0 }
+        if ($existing.app -eq 'steam-games-randomizer' -and $existing.version -eq $expectedVersion -and $existing.instanceId -eq $instanceId -and $existing.processId -and [int]$existing.desktopOwner -eq $DesktopOwner) { Show-App $candidatePort; exit 0 }
     }
     throw 'No free local port was available. Close the other copy, or run start.ps1 -Port 3310.'
 } catch {
     Write-Host $_.Exception.Message -ForegroundColor Red
     exit 1
-} finally { $env:PORT = $originalPort }
+} finally { $env:PORT = $originalPort; $env:PLAYNEXT_DESKTOP_OWNER = $originalOwner }

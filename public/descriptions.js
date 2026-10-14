@@ -10,13 +10,23 @@ function validResult(result, id, language) {
 export function createDescriptionsClient({ send = globalThis.fetch, onUpdate = () => {}, now = Date.now } = {}) {
   const records = new Map();
   const pending = new Map();
+  const queue = [];
+  let active = 0;
+  function pump() {
+    while (active < 2 && queue.length) { active++; void queue.shift()(); }
+  }
   return {
-    request(id, language = 'en') {
+    request(id, language = 'en', priority = false) {
       if (!validId(id) || !['ru', 'en'].includes(language)) return;
       const key = `${language}:${id}`;
       const record = records.get(key);
-      if (record?.expires > now() || pending.has(key)) return;
-      const task = (async () => {
+      if (pending.has(key)) {
+        const task = pending.get(key), index = queue.indexOf(task);
+        if (priority && index > 0) { queue.splice(index, 1); queue.unshift(task); }
+        return;
+      }
+      if (record?.expires > now()) return;
+      const task = async () => {
         let result;
         try {
           const response = await send('/api/game-description', {
@@ -30,11 +40,19 @@ export function createDescriptionsClient({ send = globalThis.fetch, onUpdate = (
         const ttl = result.status === 'ready' ? 3600000 : result.status === 'not-found' ? 86400000 : 30000;
         records.set(key, { ...result, expires: now() + ttl });
         pending.delete(key);
-        onUpdate(id, language, result);
-      })();
+        active--;
+        try { onUpdate(id, language, result); } finally { pump(); }
+      };
+      task.key = key;
       pending.set(key, task);
       records.set(key, { status: 'loading', description: null, expires: Infinity });
+      if (priority) queue.unshift(task); else queue.push(task);
+      pump();
     },
     get: (id, language = 'en') => records.get(`${language}:${id}`),
+    clearQueue() {
+      for (const task of queue) { pending.delete(task.key); records.delete(task.key); }
+      queue.length = 0;
+    },
   };
 }

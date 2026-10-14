@@ -113,9 +113,9 @@ test('settings use labelled native controls, responsive badges and a guarded key
     assert.ok(html.includes(`for="${key}"`));
     assert.ok(html.includes(`id="${key}" type="checkbox"`));
   }
-  assert.match(html, /<dialog id="settings-dialog" aria-labelledby="settings-title"/);
+  assert.match(html, /<section id="settings-dialog"[^>]*data-workspace-page="settings"/);
   assert.match(html, /id="display-status"[^>]*role="status"/);
   assert.match(css, /\.hero-badges\s*\{[^}]*flex-wrap: wrap/);
   assert.match(css, /\.topbar-right \.button\s*\{[^}]*min-height: 44px/);
-  assert.match(app, /\$\('settings-dialog'\)\.open\) return/);
+  assert.match(app, /workspace.current !== 'choose'\) return/);
 });

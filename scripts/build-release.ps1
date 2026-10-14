@@ -65,14 +65,14 @@ if ($RuntimeDirectory) {
 # cached covers, settings, source archives and any other machine-specific files.
 $releaseFiles = @(
     'package.json', 'server.mjs', 'start.ps1',
-    'README.md', 'README.en.md', 'READ ME FIRST.txt', 'THIRD_PARTY_NOTICES.md', 'CHANGELOG.md',
+    'README.md', 'README.en.md', 'READ ME FIRST.txt', 'THIRD_PARTY_NOTICES.md', 'CHANGELOG.md', 'DESIGN.md',
     'lib\steam.mjs', 'lib\owned.mjs', 'lib\steam-cache.mjs', 'lib\exclusions.mjs', 'lib\profile.mjs', 'public\index.html', 'public\app.js', 'public\exclusions.js', 'public\profile.js',
     'lib\install-size.mjs', 'lib\display-settings.mjs', 'public\display.js',
     'lib\online-sizes.mjs', 'public\online-sizes.js', 'public\descriptions.js',
     'lib\windows-integration.mjs', 'lib\update-check.mjs', 'lib\update-installer.mjs', 'lib\steam-launch.mjs', 'lib\app-settings.mjs', 'lib\ui-settings.mjs', 'lib\backup.mjs',
-    'lib\browser-sessions.mjs',
+    'lib\browser-sessions.mjs', 'lib\desktop-owner.mjs', 'lib\session-frames.mjs',
     'scripts\windows-integration.ps1', 'scripts\launch-steam.ps1', 'scripts\apply-update.ps1', 'public\system.js', 'public\app-settings.js', 'public\ui-settings.js', 'public\i18n.js', 'public\backup.js', 'public\browser-session.js',
-    'public\randomizer.js', 'public\style.css', 'public\responsive.css', 'public\icon.svg'
+    'public\randomizer.js', 'public\workspace.js', 'public\toast.js', 'public\game-details.js', 'public\draw-animation.js', 'public\decision.js', 'public\scroll-activity.js', 'public\startup.js', 'public\style.css', 'public\responsive.css', 'public\desktop.css', 'public\icon.svg', 'public\icon.png', 'public\icon.ico'
 )
 foreach ($relativeFile in $releaseFiles) {
     $destination = Join-Path $packageDirectory $relativeFile
@@ -80,16 +80,8 @@ foreach ($relativeFile in $releaseFiles) {
     if (-not (Test-Path -LiteralPath $parent)) { New-Item -ItemType Directory -Path $parent | Out-Null }
     Copy-Item -LiteralPath (Join-Path $sourceDirectory $relativeFile) -Destination $destination -ErrorAction Stop
 }
-$frameworkRoot = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319'
-$compiler = Join-Path $frameworkRoot 'csc.exe'
-if (-not (Test-Path -LiteralPath $compiler -PathType Leaf)) {
-    $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework\v4.0.30319\csc.exe'
-}
-if (-not (Test-Path -LiteralPath $compiler -PathType Leaf)) { throw 'The Windows .NET Framework compiler required for Play Next.exe was not found.' }
+& (Join-Path $PSScriptRoot 'build-desktop.ps1') -PackageDirectory $packageDirectory
 $launcher = Join-Path $packageDirectory 'Play Next.exe'
-& $compiler /nologo /target:winexe /optimize+ "/out:$launcher" /reference:System.Windows.Forms.dll (Join-Path $sourceDirectory 'launcher\PlayNextLauncher.cs')
-if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $launcher -PathType Leaf)) { throw 'Could not build Play Next.exe.' }
-Copy-Item -LiteralPath $launcher -Destination (Join-Path $packageDirectory 'scripts\PlayNextLauncher.exe')
 $release = [ordered]@{
     app = 'Play Next'
     version = $package.version
@@ -99,6 +91,8 @@ $release = [ordered]@{
     runtimeArchiveSha256 = $actualHash
     runtimeExecutableSha256 = (Get-FileHash -LiteralPath (Join-Path $packagedRuntimeDirectory 'node.exe')).Hash.ToLowerInvariant()
     personalDataIncluded = $false
+    desktopHost = 'Windows Forms + Microsoft Edge WebView2'
+    webView2Sdk = '1.0.4258.31'
 }
 $release | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $packageDirectory 'release.json') -Encoding UTF8
 $manifestFiles = Get-ChildItem -LiteralPath $packageDirectory -File -Recurse | Where-Object { $_.FullName -ne $launcher } | ForEach-Object {

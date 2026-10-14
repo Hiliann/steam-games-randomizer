@@ -217,6 +217,24 @@ test('description client requests only a scoped ID and validates returned text',
   await updated;
   assert.equal(client.get('10', 'ru').description, 'Небольшое описание.');
 });
+
+test('description prefetch bounds concurrency, prioritizes the winner and drops unused queued frames', async () => {
+  const calls = [], release = [];
+  const client = createDescriptionsClient({ send: async (_, options) => {
+    const { id } = JSON.parse(options.body); calls.push(id);
+    return new Promise(resolve => release.push(() => resolve(new Response(JSON.stringify({ status: 'ready', description: `Game ${id}`, sourceUrl: `https://store.steampowered.com/app/${id}/`, language: 'english' })))));
+  } });
+  for (const id of ['10', '20', '30', '40', '50']) client.request(id);
+  assert.deepEqual(calls, ['10', '20']);
+  client.request('50', 'en', true);
+  release[0](); await setImmediate();
+  assert.deepEqual(calls, ['10', '20', '50']);
+  client.clearQueue();
+  assert.equal(client.get('30'), undefined); assert.equal(client.get('40'), undefined);
+  release[1](); release[2](); await setImmediate();
+  assert.deepEqual(calls, ['10', '20', '50']);
+  assert.equal(client.get('50').description, 'Game 50');
+});
 test('visible size prefers Steam requirements, distinguishes them from estimates and shows source/date', () => {
   const game = { id: '10', installed: false, installSize: { bytes: 12 * GB }, onlineSize: { bytes: 100 * GB, kind: 'required-space', source: 'steam-store', platform: 'windows', checkedAt: 1700000000000, stale: true } };
   assert.equal(uninstalledSize(game), 'Место: 100 ГБ');

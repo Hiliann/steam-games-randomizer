@@ -34,7 +34,7 @@ test('local health, page and scripts are served with restrictive security header
   assert.match(page.headers.get('content-security-policy'), /frame-ancestors 'none'/);
   assert.equal(page.headers.get('access-control-allow-origin'), null);
   assert.match(await page.text(), /Play Next/);
-  for (const asset of ['/app.js', '/randomizer.js', '/ui-settings.js', '/i18n.js', '/backup.js', '/browser-session.js', '/descriptions.js']) {
+  for (const asset of ['/app.js', '/workspace.js', '/toast.js', '/game-details.js', '/draw-animation.js', '/decision.js', '/scroll-activity.js', '/startup.js', '/randomizer.js', '/ui-settings.js', '/i18n.js', '/backup.js', '/browser-session.js', '/descriptions.js']) {
     const response = await fetch(url + asset);
     assert.equal(response.status, 200);
     assert.match(response.headers.get('content-type'), /javascript/);
@@ -43,6 +43,13 @@ test('local health, page and scripts are served with restrictive security header
   assert.equal(styles.status, 200);
   assert.match(styles.headers.get('content-type'), /text\/css/);
   assert.equal(styles.headers.get('cache-control'), 'no-cache');
+  for (const [asset, type] of [['/icon.png', 'image/png'], ['/icon.ico', 'image/x-icon'], ['/favicon.ico', 'image/x-icon']]) {
+    const response = await fetch(url + asset);
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('content-type'), type);
+    const expected = await readFile(new URL('../public/' + (asset.endsWith('.ico') ? 'icon.ico' : 'icon.png'), import.meta.url));
+    assert.deepEqual(Buffer.from(await response.arrayBuffer()), expected);
+  }
 });
 
 test('browser page lifecycle is same-origin protected and closes only the last page', async t => {
@@ -84,6 +91,22 @@ test('application copy identity is stable, private and different for distinct fo
   assert.match(getInstanceId('/private-user-path'), /^[0-9a-f]{24}$/);
   const metadata = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
   assert.equal(metadata.version, APP_VERSION);
+});
+
+test('a native desktop service remains alive when its renderer socket closes', async t => {
+  let stops = 0;
+  const { url, port } = await fixture(t, { desktopOwner: 1234, onBrowserSessionsEmpty: () => stops++, browserSessionOptions: { shutdownDelayMs: 10 } });
+  const health = await fetch(url + '/api/health').then(r => r.json());
+  assert.equal(health.desktopOwner, 1234);
+  const socket = net.createConnection({ host: '127.0.0.1', port });
+  await once(socket, 'connect');
+  socket.write(['GET /api/browser-session?id=1234567890abcdef HTTP/1.1', `Host: 127.0.0.1:${port}`, `Origin: ${url}`, 'Upgrade: websocket', 'Connection: Upgrade', 'Sec-WebSocket-Version: 13', 'Sec-WebSocket-Key: AAECAwQFBgcICQoLDA0ODw==', '', ''].join('\r\n'));
+  const [upgrade] = await once(socket, 'data');
+  assert.match(upgrade.toString(), /101 Switching Protocols/);
+  socket.end(Buffer.from([0x88, 0x80, 0, 0, 0, 0]));
+  await new Promise(resolve => setTimeout(resolve, 30));
+  assert.equal(stops, 0);
+  assert.equal((await fetch(url + '/api/health')).status, 200);
 });
 test('game scan cache omits internal cache roots from API results', async t => {
   const { url, requests } = await fixture(t);
@@ -185,5 +208,6 @@ test('static interface IDs match all script bindings without duplicates', async 
   assert.equal(ids.length, new Set(ids).size);
   for (const match of script.matchAll(/\$\('([^']+)'\)/g)) assert.ok(ids.includes(match[1]), `Missing element: ${match[1]}`);
   assert.doesNotMatch(script, /\.innerHTML\s*=/);
+  assert.match(script, /\$\('excluded-count'\)\.textContent = scoped\.length - participating\.length/);
   assert.doesNotMatch(html, /(?:src|href)="https?:\/\//);
 });

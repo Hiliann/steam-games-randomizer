@@ -21,3 +21,10 @@ jobs:
           package-manager-cache: false
       - run: npm run check
       - run: npm test
+      - name: Compile the Windows desktop host with the pinned official SDK
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path downloads -Force | Out-Null
+          Invoke-WebRequest -Uri 'https://api.nuget.org/v3-flatcontainer/microsoft.web.webview2/1.0.4258.31/microsoft.web.webview2.1.0.4258.31.nupkg' -OutFile 'downloads/microsoft.web.webview2.1.0.4258.31.nupkg'
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-desktop.ps1 -PackageDirectory "$pwd/dist/desktop-ci"
+          if ($LASTEXITCODE -ne 0) { throw 'Desktop build failed.' }

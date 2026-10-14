@@ -22,6 +22,8 @@ test('uninstalled checkbox changes visible and draw pools and preserves saved ex
 test('selected game action installs only uninstalled games and cannot create arbitrary URLs', () => {
   assert.deepEqual(gameAction({ id: '40', installed: false }), { href: 'steam://install/40', label: 'Установить в Steam' });
   assert.deepEqual(gameAction({ id: '10', installed: true }), { href: 'steam://run/10', label: 'Играть в Steam' });
+  assert.deepEqual(gameAction({ id: '10', installed: true, updateRequired: true }), { href: 'steam://run/10', label: 'Обновить и играть' });
+  assert.deepEqual(gameAction({ id: '40', installed: false, updateRequired: true }), { href: 'steam://install/40', label: 'Установить в Steam' });
   assert.throws(() => gameAction({ id: 'javascript:alert(1)' }));
 });
 

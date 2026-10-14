@@ -3,7 +3,8 @@ param(
     [Parameter(Mandatory = $true)][string]$DownloadUrl,
     [Parameter(Mandatory = $true)][string]$ChecksumUrl,
     [Parameter(Mandatory = $true)][int]$ProcessId,
-    [Parameter(Mandatory = $true)][int]$Port
+    [Parameter(Mandatory = $true)][int]$Port,
+    [int]$DesktopProcessId = 0
 )
 $ErrorActionPreference = 'Stop'
 $appDirectory = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -28,6 +29,11 @@ function Resolve-SafeTarget([string]$RelativePath) {
     return $target
 }
 function Start-PlayNext {
+    $launcher = Join-Path $appDirectory 'Play Next.exe'
+    if ($DesktopProcessId -gt 0 -and (Test-Path -LiteralPath $launcher)) {
+        Start-Process -FilePath $launcher -WorkingDirectory $appDirectory -WindowStyle Hidden
+        return
+    }
     $starter = Join-Path $appDirectory 'start.ps1'
     if (Test-Path -LiteralPath $starter) {
         $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$starter`" -NoBrowser -Port $Port"
@@ -36,7 +42,7 @@ function Start-PlayNext {
 }
 
 try {
-    if ($Version -notmatch '^\d+\.\d+\.\d+$' -or $Port -lt 1 -or $Port -gt 65535 -or $ProcessId -lt 1) { throw 'Invalid installer arguments.' }
+    if ($Version -notmatch '^\d+\.\d+\.\d+$' -or $Port -lt 1 -or $Port -gt 65535 -or $ProcessId -lt 1 -or $DesktopProcessId -lt 0) { throw 'Invalid installer arguments.' }
     $escapedVersion = [regex]::Escape($Version)
     if ($DownloadUrl -notmatch "^https://github\.com/Hiliann/steam-games-randomizer/releases/download/v$escapedVersion/PlayNext-$escapedVersion-win-x64\.zip$") { throw 'Unexpected release URL.' }
     if ($ChecksumUrl -notmatch "^https://github\.com/Hiliann/steam-games-randomizer/releases/download/v$escapedVersion/PlayNext-$escapedVersion-win-x64\.zip\.sha256$") { throw 'Unexpected checksum URL.' }
@@ -88,6 +94,14 @@ try {
     $process = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
     if ($process) { $process.WaitForExit(60000) | Out-Null }
     if (Get-Process -Id $ProcessId -ErrorAction SilentlyContinue) { throw 'Play Next did not stop in time.' }
+    # The desktop host releases its executable and SDK assemblies before replacement.
+    if ($DesktopProcessId -gt 0) {
+        $desktopProcess = Get-Process -Id $DesktopProcessId -ErrorAction SilentlyContinue
+        if ($desktopProcess) {
+            if ($desktopProcess.ProcessName -notin @('Play Next', 'PlayNextLauncher') -or [IO.Path]::GetDirectoryName($desktopProcess.Path) -notin @($appDirectory, (Join-Path $appDirectory 'scripts'))) { throw 'Could not verify the desktop host.' }
+            if (-not $desktopProcess.WaitForExit(60000)) { throw 'Close the Play Next window before updating.' }
+        }
+    }
 
     foreach ($item in $installFiles) {
         $relative = $item.path.Replace('\', '/')

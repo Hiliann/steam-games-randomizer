@@ -8,24 +8,52 @@ function sessionId() {
   return `${Date.now()}_${Math.random().toString(36).slice(2)}_${Math.random().toString(36).slice(2)}`;
 }
 
-export function connectBrowserSession({ windowObject = globalThis.window, WebSocketClass = globalThis.WebSocket } = {}) {
+export function connectBrowserSession({ windowObject = globalThis.window, WebSocketClass = globalThis.WebSocket, setTimer = setTimeout, clearTimer = clearTimeout, onState = () => {} } = {}) {
   if (!windowObject || typeof WebSocketClass !== 'function') return () => {};
   const id = sessionId();
   let socket;
   let active = false;
+  let retryTimer;
+  let attempts = 0;
+  let connectedOnce = false;
+
+  const connect = () => {
+    if (!active) return;
+    onState(connectedOnce ? 'reconnecting' : 'connecting');
+    try {
+      const protocol = windowObject.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const current = new WebSocketClass(`${protocol}//${windowObject.location.host}/api/browser-session?id=${encodeURIComponent(id)}`);
+      socket = current;
+      current.onopen = () => {
+        if (!active || socket !== current) return;
+        const restored = connectedOnce;
+        connectedOnce = true; attempts = 0;
+        onState('connected', restored);
+      };
+      current.onclose = () => {
+        if (!active || socket !== current) return;
+        socket = undefined;
+        scheduleRetry();
+      };
+      current.onerror = () => { /* close handles recovery exactly once */ };
+    } catch { socket = undefined; scheduleRetry(); }
+  };
+  const scheduleRetry = () => {
+    if (!active) return;
+    onState('reconnecting');
+    retryTimer = setTimer(() => { retryTimer = undefined; connect(); }, Math.min(3000, 300 * 2 ** Math.min(attempts++, 4)));
+  };
 
   const start = () => {
     if (active) return;
     active = true;
-    try {
-      const protocol = windowObject.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      socket = new WebSocketClass(`${protocol}//${windowObject.location.host}/api/browser-session?id=${encodeURIComponent(id)}`);
-    } catch { socket = undefined; }
+    connect();
   };
 
   const stop = () => {
     if (!active) return;
     active = false;
+    clearTimer(retryTimer); retryTimer = undefined;
     try { socket?.close(); } catch { /* The browser also closes the socket with the tab. */ }
     socket = undefined;
   };
@@ -33,5 +61,9 @@ export function connectBrowserSession({ windowObject = globalThis.window, WebSoc
   windowObject.addEventListener('pagehide', stop);
   windowObject.addEventListener('pageshow', start);
   start();
-  return stop;
+  return () => {
+    stop();
+    windowObject.removeEventListener?.('pagehide', stop);
+    windowObject.removeEventListener?.('pageshow', start);
+  };
 }

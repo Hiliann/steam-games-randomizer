@@ -4,7 +4,7 @@
 
 **[Project website](https://hiliann.github.io/steam-games-randomizer/en/) · [Download for Windows](https://github.com/Hiliann/steam-games-randomizer/releases/latest) · [Report a problem](https://github.com/Hiliann/steam-games-randomizer/issues)**
 
-Play Next is a local program that helps you pick a random game from your Steam library. It finds installed games automatically. An optional checkbox also includes uninstalled games from the active account's local license cache.
+Play Next is a Windows application with its own desktop window that helps you pick a random game from your Steam library. It finds installed games automatically. An optional checkbox also includes uninstalled games from the active account's local license cache.
 
 Spend less time browsing your library and more time playing. Exclude games you do not feel like playing, choose without repeats, and launch the selected game in Steam when you are ready.
 
@@ -12,15 +12,17 @@ The website includes a fictional demo, project information and downloads. It can
 
 ## Run on Windows
 
-1. Download **PlayNext-1.9.0-win-x64.zip** from [Releases](https://github.com/Hiliann/steam-games-randomizer/releases/latest). Do not use **Code > Download ZIP**: that archive contains source code without the bundled runtime.
+1. Download **PlayNext-2.2.0-win-x64.zip** from [Releases](https://github.com/Hiliann/steam-games-randomizer/releases/latest). Do not use **Code > Download ZIP**: that archive contains source code without the bundled runtime.
 2. Extract the entire archive to a writable folder. Do not run the program from inside the ZIP.
-3. Open **Play Next.exe**. The program opens in your browser, usually at `http://127.0.0.1:3210`. If the port is occupied, it chooses another one.
+3. Open **Play Next.exe**. The program opens in its own desktop window, without a browser tab. Its local address is chosen automatically.
 4. Press **Pick a game**, then **Play on Steam**. An uninstalled game instead offers **Install on Steam**. The local program passes the command to Steam without leaving a technical browser tab open.
-5. Close the browser tab when you are done. Play Next stops automatically after the last tab closes; reloading the page does not stop it.
+5. Close the app window when you are done. Play Next stops its local service. Idle time, minimizing and temporary renderer disconnections no longer stop the app. It attempts recovery after a service failure and offers a retry if recovery fails.
 
-Requires **Windows 10/11 x64 (Intel/AMD), Steam and a modern browser**. Node.js 24.20.0 is included. No separate runtime installation, API key, Codex or administrator rights are required. Keep the `runtime` folder with the program. Desktop shortcut and Windows startup options are available in **«Настройки»** (Settings).
+Requires **Windows 10/11 x64 (Intel/AMD), .NET Framework 4.6.2+, Steam and Microsoft Edge WebView2 Runtime**. WebView2 is normally present on Windows; if missing, the app offers the [official Microsoft download page](https://developer.microsoft.com/microsoft-edge/webview2/). Node.js 24.20.0 is included. No API key or Codex is required. Keep the `runtime` folder with the program. Desktop shortcuts and startup in a minimized window are available in Settings.
 
 ## Features
+
+The sidebar separates **Choose a game**, **Library**, **Categories** and **Settings**. Labels remain visible in narrow windows; the navigation moves to the bottom on very small screens. The library supports card/list views and sorting by name, last played or size. Click a cover to preview and launch a game without changing the random-draw history, or assign categories directly on its card. The collection editor supports bulk changes and a shortcut to pick from that collection. Settings are organized into Appearance, Games, Windows, Updates and My data tabs. **Ctrl+F** opens library search; Space draws a game only on the chooser screen.
 
 - Automatically detects Steam libraries across multiple drives; custom paths can be added manually.
 - Chooses only eligible games, with optional no-repeat rounds and a history of recent picks.
@@ -28,7 +30,8 @@ Requires **Windows 10/11 x64 (Intel/AMD), Steam and a modern browser**. Node.js 
 - Includes modes for all participating games, installed or uninstalled games, never-played games, games dormant for 90 days and any saved category. Every eligible game keeps the same probability.
 - Lets you exclude individual games. Exclusions survive closing the program, changing ports and clearing browser storage.
 - Shows artwork from the local Steam cache, with a game-name fallback when artwork is unavailable.
-- Shows a short Steam Store description for the picked game in the selected interface language, with plain-text validation and local caching.
+- Shows a complete card during shuffle: artwork, title, description and categories belong to the same game. Actions stay visible but disabled until the result is confirmed.
+- Loads short Steam Store descriptions for the selected game and a small set of frames, with plain-text validation and local caching. Offline frames use local game details.
 - Includes search, keyboard controls, reduced-motion support and a responsive interface for narrow and wide windows.
 - Optionally adds uninstalled games backed by local Steam licenses, without a public Steam profile or account sign-in through Play Next.
 - Shows storage requirements for uninstalled games and lets you toggle size information and the installed-game badge.
@@ -46,7 +49,7 @@ The library is a **snapshot of local Steam data, not an online ownership check**
 
 **«≈» means an approximate fallback based on local Steam depot information.** DLC and optional components are excluded; updates, language choices and overlapping files may affect the result. If neither source provides a size, the program reports it as unknown rather than inventing a number.
 
-Turn size information off in **«Настройки»** (Settings) to hide it and stop new size requests. A short description is requested only for the picked game. The installed-game badge is hidden by default and can be enabled separately.
+Turn size information off in **«Настройки»** (Settings) to hide it and stop new size requests. Short descriptions are requested for the selected game and a small set of shuffle frames, not the whole library. The installed-game badge is hidden by default and can be enabled separately.
 
 ## Saved settings and updates
 
@@ -68,7 +71,7 @@ Send friends the clean release ZIP, not a copy of a folder you have already used
 
 The local server listens only on `127.0.0.1`. Steam files are read, not modified. Play Next does not require a Steam password or API key and does not upload account data, licenses, file paths or exclusions.
 
-For uninstalled-game storage information and the selected game's short description, it makes HTTPS requests to `store.steampowered.com` using public game IDs. The description request also includes the interface language. Steam can see the connection's IP address. These requests do not include cookies or your account information. Size requests can be turned off; descriptions are requested only for the current result. Games and Steam may make their own network requests independently.
+For uninstalled-game storage information and short descriptions, it makes HTTPS requests to `store.steampowered.com` using public game IDs. The description request also includes the interface language. Steam can see the connection's IP address. These requests do not include cookies or your account information. Size requests can be turned off; descriptions are requested only for the current result and a small set of shuffle frames. Games and Steam may make their own network requests independently.
 
 The downloadable ZIP excludes personal data, Steam files, game artwork and logs. It is not digitally signed. A `.zip.sha256` file is supplied to check that your download matches the published archive; a checksum is not a substitute for a security review.
 

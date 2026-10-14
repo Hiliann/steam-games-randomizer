@@ -1,5 +1,139 @@
 # Изменения
 
+## 2.2.0
+
+### Русский
+
+- Восстановлена смена изображений при перемешивании. Каждый кадр показывает полную карточку одной игры: название, обложку, описание, категории и действия.
+- Кнопки не исчезают, но заблокированы до сохранения результата. Запуск, исключение, меню категорий и повторные нажатия защищены от действий с промежуточной игрой.
+- Предзагрузка локальных изображений ограничена текущим розыгрышем. Поздняя загрузка не подменяет новый кадр; отсутствующий hero заменяется обложкой той же игры.
+- Описания загружаются не более чем двумя параллельными запросами с приоритетом итоговой игры; ненужная очередь кадров очищается. При отсутствии интернета используются локальные сведения.
+- Сохраняется высота карточки и положение действий. При отключённых анимациях сразу показывается итоговая игра.
+- Ошибка подготовки или сохранения снимает блокировку и не записывает промежуточные кадры в историю. Форматы пользовательских данных не меняются.
+- Добавлен план развития PLAN.md; первый этап посвящён надёжности выбора, последующие - библиотеке, категориям, производительности и сохранности данных.
+
+### English
+
+- Restored changing artwork during shuffle. Each frame shows a complete, consistent game card with its title, artwork, description, categories and actions.
+- Actions stay visible but disabled until the result is saved. Launching, exclusion, categories and repeated inputs cannot act on a decorative frame.
+- Local artwork preloading is limited to the current draw. Late image loads cannot replace newer frames; missing heroes fall back to the same game's cover.
+- Descriptions use at most two parallel requests with priority for the winner; unused queued frames are discarded. Offline frames show local game details.
+- Card height and action placement remain stable. Reduced-motion mode skips decorative frames.
+- Preparation or save failures release the controls without adding decorative frames to history. User data formats remain unchanged.
+- Added PLAN.md covering selection reliability, library and category usability, performance and data safety.
+
+## 2.1.2
+
+### Русский
+
+- Переработана большая карточка: убрана пустая область под короткими описаниями. Свободное место занимает обложка, информация и кнопки собраны в компактную панель.
+- Статус готовности или обновления перенесён на изображение. Скрытые категории и ссылка описания больше не оставляют пустые строки.
+- Высота внешнего блока не зависит от игры, а во время перемешивания сохраняется также размер изображения.
+- Длинное описание обрезается целыми строками; полный текст открывается отдельно. Исправлен расчёт строк при повторных измерениях компактного блока.
+- Уменьшены избыточные отступы панели выбора без уменьшения текста и кнопок. Настройки и сохранённые данные не меняются.
+- Исправлена ссылка на закреплённый SDK WebView2 в инструкции сборки.
+
+### English
+
+- Redesigned game details to remove the empty space below short descriptions. Artwork fills spare room; information and actions form a compact lower panel.
+- Moved readiness and update status onto the artwork. Hidden categories and description links no longer reserve empty rows.
+- The outer frame remains stable between games; artwork geometry is also held during shuffle animation.
+- Long descriptions clamp to whole lines and open separately. Repeated measurements no longer shrink compact descriptions.
+- Tightened excessive spacing in the draw panel without reducing text or button sizes. Saved user data stays unchanged.
+- Corrected the pinned WebView2 SDK link in build instructions.
+
+## 2.1.1
+
+### Русский
+
+- Полосы прокрутки появляются при прокрутке и плавно исчезают, не меняя ширину интерфейса. Прокрутка мышью, клавиатурой и перетаскиванием остаётся штатной.
+- Исправлена обрезка меток категорий. В карточках кнопка управления размещена отдельно, а в режиме списка категории расположены сбоку и могут переноситься без обрезки строки.
+- Высота большой карточки игры фиксирована. Описание занимает доступное место целыми строками, а полный текст открывается в отдельном окне.
+- Для установленной игры с обновлением основная кнопка называется «Обновить и играть»: Steam запускает обновление перед игрой. Повторное предупреждение под описанием убрано.
+- Управление участием перемещено к основным действиям. Убраны повторный статус «Участвует в выборе» и нижний переход в библиотеку.
+- Добавлен анимированный экран запуска с иконкой и реальными этапами загрузки, а также оформление начального экрана Windows. Анимация учитывает настройки уменьшения движения, не задерживает запуск искусственно и отключается в свёрнутом окне.
+- Категории, исключения, история и настройки сохраняют прежний формат.
+
+### English
+
+- Native scrollbars appear during scrolling and fade out without resizing the interface. Mouse, keyboard and scrollbar dragging remain browser-managed.
+- Fixed clipped category tags. Card controls have their own space; list-view categories appear beside game details and wrap without vertical clipping.
+- Game details keep a fixed height. Descriptions use the available space in whole lines; full text opens in a separate dialog.
+- Installed games requiring an update show “Update and play”, asking Steam to update before launching. Removed the duplicate update warning.
+- Participation controls sit beside the main actions. Removed the redundant included status and bottom library shortcut.
+- Added an animated startup screen with the app icon and real loading stages, plus a matching native Windows startup panel. Animations respect reduced-motion preferences, never add an artificial wait and stop in minimized windows.
+- Existing user data formats remain unchanged.
+
+## 2.1.0
+
+### Русский
+
+- Карточка игры переработана: обложка отделена от текста, информация и действия размещены на непрозрачной панели. Увеличены размеры основного текста и кнопок.
+- Статус установки и участие в случайном выборе показаны отдельно. Исключённую игру можно вернуть прямо из карточки, не переходя в библиотеку.
+- Длинные описания можно раскрыть и свернуть. Меню категорий больше не обрезается краем карточки; оно закрывается по нажатию снаружи и Escape.
+- Активные фильтры библиотеки представлены отдельными метками, каждый можно удалить независимо от остальных.
+- В узком окне выбор игры расположен выше карточки, а его дополнительные параметры сворачиваются. В небольшом по высоте окне обложка занимает меньше места.
+- При смене категории или экрана редактор предлагает сохранить изменения, продолжить без сохранения или остаться. При неудачной записи черновик и диалог остаются на экране.
+- Подтверждение удаления категорий приведено к общему оформлению приложения. Игры и исключения при удалении категории не меняются.
+- Решения и критерии проверки интерфейса описаны в DESIGN.md. Сохранён формат пользовательских данных.
+
+### English
+
+- Redesigned game details: artwork is separated from readable content and actions on an opaque panel. Increased body text and control sizes.
+- Installation and participation are shown independently. Excluded games can be included again directly from their details.
+- Expand or collapse long descriptions. Category menus are no longer clipped by the card and close on outside clicks or Escape.
+- Active library filters have independently removable chips.
+- In narrow windows, the picker appears above game details and its additional options collapse. Shorter windows use a more compact artwork area.
+- Leaving a collection draft offers Save, Discard or Stay. Failed writes keep the draft and dialog visible.
+- Category deletion uses the same application dialog style. Games and exclusions are preserved.
+- Design research and acceptance criteria are documented in DESIGN.md. Existing user data formats remain unchanged.
+
+## 2.0.1
+
+### Русский
+
+- Новая иконка Play Next: единый знак в приложении, ярлыках и файле запуска, семь размеров Windows от 16 до 256 пикселей с прозрачностью.
+- Добавлена отмена исключения и возврата игры прямо из уведомления. Уведомление не исчезает, пока над ним указатель или на кнопке находится клавиатурный фокус.
+- Библиотека фильтруется по установке, категориям, участию и названию одновременно. Статус установки запоминается вместе с видом и сортировкой.
+- Поиск получил кнопку очистки и очистку по Escape, все фильтры можно сбросить одним действием. Фильтры просмотра не меняют состав случайного выбора.
+- Сохранён прежний формат категорий, исключений, истории и настроек; обновление не заменяет папку data.
+
+### English
+
+- New Play Next app icon shared by the interface, executable and Windows shortcuts, with seven transparent Windows sizes from 16 to 256 pixels.
+- Undo participation changes directly from a notification. Hovering or focusing the action keeps the notification visible.
+- Combine installation status, categories, participation and name filters. Installation status is remembered alongside library view and sorting.
+- Clear search with a button or Escape, and reset all filters in one action. Browsing filters do not change the random draw pool.
+- Preserved existing categories, exclusions, history and settings formats. Updates do not replace the data folder.
+
+## 2.0.0
+
+### Русский
+
+- Play Next открывается в отдельном окне Windows на WebView2, без вкладки браузера.
+- Повторный запуск возвращает существующее окно; автозапуск открывает свёрнутое приложение.
+- Обрыв внутреннего соединения и простой больше не завершают приложение. Закрытие окна завершает его локальный процесс, включая аварийное закрытие.
+- Добавлены автоматическое восстановление после сбоя локального процесса, состояние подключения и кнопка повторного запуска.
+- Служебные ping/pong-сообщения соединения больше не считаются закрытием страницы.
+- Интерфейс полностью перестроен под приложение: постоянная навигация, отдельные экраны выбора, библиотеки, категорий и настроек.
+- Добавлены компактный список, сортировка библиотеки, просмотр игры по обложке без изменения истории и быстрые галочки категорий в карточках.
+- Редактор подборок получил отдельную панель категорий, создание без скрытого меню и кнопку выбора из подборки. Настройки разделены на пять вкладок.
+- Сохранены выбранные темы, акценты и формат данных. Добавлены защита несохранённых изменений при навигации и доступный поиск по Ctrl+F.
+- Обновление отдельного окна освобождает исполняемые файлы перед заменой и открывает новую версию. Папка data не заменяется.
+
+### English
+
+- Play Next now opens in a dedicated WebView2 desktop window, not a browser tab.
+- Launching again focuses the existing window; Windows startup opens it minimized.
+- Idle time and renderer disconnections no longer stop the desktop service. Closing or terminating the window ends its local service.
+- Added automatic service recovery, connection status and retry controls.
+- Connection ping/pong frames no longer count as a closed page.
+- Completely redesigned the application workspace with persistent navigation and separate chooser, library, categories and settings screens.
+- Added list view, library sorting, cover previews without changing draw history, and quick category checkboxes on cards.
+- Collections now have a sidebar, visible creation controls and a pick-from-collection shortcut. Settings use five focused tabs.
+- Preserved saved themes, accents and data formats; added unsaved-change navigation guards and Ctrl+F library search.
+- Desktop updates release executable files before replacing them and reopen the updated app. The data folder is preserved.
+
 ## 1.9.0
 
 - Вместо команд запуска и остановки добавлен единый файл `Play Next.exe`.

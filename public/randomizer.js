@@ -48,7 +48,7 @@ export function gameAction(game) {
   if (!/^\d+$/.test(game.id)) throw new Error('Invalid Steam app ID');
   return game.installed === false
     ? { href: `steam://install/${game.id}`, label: 'Установить в Steam' }
-    : { href: `steam://run/${game.id}`, label: 'Играть в Steam' };
+    : { href: `steam://run/${game.id}`, label: game.updateRequired ? 'Обновить и играть' : 'Играть в Steam' };
 }
 
 export function randomIndex(length) {

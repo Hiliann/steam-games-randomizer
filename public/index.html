@@ -13,9 +13,13 @@
   <script src="/app.js" type="module"></script>
 </head>
 <body>
+  <div id="startup-screen" class="startup-screen" aria-label="Загрузка Play Next">
+    <div class="startup-content"><div class="startup-mark" aria-hidden="true"><img src="/icon.png" alt=""></div><h1>Play Next</h1><p class="startup-tagline">Твоя следующая игра уже рядом</p><div class="startup-loader" aria-hidden="true"><span></span></div><p id="startup-status" role="status">Открываем твою библиотеку…</p><button id="skip-startup" class="text-button" type="button">Скрыть загрузку</button></div>
+  </div>
   <svg class="icon-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
     <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M3 6h3c5 0 7 12 12 12h3m-4-4 4 4-4 4M3 18h3c2 0 3-2 4-4m4-4c1-2 2-4 4-4h3m-4-4 4 4-4 4"/></symbol>
     <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 4 12 8-12 8Z"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></symbol>
     <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5M5.5 7a8 8 0 0 1 13-1L20 9M4 15l1.5 3a8 8 0 0 0 13-1"/></symbol>
     <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h5l3 4h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></symbol>
     <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
@@ -38,7 +42,7 @@
         <button id="settings-button" class="nav-item" data-page="settings"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg><span>Настройки</span></button>
       </nav>
       <div class="sidebar-library"><strong id="installed-count">-</strong><span>игр установлено</span><small id="library-count">Ищем библиотеки Steam…</small></div>
-      <div class="sidebar-bottom"><button id="libraries-button" class="nav-item" aria-label="Папки Steam"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg><span>Папки Steam</span></button><span class="connection-pill" id="connection-status" role="status">Подключаемся…</span><small>Play Next <span id="app-version">2.1.0</span></small></div>
+      <div class="sidebar-bottom"><button id="libraries-button" class="nav-item" aria-label="Папки Steam"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg><span>Папки Steam</span></button><span class="connection-pill" id="connection-status" role="status">Подключаемся…</span><small>Play Next <span id="app-version">2.1.1</span></small></div>
     </aside>
 
     <main>
@@ -53,7 +57,19 @@
       <section class="selection-layout" aria-label="Выбор игры">
         <article id="spotlight" class="spotlight">
           <div class="spotlight-media"><div class="hero-art-placeholder" aria-hidden="true"><svg class="icon"><use href="#i-game"/></svg></div><img id="hero-image" class="hero-image" alt="" hidden><div class="hero-shade"></div><div class="spotlight-top"><span class="spotlight-tag" id="spotlight-tag">ТВОЯ СЛЕДУЮЩАЯ ИГРА</span><div class="hero-badges"><span id="hero-disk" class="disk-tag" hidden></span><span id="hero-size" class="disk-tag" hidden></span><a id="hero-size-source" class="disk-tag size-source" target="_blank" rel="noreferrer noopener" aria-label="Источник размера в Steam" hidden>Steam ↗</a></div></div><span id="cover-caption" class="cover-caption"></span></div>
-          <div class="spotlight-body"><p class="eyebrow" id="hero-kicker">БИБЛИОТЕКА ПОЛНА ВОЗМОЖНОСТЕЙ</p><h2 id="hero-title">Вечер свободен.<br>Игра найдётся.</h2><div id="hero-categories" class="category-badges" hidden></div><p id="hero-description" class="game-description">Собираем установленные игры из Steam…</p><button id="toggle-description" class="text-button description-toggle" type="button" aria-expanded="false" aria-controls="hero-description" hidden>Подробнее об игре</button><p id="hero-context" class="hero-context" hidden></p><div class="hero-actions"><button id="play-button" type="button" class="button button-light" hidden><svg class="icon"><use href="#i-play"/></svg><span id="play-label">Играть в Steam</span><svg class="icon arrow"><use href="#i-arrow"/></svg></button><details id="hero-category-menu" class="hero-category-menu" hidden><summary><svg class="icon" aria-hidden="true"><use href="#i-tag"/></svg><span>Категории</span></summary><div id="hero-category-options" class="hero-category-options"></div></details></div><div id="hero-participation" class="hero-participation" hidden><span id="hero-participation-status" class="participation-status"></span><button id="exclude-current" class="button button-quiet participation-action" type="button">Исключить из выбора</button></div></div>
+          <div class="spotlight-body">
+            <div class="hero-state"><p class="eyebrow" id="hero-kicker">БИБЛИОТЕКА ПОЛНА ВОЗМОЖНОСТЕЙ</p><span id="hero-participation" hidden><span id="hero-participation-status" class="participation-status"></span></span></div>
+            <h2 id="hero-title">Вечер свободен.<br>Игра найдётся.</h2>
+            <div class="hero-category-strip"><div id="hero-categories" class="category-badges" hidden></div></div>
+            <div id="hero-description-space" class="hero-description-space"><p id="hero-description" class="game-description">Собираем установленные игры из Steam…</p></div>
+            <button id="toggle-description" class="text-button description-toggle" type="button" aria-haspopup="dialog" aria-controls="description-dialog" hidden>Подробнее об игре</button>
+            <p id="hero-context" class="hero-context" hidden></p>
+            <div class="hero-actions">
+              <button id="play-button" type="button" class="button button-light" hidden><svg class="icon" id="play-icon" aria-hidden="true"><use href="#i-play"/></svg><span id="play-label">Играть в Steam</span><svg class="icon arrow" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+              <details id="hero-category-menu" class="hero-category-menu" hidden><summary aria-label="Категории игры" title="Категории игры"><svg class="icon" aria-hidden="true"><use href="#i-tag"/></svg><span>Категории</span></summary><div id="hero-category-options" class="hero-category-options"></div></details>
+              <button id="exclude-current" class="button button-quiet participation-action" type="button" aria-label="Исключить из выбора" title="Исключить из выбора" hidden><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+            </div>
+          </div>
         </article>
 
         <aside class="draw-panel"><div class="panel-heading"><span class="small-label">СЛУЧАЙНЫЙ ВЫБОР</span><svg class="icon accent-icon" aria-hidden="true"><use href="#i-shuffle"/></svg></div><h2>Во что поиграть?</h2><p class="panel-description">Выбери режим и нажми кнопку. Запустить игру можно сразу здесь.</p>
@@ -63,7 +79,6 @@
       </section>
 
       <section class="history-section" aria-labelledby="history-title"><div class="section-line"><h2 id="history-title"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>Недавний выбор</h2><button id="clear-history" class="text-button" hidden>Очистить историю</button></div><div id="history-list" class="history-list"><p class="history-empty">Здесь появятся выбранные игры. Нажми «Выбрать игру», чтобы начать.</p></div></section>
-      <div class="chooser-library-link"><span>Хочешь выбрать сам или изменить список участников?</span><button class="text-button" data-page="library">Открыть библиотеку <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button></div>
       </section>
 
       <section id="library-page" class="library-section workspace-page" data-workspace-page="library" aria-labelledby="library-title" hidden><div class="library-heading"><div><p class="eyebrow" id="library-kicker">ИГРЫ ИЗ STEAM</p><h2 id="library-title">Все игры <span id="library-total" class="count-pill">-</span></h2></div><button id="library-folders-shortcut" class="button button-quiet library-mobile-folders">Папки Steam</button><div class="library-view-controls" role="group" aria-label="Вид библиотеки"><button class="view-button" data-library-view="grid" aria-pressed="true">Карточки</button><button class="view-button" data-library-view="list" aria-pressed="false">Список</button></div></div>
@@ -80,6 +95,7 @@
     </main>
   </div>
 
+  <dialog id="description-dialog" class="description-dialog" aria-labelledby="description-dialog-title"><div class="dialog-heading"><h2 id="description-dialog-title"></h2><button id="close-description" class="icon-button" type="button" aria-label="Закрыть описание"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div><p id="full-game-description"></p></dialog>
   <dialog id="libraries-dialog" aria-labelledby="dialog-title"><div class="dialog-heading"><div><p class="eyebrow">ПОДКЛЮЧЕНО К STEAM</p><h2 id="dialog-title">Твои библиотеки</h2></div><button id="close-dialog" class="icon-button" aria-label="Закрыть"><svg class="icon"><use href="#i-close"/></svg></button></div><p class="dialog-intro">Обычно мы находим их автоматически. Если чего-то не хватает, укажи папку Steam, SteamLibrary или steamapps.</p><div id="library-paths" class="library-paths"></div><form id="add-path-form"><label for="path-input">Добавить библиотеку</label><div class="path-input-row"><input id="path-input" placeholder="Например, D:\SteamLibrary" maxlength="1024" required autocomplete="off"><button class="button button-primary" type="submit">Добавить</button></div></form><p id="path-error" class="path-error" role="alert" hidden></p><div id="scan-notes" class="scan-notes"></div><p class="privacy-note">Сведения об установке, обложки и лицензии аккаунта читаем из локального Steam. Файлы Steam не меняем. Размеры неустановленных игр и краткое описание выбранной игры подгружаем из Steam Store. Передаём только публичный номер игры и язык описания, без аккаунта, лицензий и путей к файлам. Сервис видит IP-адрес соединения. Размеры можно отключить в «Настройках»; описание запрашивается только для выпавшей игры. Пароль и API-ключ не нужны. Для запуска игр может потребоваться вход, лицензия или обновление в Steam.</p></dialog>
   <section id="settings-dialog" class="workspace-page settings-page" data-workspace-page="settings" aria-labelledby="settings-title" hidden>
     <h2 id="settings-title" class="visually-hidden">Настройки приложения</h2>
@@ -132,7 +148,7 @@
       </div>
       <p id="app-settings-status" class="dialog-intro display-status" role="status">Загружаем настройки обновлений…</p>
       <button id="retry-app-settings" class="button button-quiet" hidden>Повторить загрузку</button>
-      <p id="update-status" class="dialog-intro display-status" role="status">Текущая версия: 2.1.0</p>
+      <p id="update-status" class="dialog-intro display-status" role="status">Текущая версия: 2.1.1</p>
       <div class="settings-actions"><button id="check-update" class="button button-quiet">Проверить сейчас</button><button id="install-update" class="button button-primary" hidden>Установить сейчас</button><a id="download-update" class="button button-quiet" target="_blank" rel="noreferrer noopener" hidden>Открыть страницу релиза</a></div>
       <p class="privacy-note">Обновления проверяются при запуске. Если автообновление включено, новая версия установится во время запуска программы. Иначе о ней сообщит отдельное окно, пока ты не отключишь его. Обновление всегда можно запустить вручную здесь. Архив и контрольная сумма загружаются с GitHub, а папка data не заменяется.</p>
     </section>

@@ -1,5 +1,27 @@
 # Изменения
 
+## 2.1.1
+
+### Русский
+
+- Полосы прокрутки появляются при прокрутке и плавно исчезают, не меняя ширину интерфейса. Прокрутка мышью, клавиатурой и перетаскиванием остаётся штатной.
+- Исправлена обрезка меток категорий. В карточках кнопка управления размещена отдельно, а в режиме списка категории расположены сбоку и могут переноситься без обрезки строки.
+- Высота большой карточки игры фиксирована. Описание занимает доступное место целыми строками, а полный текст открывается в отдельном окне.
+- Для установленной игры с обновлением основная кнопка называется «Обновить и играть»: Steam запускает обновление перед игрой. Повторное предупреждение под описанием убрано.
+- Управление участием перемещено к основным действиям. Убраны повторный статус «Участвует в выборе» и нижний переход в библиотеку.
+- Добавлен анимированный экран запуска с иконкой и реальными этапами загрузки, а также оформление начального экрана Windows. Анимация учитывает настройки уменьшения движения, не задерживает запуск искусственно и отключается в свёрнутом окне.
+- Категории, исключения, история и настройки сохраняют прежний формат.
+
+### English
+
+- Native scrollbars appear during scrolling and fade out without resizing the interface. Mouse, keyboard and scrollbar dragging remain browser-managed.
+- Fixed clipped category tags. Card controls have their own space; list-view categories appear beside game details and wrap without vertical clipping.
+- Game details keep a fixed height. Descriptions use the available space in whole lines; full text opens in a separate dialog.
+- Installed games requiring an update show “Update and play”, asking Steam to update before launching. Removed the duplicate update warning.
+- Participation controls sit beside the main actions. Removed the redundant included status and bottom library shortcut.
+- Added an animated startup screen with the app icon and real loading stages, plus a matching native Windows startup panel. Animations respect reduced-motion preferences, never add an artificial wait and stop in minimized windows.
+- Existing user data formats remain unchanged.
+
 ## 2.1.0
 
 ### Русский

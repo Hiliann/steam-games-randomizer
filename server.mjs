@@ -21,7 +21,7 @@ import { desktopOwnerId, watchDesktopOwner } from './lib/desktop-owner.mjs';
 import { attachSessionFrames } from './lib/session-frames.mjs';
 
 const base = path.dirname(fileURLToPath(import.meta.url));
-export const APP_VERSION = '2.1.0';
+export const APP_VERSION = '2.1.1';
 export function getInstanceId(directory = base) {
   const resolved = path.resolve(directory);
   return createHash('sha256').update(process.platform === 'win32' ? resolved.toLowerCase() : resolved).digest('hex').slice(0, 24);
@@ -33,6 +33,8 @@ const staticFiles = new Map([
   ['/toast.js', ['toast.js', 'text/javascript; charset=utf-8']],
   ['/game-details.js', ['game-details.js', 'text/javascript; charset=utf-8']],
   ['/decision.js', ['decision.js', 'text/javascript; charset=utf-8']],
+  ['/scroll-activity.js', ['scroll-activity.js', 'text/javascript; charset=utf-8']],
+  ['/startup.js', ['startup.js', 'text/javascript; charset=utf-8']],
   ['/randomizer.js', ['randomizer.js', 'text/javascript; charset=utf-8']],
   ['/exclusions.js', ['exclusions.js', 'text/javascript; charset=utf-8']],
   ['/display.js', ['display.js', 'text/javascript; charset=utf-8']],

@@ -10,22 +10,32 @@ export function participationDetails(excluded) {
   };
 }
 
-export function createDescriptionDisclosure({ description, button, schedule = requestAnimationFrame }) {
+export function descriptionLineCount(height, lineHeight) {
+  return Math.max(1, Math.floor(height / (Number.isFinite(lineHeight) && lineHeight > 0 ? lineHeight : 22.4)));
+}
+
+export function createDescriptionDisclosure({ description, space = description, button, dialog, fullDescription, title, dialogTitle, closeButton, schedule = requestAnimationFrame, style = getComputedStyle }) {
   let key;
-  let expanded = false;
   let queued = false;
   function measure() {
     queued = false;
-    if (!description.getClientRects().length) return;
-    button.hidden = !expanded && description.scrollHeight <= description.clientHeight + 1;
+    if (!space.getClientRects().length) return;
+    const lines = descriptionLineCount(space.clientHeight, parseFloat(style(description).lineHeight));
+    description.style.setProperty('--description-lines', String(lines));
+    button.hidden = !description.textContent || description.scrollHeight <= description.clientHeight + 1;
   }
   function refresh(nextKey = key) {
-    if (nextKey !== key) { key = nextKey; expanded = false; }
-    description.classList.toggle('description-expanded', expanded);
-    button.setAttribute('aria-expanded', String(expanded));
-    button.textContent = expanded ? tr('Свернуть описание', 'Show less') : tr('Подробнее об игре', 'Read more');
+    if (nextKey !== key) { if (dialog.open) dialog.close(); button.hidden = true; }
+    key = nextKey;
+    button.textContent = tr('Подробнее об игре', 'Read more');
+    if (dialog.open) { fullDescription.textContent = description.textContent; dialogTitle.textContent = title.textContent; }
     if (!queued) { queued = true; schedule(measure); }
   }
-  button.addEventListener('click', () => { expanded = !expanded; refresh(); });
-  return { refresh, get expanded() { return expanded; } };
+  button.addEventListener('click', () => {
+    fullDescription.textContent = description.textContent;
+    dialogTitle.textContent = title.textContent;
+    if (!dialog.open) { dialog.showModal(); closeButton.focus(); }
+  });
+  closeButton.addEventListener('click', () => dialog.close());
+  return { refresh };
 }

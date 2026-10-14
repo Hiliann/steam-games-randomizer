@@ -1,4 +1,28 @@
 /* Application workspace. User themes and accents remain intact. */
+.startup-screen { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 32px; background: radial-gradient(ellipse at 50% 42%, color-mix(in srgb, var(--accent) 8%, var(--bg)), var(--bg) 65%); opacity: 1; transition: opacity .32s ease; }
+.startup-screen.is-leaving { opacity: 0; pointer-events: none; }
+.startup-content { text-align: center; max-width: 420px; }
+.startup-mark { width: 176px; height: 176px; position: relative; display: grid; place-items: center; margin: 0 auto 28px; }
+.startup-mark::before, .startup-mark::after { content: ''; position: absolute; inset: 0; border: 2px solid color-mix(in srgb, var(--accent) 10%, transparent); border-top-color: var(--accent); border-right-color: color-mix(in srgb, var(--accent) 40%, transparent); border-radius: 50%; animation: startup-orbit 3s linear infinite; }
+.startup-mark::after { inset: 12px; border-top-color: transparent; border-bottom-color: color-mix(in srgb, var(--accent) 45%, transparent); animation-duration: 5s; animation-direction: reverse; }
+.startup-mark img { width: 108px; height: 108px; animation: startup-breathe 2.6s ease-in-out infinite; filter: drop-shadow(0 8px 28px color-mix(in srgb, var(--accent) 18%, transparent)); }
+.startup-content h1 { font-size: 34px; margin: 0; letter-spacing: -.8px; }
+.startup-tagline { margin-top: 12px; font-size: 16px; color: var(--muted); }
+.startup-loader { width: 176px; height: 3px; border-radius: 4px; background: var(--border); overflow: hidden; margin: 28px auto 18px; }
+.startup-loader span { display: block; width: 56px; height: 100%; border-radius: inherit; background: var(--accent); animation: startup-travel 1.2s ease-in-out infinite alternate; }
+#startup-status { font-size: 14px; line-height: 1.5; color: var(--text); }
+#skip-startup { font-size: 12px; min-height: 32px; margin-top: 20px; }
+@keyframes startup-orbit { to { transform: rotate(360deg); } }
+@keyframes startup-breathe { 50% { transform: translateY(-5px) rotate(-3deg); } }
+@keyframes startup-travel { to { transform: translateX(120px); } }
+@media (prefers-reduced-motion: reduce) { .startup-screen { transition: none; } .startup-mark::before, .startup-mark::after, .startup-mark img, .startup-loader span { animation: none; } }
+:where(.app-shell > main, .app-sidebar, .history-list, .category-game-list, .hero-category-options, .library-category-options, .hero-category-strip, dialog) { scrollbar-width: thin; scrollbar-color: transparent transparent; transition: scrollbar-color .38s ease; }
+:where(.app-shell > main, .app-sidebar, .history-list, .category-game-list, .hero-category-options, .library-category-options, .hero-category-strip, dialog).is-scrolling { scrollbar-color: var(--muted) transparent; }
+:where(.app-shell > main, .app-sidebar, .history-list, .category-game-list, .hero-category-options, .library-category-options, .hero-category-strip, dialog)::-webkit-scrollbar { width: 8px; height: 8px; }
+:where(.app-shell > main, .app-sidebar, .history-list, .category-game-list, .hero-category-options, .library-category-options, .hero-category-strip, dialog)::-webkit-scrollbar-track { background: transparent; }
+:where(.app-shell > main, .app-sidebar, .history-list, .category-game-list, .hero-category-options, .library-category-options, .hero-category-strip, dialog)::-webkit-scrollbar-thumb { background: transparent; border-radius: 8px; }
+:where(.app-shell > main, .app-sidebar, .history-list, .category-game-list, .hero-category-options, .library-category-options, .hero-category-strip, dialog).is-scrolling::-webkit-scrollbar-thumb { background: var(--muted); }
+@media (forced-colors: active) { :where(.app-shell > main, .app-sidebar, .history-list, .category-game-list, .hero-category-options, .library-category-options, .hero-category-strip, dialog), :where(.app-shell > main, .app-sidebar, .history-list, .category-game-list, .hero-category-options, .library-category-options, .hero-category-strip, dialog).is-scrolling { scrollbar-color: auto; } }
 :root { --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-6: 24px; --space-8: 32px; --radius-control: 10px; --radius-panel: 16px; --type-caption: 12px; --type-body: 14px; --type-title: 28px; --warning: #f5c587; --danger: #ffa6a6; }
 html, body { height: 100%; }
 body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; overflow: hidden; }
@@ -149,9 +173,10 @@ select { min-height: 40px; border-radius: 8px; color: var(--text); background: v
 .card-disk { border-radius: 4px; font-size: 9px; }
 .game-card h3 { padding-inline: 4px; font-size: 13px; font-weight: 600; margin-top: 12px; }
 .game-meta { flex-wrap: wrap; padding-inline: 4px; color: var(--muted); font-size: var(--type-caption); gap: 4px 8px; }
-.card-category-row { padding-inline: 4px; flex-wrap: wrap; margin-top: 8px; gap: 6px; }
+.card-category-row { display: grid; grid-template-columns: minmax(0, 1fr); padding-inline: 4px; margin-top: 8px; gap: 4px; }
+.card-category-badges { flex: none; width: 100%; max-height: none; overflow: visible; align-content: start; }
 .card-category-button { font-size: var(--type-caption); min-height: 32px; }
-.library-category-menu { position: relative; }
+.library-category-menu { position: relative; justify-self: start; max-width: 100%; }
 .library-category-menu > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 5px; color: var(--muted); }
 .library-category-menu > summary::-webkit-details-marker { display: none; }
 .library-category-menu[open] { z-index: 5; }
@@ -159,12 +184,16 @@ select { min-height: 40px; border-radius: 8px; color: var(--text); background: v
 .library-category-options.opens-up { top: auto; bottom: calc(100% + 6px); }
 .hero-category-menu .hero-category-options { top: auto; bottom: calc(100% + 8px); left: auto; right: 0; width: min(280px, calc(100vw - 112px)); }
 .library-category-options .text-button { font-size: 11px; padding: 10px 6px; }
-.category-badge { font-size: 11px; padding: 3px 7px; }
+.category-badge { display: block; min-width: 0; max-width: 100%; flex: 0 1 auto; font-size: 11px; padding: 3px 7px; overflow: hidden; text-overflow: ellipsis; }
 #hero-categories .category-badge { font-size: var(--type-caption); }
 .game-toggle { min-height: 36px; margin-top: auto; padding: 8px 4px 4px; font-size: var(--type-caption); color: var(--muted); }
 .game-toggle input { width: 14px; height: 14px; }
 .game-grid[data-view='list'] { grid-template-columns: 1fr; gap: 8px; }
-.game-grid[data-view='list'] .game-card { display: grid; grid-template-columns: 54px minmax(0, 1fr) minmax(120px, 180px) 100px; grid-template-rows: auto auto; column-gap: 14px; padding: 10px; align-items: center; }
+.game-grid[data-view='list'] .game-card { display: grid; grid-template-columns: 54px minmax(0, 1fr) minmax(180px, .8fr) 100px; grid-template-rows: auto auto; column-gap: 14px; padding: 10px; align-items: center; }
+.game-grid[data-view='list'] .game-card h3 { grid-column: 2; grid-row: 1; }
+.game-grid[data-view='list'] .game-meta { grid-column: 2; grid-row: 2; }
+.game-grid[data-view='list'] .card-category-row { grid-column: 3; grid-row: 1 / 3; grid-template-columns: minmax(0, 1fr) auto; align-items: center; margin: 0; gap: 12px; }
+.game-grid[data-view='list'] .game-toggle { grid-column: 4; grid-row: 1 / 3; }
 .game-grid[data-view='list'] .game-art { grid-column: 1; grid-row: 1 / 3; width: 54px; height: 72px; aspect-ratio: auto; }
 .game-grid[data-view='list'] .game-placeholder { padding: 6px; }
 .game-grid[data-view='list'] .game-placeholder span, .game-grid[data-view='list'] .card-disk { display: none; }
@@ -276,10 +305,7 @@ dialog::backdrop { background: #0009; backdrop-filter: blur(4px); }
   .spotlight-media { height: 184px; }
   .workspace-header h1 { font-size: 24px; }
   .workspace-header p { max-width: 45ch; }
-  .game-grid[data-view='list'] .game-card { grid-template-columns: 54px minmax(0, 1fr) 100px; }
-  .game-grid[data-view='list'] .card-category-row { grid-column: 2; grid-row: 3; }
-  .game-grid[data-view='list'] .game-art { grid-row: 1 / 4; }
-  .game-grid[data-view='list'] .game-toggle { grid-column: 3; grid-row: 1 / 4; }
+  .game-grid[data-view='list'] .game-card { grid-template-columns: 48px minmax(0, 1fr) minmax(160px, .8fr) 96px; column-gap: 10px; }
   .settings-section { padding: 20px; }
   .option-row select { min-width: 145px; }
 }
@@ -328,6 +354,7 @@ dialog::backdrop { background: #0009; backdrop-filter: blur(4px); }
   .game-grid[data-view='list'] .game-card { grid-template-columns: 48px minmax(0, 1fr); gap: 4px 12px; }
   .game-grid[data-view='list'] .game-art { width: 48px; height: 64px; }
   .game-grid[data-view='list'] .game-toggle { grid-column: 2; grid-row: 4; }
+  .game-grid[data-view='list'] .card-category-row { grid-column: 2; grid-row: 3; }
   .settings-tabs { gap: 0; }
   .settings-tabs button { padding-inline: 12px; font-size: 11px; }
   .settings-section { padding: 18px; }
@@ -353,3 +380,37 @@ dialog::backdrop { background: #0009; backdrop-filter: blur(4px); }
   .spotlight-media { height: 128px; }
 }
 @media (prefers-reduced-motion: reduce) { .game-art img { transition: none; } }
+
+/* Stable game details: the description uses the remaining space. Full text
+   opens in a dialog, never pushes the actions or the history down. */
+.spotlight-body { height: 432px; display: grid; grid-template-rows: 20px auto 28px minmax(0, 1fr) 28px 20px 44px; row-gap: 4px; align-content: stretch; min-width: 0; }
+.hero-state { grid-row: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
+.hero-state .eyebrow { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.hero-state #hero-participation { flex: 0 0 auto; }
+.hero-state .participation-status { font-size: 11px; color: var(--warning); }
+.hero-state .participation-status .icon { width: 14px; height: 14px; }
+.spotlight-body h2 { grid-row: 2; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin: 4px 0; min-width: 0; }
+.hero-category-strip { grid-row: 3; min-width: 0; overflow-x: auto; overflow-y: hidden; }
+.hero-category-strip .category-badges { flex-wrap: nowrap; width: max-content; min-width: 0; }
+.hero-category-strip .category-badge { flex-shrink: 0; max-width: 280px; }
+.hero-description-space { grid-row: 4; min-height: 0; overflow: hidden; }
+.spotlight-body p.game-description { -webkit-line-clamp: var(--description-lines, 3); max-width: none; margin: 0; }
+.spotlight-body .description-toggle { grid-row: 5; justify-self: start; margin: 0; min-height: 28px; }
+.spotlight-body p.hero-context { grid-row: 6; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#spotlight .hero-actions { grid-row: 7; margin: 0; display: flex; flex-wrap: nowrap; flex-direction: row; gap: 8px; align-items: stretch; min-width: 0; }
+.hero-actions .participation-action { min-width: 44px; width: 44px; padding: 0; flex: 0 0 44px; }
+.hero-actions .participation-action .icon { width: 18px; height: 18px; }
+.description-dialog { width: min(620px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); padding: 24px; }
+.description-dialog h2 { font-size: 24px; overflow-wrap: anywhere; }
+.description-dialog p { font-size: 14px; line-height: 1.7; white-space: pre-line; margin-top: 16px; }
+@media (min-width: 1600px) { .spotlight-body { height: 480px; } }
+@media (max-height: 620px) { .spotlight-body { height: 400px; } }
+@media (max-width: 640px) {
+  .hero-state .participation-status { font-size: 0; gap: 0; }
+  .hero-state .participation-status .icon { width: 16px; height: 16px; }
+  #spotlight .hero-actions { display: grid; grid-template-columns: minmax(0, 1fr) 44px 44px; }
+  .hero-actions .button-light { font-size: 13px; min-width: 0; }
+  .hero-category-menu > summary { width: 44px; justify-content: center; padding: 0; }
+  .hero-category-menu > summary > span { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { :where(.app-shell > main, .app-sidebar, .history-list, .category-game-list, .hero-category-options, .library-category-options, .hero-category-strip, dialog) { transition: none; } }

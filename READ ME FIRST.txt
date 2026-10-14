@@ -1,4 +1,4 @@
-PLAY NEXT - ВЕРСИЯ 2.1.0
+PLAY NEXT - ВЕРСИЯ 2.1.1
 
 English description and instructions: README.en.md
 

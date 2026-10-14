@@ -5,8 +5,17 @@ const attributeSources = new WeakMap();
 const listeners = new Set();
 
 const exact = new Map([
+  ['Параметры выбора', 'Pick options'],
+  ['Доступна для установки', 'Available to install'], ['Перед запуском нужно обновление', 'Update required before launch'], ['Готова к запуску', 'Ready to play'],
+  ['Не участвует в выборе', 'Excluded from picks'], ['Участвует в выборе', 'Included in picks'], ['Вернуть в выбор', 'Include in picks'], ['Исключить из выбора', 'Exclude from picks'],
+  ['Подробнее об игре', 'Read more'], ['Свернуть описание', 'Show less'], ['Активные фильтры', 'Active filters'],
+  ['Сохранить изменения подборки?', 'Save collection changes?'], ['Сохранить и продолжить', 'Save and continue'], ['Не сохранять', 'Discard changes'], ['Остаться', 'Stay here'],
+  ['Ты изменил состав игр. Сохрани подборку перед переходом или продолжи без этих изменений.', 'You changed the games in this collection. Save before leaving, or continue without these changes.'],
+  ['Не удалось подтвердить сохранение. Изменения оставлены на экране. Проверь связь с приложением.', 'Could not confirm the save. Your changes remain on screen. Check the app connection.'],
   ['Установка', 'Installation'], ['Любой статус', 'Any status'], ['Установленные', 'Installed'], ['Неустановленные', 'Not installed'],
   ['Очистить поиск', 'Clear search'], ['Участие игры восстановлено', 'Game participation restored'],
+  ['Сбросить фильтры', 'Reset filters'],
+  ['Проверяем библиотеку Steam', 'Checking your Steam library'],
   ['Сбрось поиск или выбери другой фильтр.', 'Clear the search or choose another filter.'],
   ['Включи «Показывать неустановленные игры» над списком, чтобы увидеть всю библиотеку Steam.', 'Enable “Show uninstalled games” above the list to see your entire Steam library.'],
   ['Игры в подборке', 'Games in collection'], ['Выбрать из подборки', 'Pick from collection'], ['Сначала сохрани изменения текущей подборки или нажми «Отменить».', 'Save the changes to this collection first, or click “Cancel”.'],

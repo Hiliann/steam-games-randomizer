@@ -1,5 +1,29 @@
 # Изменения
 
+## 2.1.0
+
+### Русский
+
+- Карточка игры переработана: обложка отделена от текста, информация и действия размещены на непрозрачной панели. Увеличены размеры основного текста и кнопок.
+- Статус установки и участие в случайном выборе показаны отдельно. Исключённую игру можно вернуть прямо из карточки, не переходя в библиотеку.
+- Длинные описания можно раскрыть и свернуть. Меню категорий больше не обрезается краем карточки; оно закрывается по нажатию снаружи и Escape.
+- Активные фильтры библиотеки представлены отдельными метками, каждый можно удалить независимо от остальных.
+- В узком окне выбор игры расположен выше карточки, а его дополнительные параметры сворачиваются. В небольшом по высоте окне обложка занимает меньше места.
+- При смене категории или экрана редактор предлагает сохранить изменения, продолжить без сохранения или остаться. При неудачной записи черновик и диалог остаются на экране.
+- Подтверждение удаления категорий приведено к общему оформлению приложения. Игры и исключения при удалении категории не меняются.
+- Решения и критерии проверки интерфейса описаны в DESIGN.md. Сохранён формат пользовательских данных.
+
+### English
+
+- Redesigned game details: artwork is separated from readable content and actions on an opaque panel. Increased body text and control sizes.
+- Installation and participation are shown independently. Excluded games can be included again directly from their details.
+- Expand or collapse long descriptions. Category menus are no longer clipped by the card and close on outside clicks or Escape.
+- Active library filters have independently removable chips.
+- In narrow windows, the picker appears above game details and its additional options collapse. Shorter windows use a more compact artwork area.
+- Leaving a collection draft offers Save, Discard or Stay. Failed writes keep the draft and dialog visible.
+- Category deletion uses the same application dialog style. Games and exclusions are preserved.
+- Design research and acceptance criteria are documented in DESIGN.md. Existing user data formats remain unchanged.
+
 ## 2.0.1
 
 ### Русский

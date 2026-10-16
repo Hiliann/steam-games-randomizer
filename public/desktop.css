@@ -220,6 +220,7 @@ select { min-height: 40px; border-radius: 8px; color: var(--text); background: v
 .privacy-note { font-size: 11px; line-height: 1.8; color: var(--muted); }
 .settings-page .privacy-note { border: 0; padding: 0; margin-top: 20px; }
 .display-status { margin-top: 20px; font-size: 11px; }
+#update-progress { width: 100%; max-width: 440px; height: 6px; margin: 0 0 14px; accent-color: var(--accent); }
 .accent-editor { border-radius: 12px; background: var(--bg); padding: 20px; margin-top: 22px; }
 .accent-editor-heading { gap: 16px; }
 .accent-editor-heading strong { font-size: 13px; }

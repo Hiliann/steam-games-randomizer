@@ -46,3 +46,11 @@ test('update checker reports an offline result for invalid or unreachable respon
   const unavailable = createUpdateService({ currentVersion: '1.6.0', request: async () => { throw new Error('offline'); } });
   assert.equal((await unavailable.check()).status, 'offline');
 });
+
+test('an offline cache expires before the bounded startup retry, not after six hours',async()=>{
+  let now=0,calls=0;
+  const service=createUpdateService({currentVersion:'2.5.0',clock:()=>now,request:async()=>{calls++;throw new Error('Offline');}});
+  await service.check();now+=1000;await service.check();assert.equal(calls,1);
+  now+=30000;await service.check();assert.equal(calls,2);
+  assert.equal(parseVersion('999999999999999999999.0.0'),null);
+});

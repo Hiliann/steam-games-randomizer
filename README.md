@@ -1,173 +1,113 @@
 # Play Next - Steam Games Randomizer
 
-[English](README.en.md) | [Русский](README.md)
+[English](README.md) | [Русский](README.ru.md)
 
-**[Страница проекта](https://hiliann.github.io/steam-games-randomizer/) · [Скачать для Windows](https://github.com/Hiliann/steam-games-randomizer/releases/latest) · [Сообщить о проблеме](https://github.com/Hiliann/steam-games-randomizer/issues)**
+**[Project website](https://hiliann.github.io/steam-games-randomizer/) · [Download for Windows](https://github.com/Hiliann/steam-games-randomizer/releases/latest) · [Report a problem](https://github.com/Hiliann/steam-games-randomizer/issues)**
 
-[История версий и контрольные суммы](https://github.com/Hiliann/steam-games-randomizer/blob/main/RELEASE_HISTORY.md) · [План развития](PLAN.md)
+[Release history and checksums](https://github.com/Hiliann/steam-games-randomizer/blob/main/RELEASE_HISTORY.md) · [Development plan](PLAN.md)
 
-Приложение для Windows, которое выбирает случайную игру Steam. Оно открывается в собственном окне, без вкладок браузера. По умолчанию - только установленные игры; отдельная галочка добавляет игры из локальных лицензий аккаунта. Интерфейс доступен на русском и английском. Окно работает на Microsoft WebView2, локальная логика - на Node.js.
+Play Next is a Windows application with its own desktop window that helps you pick a random game from your Steam library. It finds installed games automatically. An optional checkbox also includes uninstalled games from the active account's local license cache.
 
-## Запуск в Windows
+Spend less time browsing your library and more time playing. Exclude games you do not feel like playing, choose without repeats, and launch the selected game in Steam when you are ready.
 
-Навигация слева разделяет приложение на четыре экрана: **Выбор игры**, **Библиотека**, **Категории**, **Настройки**. В узком окне подписи остаются под значками; на очень узком экране навигация перемещается вниз.
+The website includes a fictional demo, project information and downloads. It cannot read your Steam library or access the local program. **The program, website and project description are available in Russian and English.**
 
-В библиотеке доступны карточки и компактный список, поиск, фильтры и сортировка по названию, последнему запуску и размеру. Нажатие на обложку открывает просмотр и запуск игры, не меняя историю случайного выбора. Категории можно отметить прямо в карточке. В редакторе подборок есть массовое добавление, сохранение и кнопка выбора из текущей категории. Настройки разделены на вкладки оформления, игр, Windows, обновлений и резервного копирования. **Ctrl+F** открывает поиск библиотеки; пробел выбирает игру только на экране выбора.
+## Run on Windows
 
-В редакторе категорий **Ctrl+F** ищет в текущей подборке, **Ctrl+S** сохраняет её,
-**Escape** очищает поиск. Перед сохранением видно число добавлений и удалений.
+1. Download **PlayNext-2.5.0-win-x64.zip** from [Releases](https://github.com/Hiliann/steam-games-randomizer/releases/latest). Do not use **Code > Download ZIP**: that archive contains source code without the bundled runtime.
+2. Extract the entire archive to a writable folder. Do not run the program from inside the ZIP.
+3. Open **Play Next.exe**. The program opens in its own desktop window, without a browser tab. Its local address is chosen automatically.
+4. Press **Pick a game**, then **Play on Steam**. An uninstalled game instead offers **Install on Steam**. The local program passes the command to Steam without leaving a technical browser tab open.
+5. Close the app window when you are done. Play Next stops its local service. Idle time, minimizing and temporary renderer disconnections no longer stop the app. It attempts recovery after a service failure and offers a retry if recovery fails.
 
-1. Полностью распакуй ZIP с программой в обычную папку, доступную для записи.
-2. Дважды нажми **Play Next.exe**. Откроется отдельное окно приложения. Локальный адрес выбирается автоматически; браузер открывать не нужно.
-3. Нажми **«Выбрать игру»** или пробел вне поля ввода. Для запуска выбранной игры нажми **«Играть в Steam»**. Команда передаётся Steam через локальную программу, поэтому отдельная вкладка `steam://` не открывается.
+Requires **Windows 10/11 x64 (Intel/AMD), .NET Framework 4.6.2+, Steam and Microsoft Edge WebView2 Runtime**. WebView2 is normally present on Windows; if missing, the app offers the [official Microsoft download page](https://developer.microsoft.com/microsoft-edge/webview2/). Node.js 24.20.0 is included. No API key or Codex is required. Keep the `runtime` folder with the program. Desktop shortcuts and startup in a minimized window are available in Settings.
 
-Повторный запуск возвращает уже открытое окно этой копии. Закрытие окна завершает локальный процесс. Простой, сворачивание и обрыв внутреннего соединения не выключают программу; при сбое она пытается восстановить работу, а затем предлагает повторить запуск. В настройках можно создать ярлык на рабочем столе и включить запуск вместе с Windows.
+## Features
 
-**Программа уже включает Node.js**. Требования: Windows 10/11 x64 (Intel/AMD), .NET Framework 4.6.2+, Steam и **Microsoft Edge WebView2 Runtime** (обычно уже есть в Windows). Если компонента нет, приложение предложит открыть [официальную страницу Microsoft](https://developer.microsoft.com/microsoft-edge/webview2/) для его установки. Codex, npm и API-ключи не нужны. Папку `runtime` необходимо сохранять рядом с остальными файлами. Сведения о сборке - в `release.json`; лицензии - в `runtime/LICENSE` и `runtime/desktop/`.
+The sidebar separates **Choose a game**, **Library**, **Categories** and **Settings**. Labels remain visible in narrow windows; the navigation moves to the bottom on very small screens. The library supports card/list views and sorting by name, last played or size. Click a cover to preview and launch a game without changing the random-draw history, or assign categories directly on its card. The collection editor supports bulk changes and a shortcut to pick from that collection. Settings are organized into Appearance, Games, Windows, Updates and My data tabs. **Ctrl+F** opens library search; Space draws a game only on the chooser screen.
 
-Для запуска только исходного кода без папки `runtime` нужен установленный **Node.js 22.2 или новее** с [официального сайта](https://nodejs.org).
+- Automatically detects Steam libraries across multiple drives; custom paths can be added manually.
+- Chooses only eligible games, with optional no-repeat rounds and a history of recent picks.
+- Adds saved categories directly from the picked game, plus a bulk editor for the whole library. A category can filter the visible library or become the active randomization mode.
+- Includes modes for all participating games, installed or uninstalled games, never-played games, games dormant for 90 days and any saved category. Every eligible game keeps the same probability.
+- Lets you exclude individual games. Exclusions survive closing the program, changing ports and clearing browser storage.
+- Shows artwork from the local Steam cache, with a game-name fallback when artwork is unavailable.
+- Shows a complete card during shuffle: artwork, title, description and categories belong to the same game. Actions stay visible but disabled until the result is confirmed.
+- Loads short Steam Store descriptions for the selected game and a small set of frames, with plain-text validation and local caching. Offline frames use local game details.
+- Includes search, keyboard controls, reduced-motion support and a responsive interface for narrow and wide windows.
+- Optionally adds uninstalled games backed by local Steam licenses, without a public Steam profile or account sign-in through Play Next.
+- Shows storage requirements for uninstalled games and lets you toggle size information and the installed-game badge.
+- Can create a desktop shortcut and start in the background with Windows, without administrator rights.
+- Chooses Russian or English from the system language on first launch, while always preserving a saved manual choice. It also offers three dark themes, preset accents and an editable random-palette preview.
+- Shuffles the decorative draw sequence on every pick and avoids adjacent repeats while more than one candidate is available.
+- Exports categories, history, exclusions, library paths and settings to one validated backup file and restores the previous data if an import write fails.
+- Checks public GitHub releases for a newer version at startup or on demand. Verified updates can be installed manually or automatically at startup through an opt-in setting.
 
-## Возможности
+## Uninstalled games and storage information
 
-- Поиск Steam через реестр Windows, стандартные пути и `steamapps/libraryfolders.vdf`.
-- Поддержка нескольких дисков и ручного добавления библиотек.
-- Проверка `appmanifest_*.acf`, признака завершённой установки, наличия и непустоты папки игры.
-- Удаление дублей по AppID; скрытие SteamVR, общих библиотек Steamworks и известных служебных компонентов.
-- Выбор без повторов, пока не закончится текущий круг. На границе кругов не выпадает та же игра подряд, если доступно больше одной.
-- Режимы выбора: все участвующие, только установленные, только неустановленные, ещё не запускавшиеся, не запускавшиеся 90 дней или игры из выбранной категории. В каждом режиме у подходящих игр равный шанс.
-- Сохраняемые категории для собственных подборок, например «Хочу пройти», «Для компании» или «На 30 минут». Выпавшую игру можно сразу добавить в нужные категории; массовый редактор остаётся для работы со всей библиотекой.
-- Режим с повторами, исключения, поиск по названиям и история последних 30 выборов (последние 7 показаны на странице).
-- Обложки из локального кэша Steam, без внешних запросов. Если обложки нет, отображается название игры.
-- Полная карточка во время перемешивания: обложка, название, описание и категории относятся к одной игре. Кнопки остаются видимыми, но недоступны до подтверждения результата.
-- Краткие описания выбранной игры и небольшого набора кадров из Steam Store на языке интерфейса, без загрузки всей библиотеки. Текст очищается от разметки и сохраняется в локальном кэше; без интернета доступны локальные сведения об игре.
-- Адаптивный интерфейс для узких окон от 320 px до широких мониторов: 2-7 колонок карточек, перенос панелей, крупные сенсорные элементы, удобные поля ввода и диалоги. На узком экране кнопка выбора находится выше результата, а после выбора страница прокручивается к игре.
-- Работа с клавиатуры и поддержка уменьшенной анимации.
-- Ярлык на рабочем столе и фоновый запуск вместе с Windows включаются отдельными переключателями без прав администратора.
-- При первом запуске русский или английский интерфейс выбирается по системному языку; сохранённый ручной выбор всегда важнее. Доступны три тёмные темы, готовые акценты и редактор собственной палитры.
-- Анимация выбора каждый раз перемешивает подходящие игры и не повторяет соседние названия, пока в наборе есть выбор.
-- Резервная копия категорий, истории, исключений и настроек одним JSON-файлом с проверкой перед восстановлением и автоматическим откатом при ошибке.
-- Проверка новых версий через публичные релизы GitHub при запуске и вручную. Автообновление при запуске доступно отдельной выключенной по умолчанию настройкой.
+The library is a **snapshot of local Steam data, not an online ownership check**. After buying a game or switching accounts, open Steam online and refresh the list in Play Next. Missing or incomplete cache data is reported without hiding installed games. DLC, tools, demos, borrowed/family and temporary licenses are not included in the uninstalled list.
 
-## Отображение размера и плашек
+**«Место» means disk space required according to the game's Steam Store system requirements, not an exact download or installation size.** Information is loaded for visible cards and the selected game, cached for seven days and retained for offline use. Steam requests are rate-limited.
 
-Раздел **«Настройки»** в навигации открывает параметры языка, оформления, отображения, Windows, обновлений и резервного копирования:
+**«≈» means an approximate fallback based on local Steam depot information.** DLC and optional components are excluded; updates, language choices and overlapping files may affect the result. If neither source provides a size, the program reports it as unknown rather than inventing a number.
 
-- **«Размер неустановленных игр»** - по умолчанию включён. Показывает место на диске рядом с «Не установлена» на большой обложке и в списке библиотеки. Выключение скрывает размеры и прекращает новые интернет-запросы.
-- **«Плашка установленной игры»** - по умолчанию выключен. Возвращает диск и фактически занятое место в верхний угол большой обложки. Размер в списке установленных игр остаётся видимым.
+Turn size information off in **«Настройки»** (Settings) to hide it and stop new size requests. Short descriptions are requested for the selected game and a small set of shuffle frames, not the whole library. The installed-game badge is hidden by default and can be enabled separately.
 
-Изменения применяются сразу и сохраняются в `data/display-settings.json`. Закрытие приложения, другой порт или очистка браузера их не сбрасывают. Если запись не подтверждена, появится сообщение; кнопка «Повторить загрузку» перечитает сохранённые значения. Повреждённый файл автоматически не заменяется.
+## Saved settings and updates
 
-В разделе **Windows** можно создать ярлык Play Next на рабочем столе и включить запуск в свёрнутом окне при входе в систему. Ярлык относится только к текущей папке приложения. При выключении Play Next удаляет только созданный для этой копии ярлык. Переключатель автозапуска не требует прав администратора и не открывает браузер.
+Exclusions, categories, category assignments, pick history, the current round, the selected draw mode, display settings and cached online sizes are stored in the `data` folder next to the program. **Keep this folder when updating or moving your own copy.** Close the Play Next window before copying files.
 
-Раздел **Обновления** показывает установленную версию и результат последней проверки. При запуске выполняется одна фоновая проверка с кэшированием на 6 часов; кнопка **«Проверить сейчас»** повторяет запрос немедленно. Если включено **«Автообновление при запуске»**, найденная версия скачивается, проверяется и устанавливается именно во время запуска программы. Включение галочки посреди сеанса не начинает установку. По умолчанию автообновление выключено.
+The Windows section in **«Настройки»** (Settings) creates a shortcut for the current program folder and can enable background startup without opening the browser at sign-in. Play Next removes only shortcuts that belong to the current copy.
 
-Если автообновление выключено, о новой версии сообщает отдельное окно с кнопками установки и откладывания. Кнопка **«Больше не показывать это окно»** отключает такие уведомления; вернуть их можно переключателем в этом же разделе. Сведения о доступной версии и ручная установка остаются в настройках всегда. Параметры сохраняются в `data/app-settings.json`, а прежний формат файла обновляется без потери выбранного режима.
+Update checks use the repository's public GitHub release API and are cached for six hours. **Update automatically at startup** is off by default. When enabled, a detected version is downloaded, verified and installed during startup; enabling the setting during a running session does not start an immediate installation. Otherwise a separate notice offers **Install update**, **Later** and **Do not show this notice again**. The notice can be enabled again in Settings, and manual installation remains available there.
 
-Раздел **«Резервная копия»** скачивает один JSON-файл с категориями, назначениями игр, историей, текущим кругом, исключениями, ручными путями библиотек и настройками. Выбранный файл сначала целиком проверяется без изменения данных. Затем отдельное окно показывает дату копии, версию программы, число категорий, назначенных игр, записей истории и исключений. Отмена выбрана по умолчанию; замена начинается только по кнопке «Заменить данные». Если нужны нынешние данные, сначала отмени и скачай их копию.
+The updater accepts only this repository's release archive, verifies its published SHA-256 and per-file manifest, and replaces program files only. Personal settings in `data` are not replaced; the updater writes only its own status and request metadata there. Update checks do not send your Steam library, settings or file paths. GitHub can see the connection's IP address.
 
-Если запись одной из частей завершится ошибкой, программа попробует вернуть прежние данные. После успешного восстановления страница перезапускается. Если связь прервалась после подтверждения, проверь результат перед повторной попыткой: отсутствие ответа само по себе не означает, что данные не изменились. Не публикуй личную резервную копию вместе с чистой сборкой для друзей.
+The app remains usable while the update downloads. You can cancel before replacement, including by switching off automatic updates. Replacement waits for unsaved edits, confirmations and pending saves, then restarts the app; a minimized startup remains minimized. A failed download leaves the old app open. Failed automatic attempts for the same version have a one-day cooldown; an explicit manual retry is available immediately. Offline checks retry up to three times. Update progress is stored separately from personal settings.
 
-Установщик принимает только архив релиза этого репозитория, проверяет опубликованный SHA-256 и манифест с размером и контрольной суммой каждого файла. Заменяются только перечисленные файлы программы. Папка `data`, журналы и файлы Steam не удаляются и не перезаписываются. При ошибке заменённые файлы восстанавливаются из временной резервной копии, после чего запускается прежняя версия.
+The **Backup** section downloads one JSON file containing categories, assignments, history, the current round, exclusions, manual library paths and settings. The selected file is fully validated without changing saved data. A confirmation then shows the backup date, app version and counts of categories, assigned games, history and exclusions. Cancel is focused by default; replacement starts only after pressing **Replace data**. To keep your current data, cancel and download a backup first.
 
-**«Место: 100 ГБ» - требуемый объём на диске из системных требований Steam Store, а не точный размер установки или скачивания.** Приложение получает сведения из интернета по публичному AppID, выбирает требования нужной платформы и большее значение, если минимальные и рекомендуемые отличаются. RAM и видеопамять не принимаются за место на диске. Ссылка **Steam** рядом с размером ведёт на страницу именно этой игры; подсказка показывает дату проверки.
+If one write fails, Play Next attempts to restore the previous data. A successful restore reloads the page. If the connection is interrupted after confirmation, check the result before retrying: a missing response does not by itself mean that data was unchanged. Keep personal backups separate from the clean ZIP shared with friends.
 
-Подгружаются только выбранная игра и видимые карточки, а не вся библиотека сразу. Розыгрыш не ждёт ответа интернета. Новые запросы идут не чаще одного в 2 секунды; при ограничениях Steam включается пауза. Сведения сохраняются в `data/online-sizes.json` на 7 дней. Ранее известное значение остаётся доступно при отсутствии интернета, даже после истечения этого срока, с отметкой в подсказке. Отсутствующий размер проверяется повторно не чаще раза в сутки. Кнопка «Обновить список» повторяет неудачные подключения после короткой паузы, но не сбрасывает свежий кэш. Повреждённый кэш не перезаписывается: до устранения проблемы новые значения доступны только в памяти текущего процесса.
+Only the uninstalled-games checkbox and manually added library paths remain in browser storage. They are specific to the browser and local address. Clearing browser data can reset these preferences, but does not remove categories, history or other settings saved in `data`.
 
-**«≈» - запасная оценка из локального Steam**, если Steam Store не ответил или в требованиях нет объёма. Берём размеры распакованного содержимого публичной ветки из `appinfo.vdf` с учётом лицензий, системы, разрядности и языка. DLC, необязательные компоненты и общие установщики не учитываются; перекрывающиеся файлы и обновления могут менять итог. Условия выбора компонентов описаны в [документации Steam о депо](https://partner.steamgames.com/doc/store/application/depots?l=english). Если размера нет в обоих источниках, выводится **«Размер не указан»** - без нуля, выдуманной цифры или подмены другой редакцией игры. Игровые файлы не скачиваются.
+Send friends the clean release ZIP, not a copy of a folder you have already used. Your used folder may contain personal settings and diagnostic logs.
 
-## Как пользоваться исключениями
+## Privacy and limitations
 
-Над фильтрами библиотеки находится галочка **«Показывать неустановленные игры»**. Она добавляет их и в список, и в случайный выбор. При снятии галочки остаются только установки на этом компьютере. Настройка сохраняется; история и исключения не стираются. Для выпавшей неустановленной игры вместо запуска показывается **«Установить в Steam»**: загрузка не начинается автоматически.
+The local server listens only on `127.0.0.1`. Steam files are read, not modified. Play Next does not require a Steam password or API key and does not upload account data, licenses, file paths or exclusions.
 
-Список берётся из `userdata/<account>/config/licensecache` и связывается с `appcache/packageinfo.vdf` и `appcache/appinfo.vdf`. Общий кэш магазина сам по себе не считается подтверждением владения. В Windows выбирается активный аккаунт Steam, а если он не определён - последний из `config/loginusers.vdf`. Имя выбранного пользователя показано под галочкой. Другие аккаунты не объединяются. Пароль, ключ Steam API, открытый профиль и интернет для чтения не нужны.
+For uninstalled-game storage information and short descriptions, it makes HTTPS requests to `store.steampowered.com` using public game IDs. The description request also includes the interface language. Steam can see the connection's IP address. These requests do not include cookies or your account information. Size requests can be turned off; descriptions are requested only for the current result and a small set of shuffle frames. Games and Steam may make their own network requests independently.
 
-Это **снимок локального кэша, а не онлайн-проверка всех покупок**. Если данные отсутствуют или повреждены, приложение показывает подсказку и сохраняет доступ к установленным играм. После покупки, возврата или смены аккаунта открой библиотеку Steam онлайн и нажми «Обновить список» здесь. Не добавляются DLC, демоверсии, инструменты, семейные/заёмные, временные и неактивные лицензии. Новая игра или её обложка появится только после сохранения соответствующих сведений клиентом Steam. Файлы текущих установок, как и раньше, видны независимо от аккаунта.
+The downloadable ZIP excludes personal data, Steam files, game artwork and logs. It is not digitally signed. A `.zip.sha256` file is supplied to check that your download matches the published archive; a checksum is not a substitute for a security review.
 
-Убери галочку **«Участвует»** под игрой либо нажми **«Не предлагать эту игру»** на выбранной карточке. Вернуть игру можно на вкладке **«Исключены»**. Поиск фильтрует только видимую библиотеку, но **не ограничивает розыгрыш**.
+Responsive layout does not make Play Next a phone app or expose it to your home network. Steam handles game ownership, updates, launchers and installation. Local installation files alone do not guarantee that the current account can launch a game.
 
-**«Сбросить круг»** разрешает заново выбирать все участвующие игры, не стирая историю. **«Очистить историю»** очищает только историю, сохраняя текущий круг.
+## Development and packaging
 
-Кнопка **«Категории»** открывает массовый редактор. Сначала выбери подборку, затем используй поиск или фильтр, отметь нужные игры и нажми **«Сохранить»** один раз. Кнопка **«Категории»** на карточке открывает тот же редактор и поднимает выбранную игру наверх. Выпадающий список над библиотекой только фильтрует видимые карточки. Выпадающий список **«Режим выбора»** действительно меняет состав розыгрыша. Повышенного или пониженного веса у отдельных игр нет: после применения режима и исключений вероятность остаётся одинаковой.
+The source uses HTML, CSS, JavaScript and Node.js built-ins, with no third-party npm packages. To run source code without the bundled runtime, install Node.js 22.2 or newer:
 
-**Исключения сохраняются в `data/exclusions.json` рядом с приложением**, сразу после изменения галочки. Внизу библиотеки показано подтверждение сохранения. Список переживает закрытие вкладки и программы, смену порта, другой браузер и очистку браузерных данных. Все браузеры, открывающие одну копию приложения, используют этот файл; перед розыгрышем список перечитывается. Запись заменяет файл только целиком, а повреждённые данные не сбрасываются автоматически. Если сохранить или прочитать список не удалось, появляется ошибка и розыгрыш блокируется до успешного «Обновить список».
-
-При первом открытии новой версии прежние исключения из текущего браузера автоматически переносятся в файл. Уже сохранённый файл, включая намеренно пустой список, имеет приоритет: старые браузерные данные его не перезаписывают. Если прежний список уже был стёрт браузером до обновления, восстановить его автоматически нельзя.
-
-При переносе своей копии в новую папку сохрани папку `data`; её можно скопировать рядом с `Play Next.exe`, когда приложение закрыто. Встроенное обновление специально не включает и не изменяет `data`. Для друзей отправляй готовый ZIP из `dist`: личные данные в него не включены.
-
-**Категории, назначения игр, история, текущий круг и режим выбора сохраняются в `data/profile.json`.** Они переживают закрытие программы, смену порта, другой браузер и очистку данных сайта. Перед каждым розыгрышем профиль перечитывается, а одновременные устаревшие изменения из другого окна отклоняются вместо молчаливой перезаписи. Повреждённый файл автоматически не заменяется.
-
-Галочка неустановленных игр и ручные пути библиотек остаются в хранилище браузера отдельно для каждого адреса. Очистка данных сайта может сбросить эти параметры, но резервная копия включает их и позволяет восстановить вместе с остальными данными.
-
-## Если игра не найдена
-
-Открой **«Библиотеки»** и введи полный путь, например `D:\SteamLibrary`, `D:\steam` или `D:\SteamLibrary\steamapps`. После установки или удаления игры нажми **«Обновить список»**. Недоступные диски, незавершённые установки и пустые папки не участвуют в розыгрыше. Кнопка обновления не запускает загрузки Steam.
-
-Локальные файлы подтверждают установку, но не гарантируют, что игра доступна текущему аккаунту или запускается без обновления. Авторизацию, лицензии, античит, обновления и внешние игровые клиенты обрабатывает Steam. Отдельные приложения вроде редакторов и Wallpaper Engine могут отображаться как игры: исключи их вручную.
-
-## Приватность и безопасность
-
-Сервер слушает только `127.0.0.1`. Файлы Steam читаются, но не изменяются. Нет Steam API-ключа, входа в аккаунт через приложение, аналитики, загрузки обложек из интернета или публичной публикации. **Для размеров неустановленных игр и описаний показанных игр выполняются HTTPS-запросы к `store.steampowered.com`** с публичным номером конкретной игры; для описания также передаётся язык интерфейса. Описания загружаются только для результата и небольшого набора кадров текущего перемешивания. Сервис видит IP-адрес соединения, но аккаунт, лицензии, пути и исключения не передаются. Нет cookies и передачи списка всей библиотеки одним запросом. Чужие сайты не могут обращаться к API приложения; имена игр и ответы источника не вставляются как HTML. Запуск или установка передаются локальному Steam только после нажатия кнопки, а сервер принимает только AppID из текущей библиотеки. Номера аккаунтов и содержимое лицензий не выдаются через API и не включаются в сборку программы.
-
-Установленная игра сама может использовать интернет. Обработка команды запуска - вне рандомизатора. Адаптивность страницы не открывает доступ с других устройств: это локальная Windows-программа, а не мобильное приложение или сервер в домашней сети.
-
-## Передача друзьям и повторная сборка
-
-Отправляй файл `dist/PlayNext-2.4.0-win-x64.zip`. Он содержит приложение, среду запуска, инструкции и лицензии, но не содержит твои категории, историю, исключения, настройки, кэш размеров, пути к играм, обложки, журнал запуска или файлы Steam. Не создавай архив из уже использованной папки: в ней появляются личная папка `data` и диагностические журналы.
-
-Проверка архива - соседний файл `.zip.sha256`. Сборка формируется по явному списку файлов. Для повторной сборки скачай официальный `node-v24.20.0-win-x64.zip` и `SHASUMS256.txt` из [каталога Node.js](https://nodejs.org/dist/v24.20.0/) в папку `downloads`, затем выполни:
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-release.ps1
-```
-
-Для отдельного окна также скачай [официальный SDK WebView2 1.0.4258.31](https://api.nuget.org/v3-flatcontainer/microsoft.web.webview2/1.0.4258.31/microsoft.web.webview2.1.0.4258.31.nupkg) в `downloads/microsoft.web.webview2.1.0.4258.31.nupkg` перед сборкой. SHA-256 закреплён в `scripts/build-desktop.ps1`. Для компиляции используется .NET Framework из Windows.
-
-Скрипт проверяет SHA-256 Node.js и SDK WebView2 и не перезаписывает существующую сборку. Можно указать другую папку через `-OutputDirectory`.
-
-Если `runtime` уже распакован из официальной сборки, можно передать `-RuntimeDirectory .\runtime` вместо повторной загрузки архива. Перед копированием проверяются закреплённые SHA-256 обоих файлов - `node.exe` и `LICENSE`.
-
-## Для разработки
-
-Дальнейшие этапы и критерии проверки записаны в [плане развития](PLAN.md).
-
-```powershell
+```text
 node server.mjs
 node --test
 ```
 
-Либо `npm start`, `npm test`, `npm run check`, если npm установлен. Команда `npm install` не нужна. Чтобы выбрать другой порт:
+`npm start`, `npm test` and `npm run check` are also available. `npm install` is not needed.
+
+The entry point `public/app.js` coordinates the application. Independent modules own draw rules (`randomizer.js`), library filters and navigation (`workspace.js`), card/list rendering (`library-view.js`), settings-group state (`settings-controller.js`), appearance (`appearance-controller.js`) and update presentation/flow (`update-controller.js`, `update-flow.js`). API clients and server-side stores remain separate. Tests use isolated data directories rather than saved application settings.
+
+To build a Windows release with an already verified runtime:
 
 ```powershell
-$env:PORT = '3211'
-node server.mjs
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-release.ps1 -RuntimeDirectory .\runtime
 ```
 
-Для Linux/macOS доступен режим исходного кода: `node server.mjs`, затем открыть локальный адрес вручную. Поиск включает стандартные папки Steam; библиотеки в других местах можно добавить через интерфейс. Отдельное окно приложения предназначено для Windows.
+The script verifies pinned Node.js checksums and packages an explicit file allowlist. It refuses to overwrite existing releases. Use `-OutputDirectory` for another destination. See the [Russian documentation](README.ru.md) for detailed cache formats, API boundaries and source references.
 
-### Структура
+The static website lives in `docs/`: English at the root and Russian in `docs/ru/`. The old `/en/` address links to the English home page. GitHub Pages publishes `/docs` from the main branch. Update both pages' release links, version, archive size and checksum when publishing a new release.
 
-Отдельное окно можно проверить на чистой распакованной копии командой `node scripts/verify-desktop.mjs "путь к копии"`. Проверка не подходит для личной папки: она специально завершает тестовые процессы и создаёт тестовые категории и исключения. Общая проверка архива - `node scripts/verify-release.mjs "путь к другой чистой копии"`.
+Play Next is an independent project, not affiliated with Valve. Steam and game artwork belong to their respective owners. The bundled Node.js license is included in `runtime/LICENSE`; see [third-party notices](THIRD_PARTY_NOTICES.md).
 
-- `server.mjs` - локальный HTTP-сервер, проверка запросов, выдача обложек.
-- `lib/steam.mjs` - чтение формата Valve KeyValues и поиск установок.
-- `lib/exclusions.mjs` - последовательная атомарная запись исключений в локальный файл; `/api/exclusions` - закрытый для внешних сайтов интерфейс чтения и изменения.
-- `lib/display-settings.mjs`, `public/display.js` - сохраняемые переключатели отображения, форматирование размера и логика плашек; `/api/display-settings` - локальный интерфейс настроек.
-- `lib/ui-settings.mjs`, `public/ui-settings.js`, `public/i18n.js` - язык, тема, готовые и пользовательские цветовые палитры, перевод интерфейса.
-- `lib/backup.mjs`, `public/backup.js` - проверяемый экспорт и восстановление пользовательских данных одним файлом; `/api/backup` закрыт для внешних сайтов.
-- `lib/install-size.mjs` - оценка размера неустановленной основной игры по доступным компонентам Steam, без скачиваний.
-- `lib/online-sizes.mjs`, `public/online-sizes.js`, `public/descriptions.js` - ограниченные запросы к Steam Store, разбор дисковых требований, краткие описания и локальный кэш; оба API проверяют принадлежность игры текущей библиотеке.
-- `lib/owned.mjs`, `lib/steam-cache.mjs` - выбор локального аккаунта, проверка контрольной суммы лицензий, чтение пакетов и названий игр. Поддерживаются appinfo v27-29 и packageinfo v27-28; неизвестные форматы не используются как подтверждение владения.
-- `public/` - страница, оформление, интерфейс и независимая логика розыгрыша.
-- `test/` - тесты поиска Steam, рандомизатора и безопасности API.
-- `Play Next.exe`, `start.ps1` - обычный запуск программы и управление только её собственным фоновым процессом.
-- `launcher/PlayNextLauncher.cs` - отдельное окно WebView2, восстановление связи и управление локальным процессом.
-- `lib/desktop-owner.mjs` - завершение процесса при закрытии или аварийном завершении окна.
-- `lib/browser-sessions.mjs`, `lib/session-frames.mjs`, `public/browser-session.js` - безопасное служебное соединение, переподключение и жизненный цикл режима браузера.
-- `docs/` - независимая статическая страница для GitHub Pages. Публикуется из `/docs` основной ветки; `.nojekyll` отключает обработку Jekyll. Сборщик и установка зависимостей для неё не нужны.
+## License
 
-При выпуске новой версии обнови ссылки, номер версии, размер ZIP и SHA-256 в `docs/index.html` и `docs/en/index.html` вместе с приложением. Для другого владельца репозитория поменяй ссылки в README и метаданные обеих страниц, включая абсолютный адрес обложки `og.png`.
-
-Проект не является официальным продуктом Valve. Steam и изображения игр принадлежат их правообладателям.
-
-Форматы локального кэша сверены с [описанием appcache в ValvePython](https://github.com/ValvePython/steam/blob/master/steam/utils/appcache.py), [чтением appinfo v29](https://github.com/julianxhokaxhiu/Depressurizer/blob/master/src/Depressurizer.Core/Helpers/AppInfoReader.cs), [структурой списка лицензий Steam](https://github.com/SteamDatabase/Protobufs/blob/master/steam/steammessages_clientserver.proto) и [флагами лицензий SteamKit](https://github.com/SteamRE/SteamKit/blob/master/SteamKit2/SteamKit2/Base/Generated/SteamLanguage.cs). Для account-seeded формата licensecache использована [документация в реализации парсера](https://github.com/wynick27/steam-missing-covers-downloader/blob/master/license_parser.py). Здесь собственные ограниченные read-only читатели на JavaScript; сторонние парсеры в комплект не входят.
+Original Play Next code is [MIT licensed](LICENSE). Bundled third-party components retain their own licenses. The Windows package contains the project license at `runtime/PlayNext-LICENSE.txt`, but no READMEs, development plans, working journals or pre-existing logs.

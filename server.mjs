@@ -21,7 +21,7 @@ import { desktopOwnerId, watchDesktopOwner } from './lib/desktop-owner.mjs';
 import { attachSessionFrames } from './lib/session-frames.mjs';
 
 const base = path.dirname(fileURLToPath(import.meta.url));
-export const APP_VERSION = '2.4.0';
+export const APP_VERSION = '2.5.0';
 export function getInstanceId(directory = base) {
   const resolved = path.resolve(directory);
   return createHash('sha256').update(process.platform === 'win32' ? resolved.toLowerCase() : resolved).digest('hex').slice(0, 24);
@@ -29,6 +29,10 @@ export function getInstanceId(directory = base) {
 const staticFiles = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
+  ['/update-controller.js', ['update-controller.js', 'text/javascript; charset=utf-8']],
+  ['/library-view.js', ['library-view.js', 'text/javascript; charset=utf-8']],
+  ['/settings-controller.js', ['settings-controller.js', 'text/javascript; charset=utf-8']],
+  ['/appearance-controller.js', ['appearance-controller.js', 'text/javascript; charset=utf-8']],
   ['/workspace.js', ['workspace.js', 'text/javascript; charset=utf-8']],
   ['/collections.js', ['collections.js', 'text/javascript; charset=utf-8']],
   ['/toast.js', ['toast.js', 'text/javascript; charset=utf-8']],
@@ -48,6 +52,7 @@ const staticFiles = new Map([
   ['/ui-settings.js', ['ui-settings.js', 'text/javascript; charset=utf-8']],
   ['/i18n.js', ['i18n.js', 'text/javascript; charset=utf-8']],
   ['/backup.js', ['backup.js', 'text/javascript; charset=utf-8']],
+  ['/update-flow.js', ['update-flow.js', 'text/javascript; charset=utf-8']],
   ['/browser-session.js', ['browser-session.js', 'text/javascript; charset=utf-8']],
   ['/style.css', ['style.css', 'text/css; charset=utf-8']],
   ['/responsive.css', ['responsive.css', 'text/css; charset=utf-8']],
@@ -117,6 +122,8 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
   const owner = desktopOwnerId(desktopOwner);
   const browserSessions = createBrowserSessions({ ...browserSessionOptions, onEmpty: owner ? () => {} : onBrowserSessionsEmpty });
   let snapshot;
+  let activeWrites=0, applyingUpdate=false;
+  const writeRoutes=new Set(['/api/profile','/api/exclusions','/api/display-settings','/api/app-settings','/api/ui-settings','/api/backup','/api/windows-settings','/api/launch']);
   let scanQueue = Promise.resolve();
   const artworkCache = new Map();
   const refresh = (customPaths, includeUninstalled = false) => {
@@ -147,9 +154,14 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
     const port = request.socket.localPort;
     if (![ `127.0.0.1:${port}`, `localhost:${port}` ].includes(host)) return json(response, 403, { error: 'Разрешён только локальный доступ.' });
     if (request.headers.origin && request.headers.origin !== `http://${host}`) return json(response, 403, { error: 'Запрос с другого сайта запрещён.' });
+    let writing=false;
     try {
       const url = new URL(request.url, `http://${host}`);
       if (request.headers['sec-fetch-site'] === 'cross-site' && (url.pathname.startsWith('/api/') || url.pathname.startsWith('/art/'))) return json(response, 403, { error: 'Запрос с другого сайта запрещён.' });
+      if((request.method==='POST'&&writeRoutes.has(url.pathname))||(request.method==='GET'&&url.pathname==='/api/ui-settings')) {
+        if(applyingUpdate)return json(response,409,{error:'Обновление применяется. Сохранение снова будет доступно после перезапуска.'});
+        writing=true;activeWrites++;
+      }
       if (url.pathname === '/api/health' && request.method === 'GET') return json(response, 200, { app: 'steam-games-randomizer', version: APP_VERSION, instanceId: getInstanceId(), processId: process.pid, desktopOwner: owner });
       if (url.pathname === '/api/exclusions' && request.method === 'GET') return json(response, 200, await exclusions.read());
       if (url.pathname === '/api/display-settings' && request.method === 'GET') return json(response, 200, await displaySettings.read());
@@ -159,6 +171,11 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
       if (url.pathname === '/api/backup' && request.method === 'GET') return json(response, 200, await backup.export());
       if (url.pathname === '/api/windows-settings' && request.method === 'GET') return json(response, 200, await windowsIntegration.read());
       if (url.pathname === '/api/update' && request.method === 'GET') return json(response, 200, updates.read());
+      if (url.pathname === '/api/update-install' && request.method === 'GET') {
+        const state=await updateInstaller.read();
+        if(['failed','cancelled','idle'].includes(state.stage))applyingUpdate=false;
+        return json(response,200,state);
+      }
       if (url.pathname === '/api/update' && request.method === 'POST') {
         if (request.headers['x-randomizer'] !== '1') return json(response, 403, { error: 'Отсутствует заголовок приложения.' });
         const body = await requestJson(request, 64);
@@ -169,12 +186,28 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
         if (request.headers['x-randomizer'] !== '1') return json(response, 403, { error: 'Отсутствует заголовок приложения.' });
         const body = await requestJson(request, 128);
         const available = updates.read();
-        if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.version !== 'string' || Object.keys(body).length !== 1) return json(response, 400, { error: 'Некорректный запрос установки.' });
+        if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.version !== 'string' || Object.keys(body).some(key=>!['version','automatic'].includes(key)) || (body.automatic!==undefined&&typeof body.automatic!=='boolean')) return json(response, 400, { error: 'Некорректный запрос установки.' });
         if (available.status !== 'ready' || !available.updateAvailable || body.version !== available.latestVersion || !available.downloadUrl || !available.checksumUrl) return json(response, 409, { error: 'Сначала проверь обновления. Для релиза должны быть доступны архив и контрольная сумма.' });
-        const result = updateInstaller.install({ version: available.latestVersion, downloadUrl: available.downloadUrl, checksumUrl: available.checksumUrl, processId: process.pid, port, desktopProcessId: owner });
+        if(body.automatic===true&&!(await appSettings.read()).automaticUpdates)return json(response,409,{error:'Автообновление отключено в настройках.'});
+        const result = await updateInstaller.install({ version: available.latestVersion, downloadUrl: available.downloadUrl, checksumUrl: available.checksumUrl, processId: process.pid, port, desktopProcessId: owner, automatic: body.automatic===true });
         json(response, 202, result);
-        const timer = setTimeout(onUpdateInstall, 250);
-        timer.unref?.();
+        return;
+      }
+      if (['/api/update-apply','/api/update-cancel'].includes(url.pathname) && request.method === 'POST') {
+        if (request.headers['x-randomizer'] !== '1') return json(response, 403, {error:'Отсутствует заголовок приложения.'});
+        const body=await requestJson(request,256);
+        const applying=url.pathname==='/api/update-apply';
+        const keys=applying?['attemptId','restartMinimized']:['attemptId'];
+        if(!body||typeof body!=='object'||Array.isArray(body)||Object.keys(body).sort().join(',')!==keys.sort().join(','))return json(response,400,{error:'Некорректный запрос обновления.'});
+        if(applying&&activeWrites)return json(response,409,{error:'Сначала дождись завершения сохранения данных.'});
+        let result;
+        if(applying) {
+          applyingUpdate=true;
+          try {result=await updateInstaller.apply(body);}catch(error){applyingUpdate=false;throw error;}
+        } else result=await updateInstaller.cancel(body.attemptId);
+        json(response,202,result);
+        // Native hosts close only after receiving the verified apply receipt.
+        if(applying && !owner){const timer=setTimeout(onUpdateInstall,250);timer.unref?.();}
         return;
       }
       if (url.pathname === '/api/launch' && request.method === 'POST') {
@@ -270,7 +303,7 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
       console.error(error.message);
       if (!response.headersSent) json(response, error.status ?? 500, { error: error.status ? error.message : 'Не удалось прочитать библиотеку. Попробуйте обновить список.' });
       else response.end();
-    }
+    } finally {if(writing)activeWrites--;}
   });
   const closeBrowserSockets = attachBrowserSessions(server, browserSessions);
   server.closeBrowserSessions = closeBrowserSockets;

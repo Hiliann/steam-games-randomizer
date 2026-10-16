@@ -1,5 +1,7 @@
+import { installationStatus } from './update-flow.js';
+
 function responseError(response, fallback) {
-  return response.json().catch(() => ({})).then(body => { throw new Error(body.error ?? fallback); });
+  return response.json().catch(() => ({})).then(body => { throw Object.assign(new Error(body.error ?? fallback),{status:response.status}); });
 }
 
 function windowsStatus(value) {
@@ -11,7 +13,7 @@ function safeReleaseUrl(value) {
   if (typeof value !== 'string') return null;
   try {
     const url = new URL(value);
-    return url.protocol === 'https:' && url.hostname === 'github.com' && /^\/Hiliann\/steam-games-randomizer\/releases\/tag\/v\d+\.\d+\.\d+$/.test(url.pathname) ? url.href : null;
+    return url.origin === 'https://github.com' && !url.username && !url.password && !url.search && !url.hash && /^\/Hiliann\/steam-games-randomizer\/releases\/tag\/v\d+\.\d+\.\d+$/.test(url.pathname) ? url.href : null;
   } catch { return null; }
 }
 
@@ -20,7 +22,7 @@ function safeAssetUrl(value, version, checksum = false) {
   try {
     const url = new URL(value);
     const suffix = checksum ? '.sha256' : '';
-    return url.protocol === 'https:' && url.hostname === 'github.com'
+    return url.origin === 'https://github.com' && !url.username && !url.password && !url.search && !url.hash
       && url.pathname === `/Hiliann/steam-games-randomizer/releases/download/v${version}/PlayNext-${version}-win-x64.zip${suffix}` ? url.href : null;
   } catch { return null; }
 }
@@ -42,7 +44,7 @@ export function updateStatus(value) {
 
 export function createSystemClient(send = fetch) {
   const post = async (route, body) => {
-    const response = await send(route, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Randomizer': '1' }, body: JSON.stringify(body) });
+    const response = await send(route, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Randomizer': '1' }, body: JSON.stringify(body), signal:AbortSignal.timeout(15000) });
     if (!response.ok) return responseError(response, 'Не удалось изменить настройку.');
     return response.json();
   };
@@ -59,9 +61,13 @@ export function createSystemClient(send = fetch) {
       return updateStatus(await response.json());
     },
     async checkUpdate(force = false) { return updateStatus(await post('/api/update', { force: force === true })); },
-    async installUpdate(version) {
-      const result = await post('/api/update-install', { version });
-      if (!result || result.status !== 'installing' || result.targetVersion !== version) throw new Error('Приложение не подтвердило установку обновления.');
+    async loadInstallation(){const response=await send('/api/update-install',{cache:'no-store',signal:AbortSignal.timeout(5000)});if(!response.ok)return responseError(response,'Не удалось прочитать статус обновления.');return installationStatus(await response.json());},
+    async applyUpdate(attemptId,restartMinimized=false){const result=await post('/api/update-apply',{attemptId,restartMinimized});if(result?.status!=='applying'||result.attemptId!==attemptId)throw new Error('Применение обновления не подтверждено.');return result;},
+    async cancelUpdate(attemptId){const result=await post('/api/update-cancel',{attemptId});if(result?.status!=='cancelling'||result.attemptId!==attemptId)throw new Error('Отмена обновления не подтверждена.');return result;},
+    async healthVersion(){const response=await send('/api/health',{cache:'no-store',signal:AbortSignal.timeout(1500)});if(!response.ok)throw new Error('Local service unavailable.');return (await response.json()).version;},
+    async installUpdate(version,automatic=false) {
+      const result = await post('/api/update-install', { version,automatic });
+      if (!result || result.status !== 'preparing' || result.targetVersion !== version || !/^[a-f0-9]{32}$/.test(result.attemptId??'')) throw new Error('Приложение не подтвердило установку обновления.');
       return result;
     },
     async launchGame(id) {

@@ -21,7 +21,7 @@ test('public demo selects every fictional game and avoids adjacent repeats', () 
 
 test('public page has matching bindings and relative assets for a project subpath', async () => {
   const script = await readFile(new URL('site.js', root), 'utf8');
-  for (const [page, language] of [['index.html', 'ru'], ['en/index.html', 'en']]) {
+  for (const [page, language] of [['ru/index.html', 'ru'], ['index.html', 'en']]) {
   const pageUrl = new URL(page, root);
   const html = await readFile(pageUrl, 'utf8');
   assert.ok(html.includes(`<html lang="${language}">`));
@@ -52,7 +52,7 @@ test('download version and social preview agree with the packaged release', asyn
   const metadata = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
   const version = metadata.version.replaceAll('.', '\\.');
   const checksums = [];
-  for (const [page, locale, title] of [['index.html', 'ru_RU', 'Play Next - во что поиграть сегодня?'], ['en/index.html', 'en_US', 'Play Next - what will you play today?']]) {
+  for (const [page, locale, title] of [['ru/index.html', 'ru_RU', 'Play Next - во что поиграть сегодня?'], ['index.html', 'en_US', 'Play Next - what will you play today?']]) {
   const html = await readFile(new URL(page, root), 'utf8');
   const assets = [...html.matchAll(/releases\/download\/v([^/]+)\/([^"<]+)/g)];
   assert.ok(assets.length >= 3);
@@ -61,7 +61,7 @@ test('download version and social preview agree with the packaged release', asyn
     assert.match(asset, new RegExp(`^PlayNext-${version}-win-x64\\.zip(?:\\.sha256)?$`));
   }
   const canonical = html.match(/rel="canonical" href="([^"]+)"/)[1];
-  assert.equal(canonical, site + (locale === 'en_US' ? 'en/' : ''));
+  assert.equal(canonical, site + (locale === 'ru_RU' ? 'ru/' : ''));
   assert.ok(html.includes(`<title>${title}</title>`));
   assert.ok(html.includes(`property="og:locale" content="${locale}"`));
   assert.ok(html.includes(`property="og:url" content="${canonical}"`));
@@ -80,13 +80,22 @@ test('download version and social preview agree with the packaged release', asyn
 });
 
 test('project descriptions and application text use ordinary hyphens and neutral naming', async () => {
-  for (const file of ['README.md', 'README.en.md', 'READ ME FIRST.txt', 'THIRD_PARTY_NOTICES.md', 'CHANGELOG.md', 'start.ps1', 'public/index.html', 'public/app.js', 'package.json']) {
+  for (const file of ['README.md', 'README.ru.md', 'THIRD_PARTY_NOTICES.md', 'CHANGELOG.md', 'start.ps1', 'public/index.html', 'public/app.js', 'package.json']) {
     const text = await readFile(new URL('../' + file, import.meta.url), 'utf8');
     assert.doesNotMatch(text, /[\u2013\u2014]|portable|переносим/iu, file);
   }
-  const ru = await readFile(new URL('../README.md', import.meta.url), 'utf8');
-  const en = await readFile(new URL('../README.en.md', import.meta.url), 'utf8');
-  assert.match(ru, /\[English\]\(README\.en\.md\)/);
-  assert.match(en, /\[Русский\]\(README\.md\)/);
+  const ru = await readFile(new URL('../README.ru.md', import.meta.url), 'utf8');
+  const en = await readFile(new URL('../README.md', import.meta.url), 'utf8');
+  assert.match(ru, /\[English\]\(README\.md\)/);
+  assert.match(en, /\[Русский\]\(README\.ru\.md\)/);
   assert.match(en, /program, website and project description are available in Russian and English/);
+});
+
+test('clean Windows packages retain licenses but exclude working documents and logs',async()=>{
+  const builder=await readFile(new URL('../scripts/build-release.ps1',import.meta.url),'utf8');
+  const allowlist=builder.slice(builder.indexOf('$releaseFiles ='),builder.indexOf('foreach ($relativeFile'));
+  assert.doesNotMatch(allowlist,/README|READ ME FIRST|DESIGN\.md|PLAN\.md|CHANGELOG\.md|\.log/);
+  assert.match(allowlist,/'LICENSE'/);assert.match(allowlist,/THIRD_PARTY_NOTICES\.md/);
+  assert.match(builder,/runtime\\PlayNext-LICENSE\.txt/);
+  assert.match(await readFile(new URL('../LICENSE',import.meta.url),'utf8'),/MIT License/);
 });

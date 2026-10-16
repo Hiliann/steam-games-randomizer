@@ -3,15 +3,20 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import net from 'node:net';
 import { once } from 'node:events';
-import { readFile } from 'node:fs/promises';
+import { readFile, mkdtemp, rm } from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
 import { createApp, APP_VERSION, getInstanceId } from '../server.mjs';
 
 async function fixture(t, options = {}) {
   const requests = [];
+  const root=await mkdtemp(path.join(os.tmpdir(),'playnext-http-test-'));
+  t.after(()=>rm(root,{recursive:true,force:true}));
   const server = createApp({ scan: async options => {
     requests.push(options);
     return { games: [{ id: '10', name: '<script>Untrusted game name</script>' }], libraries: [], warnings: [], cacheRoots: ['private-cache-path'], skipped: 0, utilities: 0 };
-  }, ...options });
+  }, exclusionsFile:path.join(root,'exclusions.json'),displaySettingsFile:path.join(root,'display-settings.json'),
+  appSettingsFile:path.join(root,'app-settings.json'),uiSettingsFile:path.join(root,'ui-settings.json'),profileFile:path.join(root,'profile.json'),...options });
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
   const port = server.address().port;
@@ -34,7 +39,7 @@ test('local health, page and scripts are served with restrictive security header
   assert.match(page.headers.get('content-security-policy'), /frame-ancestors 'none'/);
   assert.equal(page.headers.get('access-control-allow-origin'), null);
   assert.match(await page.text(), /Play Next/);
-  for (const asset of ['/app.js', '/workspace.js', '/collections.js', '/toast.js', '/game-details.js', '/draw-animation.js', '/decision.js', '/scroll-activity.js', '/startup.js', '/randomizer.js', '/ui-settings.js', '/i18n.js', '/backup.js', '/browser-session.js', '/descriptions.js']) {
+  for (const asset of ['/app.js', '/workspace.js', '/collections.js', '/toast.js', '/game-details.js', '/draw-animation.js', '/decision.js', '/scroll-activity.js', '/startup.js', '/randomizer.js', '/ui-settings.js', '/i18n.js', '/backup.js', '/browser-session.js', '/descriptions.js', '/update-flow.js', '/update-controller.js', '/library-view.js', '/settings-controller.js']) {
     const response = await fetch(url + asset);
     assert.equal(response.status, 200);
     assert.match(response.headers.get('content-type'), /javascript/);
@@ -194,6 +199,37 @@ test('cross-site requests, DNS rebinding and filesystem paths are rejected', asy
   });
   assert.equal(status, 403);
   for (const target of ['/server.mjs', '/lib/steam.mjs', '/%2e%2e/package.json', '/art/..%2fsecret/hero']) assert.equal((await fetch(url + target)).status, 404);
+});
+
+test('updater preparation stays online and apply waits for other-window saves',async t=>{
+  const attemptId='b'.repeat(32);let stopped=0,applies=0,finish,started;
+  const began=new Promise(resolve=>{started=resolve;});
+  const windowsIntegration={read:async()=>({supported:true,desktopShortcut:false,startup:false}),change:async()=>{started();return new Promise(resolve=>{finish=resolve;});}};
+  const updateInstaller={read:async()=>({stage:'ready'}),apply:async()=>{applies++;return{status:'applying',attemptId,targetVersion:'2.5.0'};},cancel:async()=>({status:'cancelling'})};
+  const {url}=await fixture(t,{windowsIntegration,updateInstaller,onUpdateInstall:()=>stopped++});
+  const post=(route,body,header=true)=>fetch(url+route,{method:'POST',headers:{'Content-Type':'application/json',...(header?{'X-Randomizer':'1'}:{})},body:JSON.stringify(body)});
+  const saving=post('/api/windows-settings',{setting:'startup',enabled:false});await began;
+  assert.equal((await post('/api/update-apply',{attemptId,restartMinimized:false})).status,409);
+  assert.equal(applies,0);assert.equal((await fetch(url+'/api/health')).status,200);
+  finish({supported:true,desktopShortcut:false,startup:false});assert.equal((await saving).status,200);
+  assert.equal((await post('/api/update-apply',{attemptId,restartMinimized:false},false)).status,403);
+  assert.equal((await post('/api/update-apply',{attemptId,restartMinimized:false})).status,202);
+  assert.equal(applies,1);
+  assert.equal((await post('/api/profile',{action:'initialize'})).status,409);
+  await new Promise(resolve=>setTimeout(resolve,300));assert.equal(stopped,1);
+});
+
+test('automatic installation needs the persisted opt-in and preparation does not stop the server',async t=>{
+  let launches=0,stopped=0;const version='2.5.0';
+  const updates={read:()=>({status:'ready',updateAvailable:true,latestVersion:version,downloadUrl:'https://github.com/Hiliann/steam-games-randomizer/releases/download/v2.5.0/PlayNext-2.5.0-win-x64.zip',checksumUrl:'https://github.com/Hiliann/steam-games-randomizer/releases/download/v2.5.0/PlayNext-2.5.0-win-x64.zip.sha256'})};
+  const updateInstaller={install:async()=>{launches++;return{status:'preparing',attemptId:'c'.repeat(32),targetVersion:version};}};
+  const {url}=await fixture(t,{updates,updateInstaller,onUpdateInstall:()=>stopped++});
+  const post=(route,body)=>fetch(url+route,{method:'POST',headers:{'Content-Type':'application/json','X-Randomizer':'1'},body:JSON.stringify(body)});
+  assert.equal((await post('/api/update-install',{version,automatic:true})).status,409);assert.equal(launches,0);
+  assert.equal((await post('/api/app-settings',{key:'automaticUpdates',value:true})).status,200);
+  assert.equal((await post('/api/update-install',{version,automatic:true})).status,202);
+  await new Promise(resolve=>setTimeout(resolve,300));assert.equal(stopped,0);assert.equal(launches,1);
+  assert.equal((await fetch(url+'/api/health')).status,200);
 });
 test('missing artwork and unknown IDs are handled without arbitrary reads', async t => {
   const { url } = await fixture(t);

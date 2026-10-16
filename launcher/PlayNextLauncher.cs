@@ -21,8 +21,8 @@ using Microsoft.Web.WebView2.WinForms;
 [assembly: AssemblyDescription("Steam Games Randomizer")]
 [assembly: AssemblyProduct("Play Next")]
 [assembly: AssemblyCompany("Hiliann")]
-[assembly: AssemblyVersion("2.4.0.0")]
-[assembly: AssemblyFileVersion("2.4.0.0")]
+[assembly: AssemblyVersion("2.5.0.0")]
+[assembly: AssemblyFileVersion("2.5.0.0")]
 
 internal static class PlayNextLauncher
 {
@@ -194,7 +194,7 @@ internal sealed class PlayNextWindow : Form
         Resize += async delegate { status.RefreshAnimation(); if (WindowState != FormWindowState.Minimized && view == null && serverStarted) await StartAsync(); };
         Shown += async delegate { int dark = 1; try { DwmSetWindowAttribute(Handle, 20, ref dark, 4); } catch { } await StartAsync(); };
         FormClosing += delegate { closing = true; healthTimer.Stop(); if (view != null) view.Dispose(); };
-        FormClosed += delegate { http.Dispose(); if (serverStarted && !updating) { try { PlayNextLauncher.RunStarter("-Stop -DesktopOwner " + owner); } catch (Exception error) { PlayNextLauncher.Log(error); } } };
+        FormClosed += delegate { http.Dispose(); updateHttp.Dispose(); if (serverStarted && !updating) { try { PlayNextLauncher.RunStarter("-Stop -DesktopOwner " + owner); } catch (Exception error) { PlayNextLauncher.Log(error); } } };
     }
     private void ShowStatus(string text, bool canRetry) { message.Text = text; retry.Visible = canRetry; status.Visible = true; status.SetBusy(!canRetry); status.BringToFront(); }
     private async Task StartAsync()
@@ -214,7 +214,7 @@ internal sealed class PlayNextWindow : Form
             if (!await HealthyAsync()) throw new InvalidOperationException("The local service is not responding.");
             // Creating a WebView controller in a minimized WinForms window can
             // fail with ERROR_BUSY. Start the service now and render on restore.
-            if (view == null && WindowState == FormWindowState.Minimized) { failures = 0; healthTimer.Start(); return; }
+            if (view == null && WindowState == FormWindowState.Minimized) { failures = 0; healthTimer.Start(); CheckBackgroundUpdateAsync(); return; }
             if (view == null)
             {
                 view = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = BackColor }; Controls.Add(view); status.BringToFront();
@@ -226,7 +226,7 @@ internal sealed class PlayNextWindow : Form
                 view.CoreWebView2.NavigationStarting += delegate(object sender, CoreWebView2NavigationStartingEventArgs e) { if (!IsLocal(e.Uri)) { e.Cancel = true; OpenExternal(e.Uri); } };
                 view.CoreWebView2.NewWindowRequested += delegate(object sender, CoreWebView2NewWindowRequestedEventArgs e) { e.Handled = true; OpenExternal(e.Uri); };
                 view.CoreWebView2.PermissionRequested += delegate(object sender, CoreWebView2PermissionRequestedEventArgs e) { e.State = CoreWebView2PermissionState.Deny; };
-                view.CoreWebView2.WebMessageReceived += async delegate(object sender, CoreWebView2WebMessageReceivedEventArgs e) { if (!IsLocal(e.Source)) return; try { string command = e.TryGetWebMessageAsString(); if (command == "update-starting") { updating = true; Close(); } else if (command == "recover") { recoveries = 0; await StartAsync(); } } catch (Exception error) { PlayNextLauncher.Log(error); } };
+                view.CoreWebView2.WebMessageReceived += async delegate(object sender, CoreWebView2WebMessageReceivedEventArgs e) { if (!IsLocal(e.Source)) return; try { string command = e.TryGetWebMessageAsString(); if (command.StartsWith("update-starting:", StringComparison.Ordinal)) { await ApplyPreparedUpdateAsync(command.Substring(16)); } else if (command == "recover") { recoveries = 0; await StartAsync(); } } catch (Exception error) { PlayNextLauncher.Log(error); if (!closing && view != null && view.CoreWebView2 != null) view.CoreWebView2.PostWebMessageAsString("update-apply-failed"); } };
                 view.CoreWebView2.ProcessFailed += async delegate { if (!closing && !updating) { view.Dispose(); Controls.Remove(view); view = null; if (++recoveries <= 3) await StartAsync(); else ShowStatus(PlayNextLauncher.Text("Окно приложения не отвечает. Повтори запуск.", "The app window is not responding. Try again."), true); } };
                 view.CoreWebView2.NavigationCompleted += delegate(object sender, CoreWebView2NavigationCompletedEventArgs e) { if (e.IsSuccess) status.Visible = false; else ShowStatus(PlayNextLauncher.Text("Связь прервана. Восстанавливаем приложение…", "Connection interrupted. Recovering the app…"), true); };
             }
@@ -248,6 +248,68 @@ internal sealed class PlayNextWindow : Form
         finally { recovering = false; }
     }
     private bool IsLocal(string url) { Uri uri; return Uri.TryCreate(url, UriKind.Absolute, out uri) && uri.GetLeftPart(UriPartial.Authority) == origin; }
+    private bool backgroundUpdateChecked, backgroundUpdateBusy;
+    private int backgroundOfflineRetries;
+    private DateTime nextBackgroundCheck = DateTime.MinValue;
+    private readonly HttpClient updateHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(12) };
+    private static string Field(Dictionary<string, object> value, string key) { return value.ContainsKey(key) ? Convert.ToString(value[key], CultureInfo.InvariantCulture) : ""; }
+    private async Task<Dictionary<string, object>> UpdateRequestAsync(string route, object body)
+    {
+        string json;
+        if (body == null) json = await updateHttp.GetStringAsync(origin + route);
+        else {
+            using (var request = new HttpRequestMessage(HttpMethod.Post, origin + route)) {
+                request.Headers.Add("X-Randomizer", "1");
+                request.Content = new StringContent(new JavaScriptSerializer().Serialize(body), Encoding.UTF8, "application/json");
+                using (var response = await updateHttp.SendAsync(request)) { response.EnsureSuccessStatusCode(); json = await response.Content.ReadAsStringAsync(); }
+            }
+        }
+        return new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(json);
+    }
+    private async Task ApplyPreparedUpdateAsync(string attempt, bool background = false)
+    {
+        Guid parsed;
+        if (attempt.Length != 32 || !Guid.TryParseExact(attempt, "N", out parsed) || updating || closing || (background && (view != null || WindowState != FormWindowState.Minimized))) return;
+        Dictionary<string, object> receipt = null;
+        Exception applyError = null;
+        try { receipt = await UpdateRequestAsync("/api/update-apply", new { attemptId = attempt, restartMinimized = WindowState == FormWindowState.Minimized }); }
+        catch (Exception error) { applyError = error; }
+        if (applyError != null) {
+            var state = await UpdateRequestAsync("/api/update-install", null);
+            if (Field(state, "stage") == "applying" && Field(state, "attemptId") == attempt) receipt = new Dictionary<string, object> { { "status", "applying" }, { "attemptId", attempt } };
+            else if (Field(state, "stage") == "ready" && Field(state, "attemptId") == attempt) { if (view != null && view.CoreWebView2 != null) view.CoreWebView2.PostWebMessageAsString("update-apply-deferred"); return; }
+            else throw applyError;
+        }
+        if (Field(receipt, "status") != "applying" || Field(receipt, "attemptId") != attempt) throw new InvalidOperationException("Update apply was not confirmed.");
+        if (view != null && view.CoreWebView2 != null) view.CoreWebView2.PostWebMessageAsString("update-applying");
+        updating = true; Close();
+    }
+    // Minimized startup has no renderer. Once a renderer exists, it guards edits.
+    private async void CheckBackgroundUpdateAsync()
+    {
+        if (backgroundUpdateBusy || closing || updating || view != null || WindowState != FormWindowState.Minimized) return;
+        backgroundUpdateBusy = true;
+        try {
+            var state = await UpdateRequestAsync("/api/update-install", null);
+            if (!backgroundUpdateChecked && DateTime.UtcNow >= nextBackgroundCheck) {
+                backgroundUpdateChecked = true;
+                var settings = await UpdateRequestAsync("/api/app-settings", null);
+                if (Field(settings, "automaticUpdates") == "True") {
+                    var info = await UpdateRequestAsync("/api/update", new { force = false });
+                    if (Field(info, "status") == "offline" && ++backgroundOfflineRetries < 3) { backgroundUpdateChecked = false; nextBackgroundCheck = DateTime.UtcNow.AddMinutes(1); }
+                    bool blocked = Field(state, "stage") == "failed" && (Field(state, "reason") == "rollback-failed" || Field(state, "reason") == "status-unavailable" || (Field(state, "automaticRetryAllowed") != "True" && Field(state, "targetVersion") == Field(info, "latestVersion")));
+                    if (!blocked && Field(info, "updateAvailable") == "True" && !String.IsNullOrEmpty(Field(info, "downloadUrl")) && !String.IsNullOrEmpty(Field(info, "checksumUrl")) && Array.IndexOf(new [] { "starting", "downloading", "verifying", "ready", "applying", "cancelling" }, Field(state, "stage")) < 0 && view == null && WindowState == FormWindowState.Minimized)
+                        await UpdateRequestAsync("/api/update-install", new { version = Field(info, "latestVersion"), automatic = true });
+                }
+            }
+            if (Field(state, "stage") == "ready" && view == null && !closing) {
+                var settings = await UpdateRequestAsync("/api/app-settings", null);
+                if (Field(state, "automatic") == "True" && Field(settings, "automaticUpdates") != "True") await UpdateRequestAsync("/api/update-cancel", new { attemptId = Field(state, "attemptId") });
+                else await ApplyPreparedUpdateAsync(Field(state, "attemptId"), true);
+            }
+        } catch (Exception error) { PlayNextLauncher.Log(error); }
+        finally { backgroundUpdateBusy = false; }
+    }
     private void OpenExternal(string url)
     {
         Uri uri; if (!Uri.TryCreate(url, UriKind.Absolute, out uri) || uri.Scheme != "https" || !String.IsNullOrEmpty(uri.UserInfo)) return;
@@ -262,7 +324,7 @@ internal sealed class PlayNextWindow : Form
     {
         if (recovering || closing || updating) return;
         healthTimer.Stop();
-        if (await HealthyAsync()) { failures = 0; healthTimer.Start(); return; }
+        if (await HealthyAsync()) { failures = 0; CheckBackgroundUpdateAsync(); healthTimer.Start(); return; }
         if (closing || updating) return;
         if (++failures < 2) { healthTimer.Start(); return; }
         if (++recoveries <= 3) await StartAsync();

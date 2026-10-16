@@ -29,7 +29,9 @@ test('native app restricts navigation, releases files for updates and preserves 
   assert.match(source, /e\.Source/);
   assert.match(source, /uri\.Scheme != "https"/);
   assert.match(source, /if \(serverStarted && !updating\)/);
-  const updater = await readFile(new URL('../scripts/apply-update.ps1', import.meta.url), 'utf8');
-  assert.ok(updater.indexOf('$desktopProcess.WaitForExit') < updater.indexOf('Move-Item -LiteralPath $incoming'));
+  const updater = await readFile(new URL('../scripts/update-common.ps1', import.meta.url), 'utf8');
+  assert.ok(updater.indexOf('$desktopProcess.WaitForExit') < updater.lastIndexOf('Move-Item -LiteralPath $incoming'));
   assert.match(updater, /Protected path in manifest/);
+  assert.match(source,/CheckBackgroundUpdateAsync/);
+  assert.ok(source.indexOf('UpdateRequestAsync("\/api\/update-apply"')<source.indexOf('updating = true; Close();'));
 });

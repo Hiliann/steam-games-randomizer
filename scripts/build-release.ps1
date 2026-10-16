@@ -65,17 +65,17 @@ if ($RuntimeDirectory) {
 # cached covers, settings, source archives and any other machine-specific files.
 $releaseFiles = @(
     'package.json', 'server.mjs', 'start.ps1',
-    'README.md', 'README.en.md', 'READ ME FIRST.txt', 'THIRD_PARTY_NOTICES.md', 'CHANGELOG.md', 'DESIGN.md', 'PLAN.md',
+    'LICENSE', 'THIRD_PARTY_NOTICES.md', 'public\update-controller.js', 'public\library-view.js', 'public\settings-controller.js', 'public\appearance-controller.js',
     'lib\steam.mjs', 'lib\owned.mjs', 'lib\steam-cache.mjs', 'lib\exclusions.mjs', 'lib\profile.mjs', 'public\index.html', 'public\app.js', 'public\exclusions.js', 'public\profile.js',
     'lib\install-size.mjs', 'lib\display-settings.mjs', 'public\display.js',
     'lib\online-sizes.mjs', 'public\online-sizes.js', 'public\descriptions.js',
     'lib\windows-integration.mjs', 'lib\update-check.mjs', 'lib\update-installer.mjs', 'lib\steam-launch.mjs', 'lib\app-settings.mjs', 'lib\ui-settings.mjs', 'lib\backup.mjs',
-    'lib\browser-sessions.mjs', 'lib\desktop-owner.mjs', 'lib\session-frames.mjs',
-    'scripts\windows-integration.ps1', 'scripts\launch-steam.ps1', 'scripts\apply-update.ps1', 'public\system.js', 'public\app-settings.js', 'public\ui-settings.js', 'public\i18n.js', 'public\backup.js', 'public\browser-session.js',
+    'lib\browser-sessions.mjs', 'lib\desktop-owner.mjs', 'lib\session-frames.mjs', 'lib\update-state.mjs',
+    'scripts\windows-integration.ps1', 'scripts\launch-steam.ps1', 'scripts\apply-update.ps1', 'scripts\update-common.ps1', 'public\update-flow.js', 'public\system.js', 'public\app-settings.js', 'public\ui-settings.js', 'public\i18n.js', 'public\backup.js', 'public\browser-session.js',
     'public\randomizer.js', 'public\workspace.js', 'public\collections.js', 'public\toast.js', 'public\game-details.js', 'public\draw-animation.js', 'public\decision.js', 'public\scroll-activity.js', 'public\startup.js', 'public\style.css', 'public\responsive.css', 'public\desktop.css', 'public\icon.svg', 'public\icon.png', 'public\icon.ico'
 )
 foreach ($relativeFile in $releaseFiles) {
-    $destination = Join-Path $packageDirectory $relativeFile
+    $destination = Join-Path $packageDirectory $(if ($relativeFile -eq 'LICENSE') { 'runtime\PlayNext-LICENSE.txt' } else { $relativeFile })
     $parent = Split-Path -Parent $destination
     if (-not (Test-Path -LiteralPath $parent)) { New-Item -ItemType Directory -Path $parent | Out-Null }
     Copy-Item -LiteralPath (Join-Path $sourceDirectory $relativeFile) -Destination $destination -ErrorAction Stop

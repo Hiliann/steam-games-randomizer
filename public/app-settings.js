@@ -15,8 +15,10 @@ export function normalizeAppSettings(value) {
   return null;
 }
 
-export function startupUpdateAction(settings, updateInfo) {
+export function startupUpdateAction(settings, updateInfo, installation) {
+  if(['starting','downloading','verifying','ready','applying','cancelling'].includes(installation?.stage))return 'resume';
   if (!validAppSettings(settings) || updateInfo?.status !== 'ready' || updateInfo.updateAvailable !== true || updateInfo.installable !== true) return 'none';
+  if(settings.automaticUpdates && installation?.stage==='failed' && (['rollback-failed','status-unavailable'].includes(installation.reason)||(installation.automaticRetryAllowed!==true&&installation.targetVersion===updateInfo.latestVersion)))return 'failed';
   if (settings.automaticUpdates) return 'install';
   return settings.showUpdateNotifications ? 'notify' : 'none';
 }

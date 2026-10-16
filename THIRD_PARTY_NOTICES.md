@@ -1,4 +1,9 @@
-# Сторонние компоненты
+# Third-party components
+
+Original Play Next source code is MIT licensed; see LICENSE in the repository
+or runtime/PlayNext-LICENSE.txt in the Windows package. This does not relicense
+Node.js, Microsoft components, Steam trademarks or game artwork. Their original
+notices and conditions remain applicable.
 
 Комплект программы содержит неизменённый официальный **Node.js 24.20.0 для Windows x64**.
 

@@ -1,13 +1,17 @@
+import { createSettingsController } from './settings-controller.js';
+import { renderLibraryCards } from './library-view.js';
 import { STORAGE_KEY, cleanState, cleanDrawState, gamesInScope, gameAction, eligibleGames, drawGame, animationGames } from './randomizer.js';
 import { createExclusionsClient } from './exclusions.js';
 import { DISPLAY_DEFAULTS, createDisplayClient, formatSize, uninstalledSize, sizeDescription, sizeSourceUrl, heroBadges } from './display.js';
 import { createOnlineSizesClient } from './online-sizes.js';
 import { createProfileClient } from './profile.js';
 import { createSystemClient } from './system.js';
-import { APP_DEFAULTS, createAppSettingsClient, startupUpdateAction } from './app-settings.js';
-import { UI_DEFAULTS, createRandomAccent, createUiSettingsClient, applyUiSettings } from './ui-settings.js';
+import { createUpdateController } from './update-controller.js';
+import { APP_DEFAULTS, createAppSettingsClient } from './app-settings.js';
+import { createRandomAccent } from './ui-settings.js';
+import { createAppearanceController } from './appearance-controller.js';
 import { createBackupClient } from './backup.js';
-import { getLocale, setLanguage, startLocalization, tr } from './i18n.js';
+import { getLocale, startLocalization, tr } from './i18n.js';
 import { connectBrowserSession } from './browser-session.js';
 import { createDescriptionsClient } from './descriptions.js';
 import { createWorkspace, cleanLibraryView, filterLibraryGames, sortLibraryGames, LIBRARY_VIEW_KEY } from './workspace.js';
@@ -42,34 +46,39 @@ const displayClient = createDisplayClient();
 const profileClient = createProfileClient();
 const systemClient = createSystemClient();
 const appSettingsClient = createAppSettingsClient();
-const uiSettingsClient = createUiSettingsClient();
 const backupClient = createBackupClient();
-let displaySettings = { ...DISPLAY_DEFAULTS };
-let displayReady = false;
-let displayPending = false;
-let displayMessage = 'Загружаем настройки…';
-let windowsSettings = { supported: true, desktopShortcut: false, startup: false };
-let windowsReady = false;
-let windowsPending = false;
-let windowsMessage = 'Проверяем настройки Windows…';
-let appSettings = { ...APP_DEFAULTS };
-let appSettingsReady = false;
-let appSettingsPending = false;
-let appSettingsMessage = 'Загружаем настройки обновлений…';
-let uiSettings = { ...UI_DEFAULTS };
-let uiSettingsReady = false;
-let uiSettingsPending = false;
-let uiSettingsMessage = 'Загружаем язык и оформление…';
-let customAccentDraft = { ...UI_DEFAULTS.customAccent };
-let accentPreviewing = false;
-let accentPreviewMessage = 'Сохранённая палитра готова к предпросмотру.';
+
+const displayModel=createSettingsController({client:displayClient,defaults:DISPLAY_DEFAULTS,loading:'Загружаем настройки…',
+  loaded:()=> 'Настройки сохраняются автоматически в папке приложения.',saved:()=> 'Настройки сохранены.',
+  failure:(error,operation)=>operation==='load'?(error instanceof TypeError?'Нет связи с приложением. Запусти его и повтори загрузку настроек.':error.message):'Не удалось подтвердить сохранение. '+(error instanceof TypeError?'Проверь, что приложение запущено.':error.message)+' Нажми «Повторить загрузку».',
+  onChange:()=>renderDisplaySettings(),onSettled(){renderHero();renderGrid();},
+});
+const windowsModel=createSettingsController({client:{load:()=>systemClient.loadWindows(),set:(key,value)=>systemClient.setWindows(key,value)},
+  defaults:{supported:true,desktopShortcut:false,startup:false},loading:'Проверяем настройки Windows…',
+  loaded:value=>value.supported?'Изменения применяются сразу к этой копии программы.':'Эти функции доступны только в Windows.',
+  saved:(key,value)=>key==='desktopShortcut'?(value?'Ярлык Play Next создан на рабочем столе.':'Ярлык этой копии удалён с рабочего стола.'):(value?'Play Next будет запускаться вместе с Windows.':'Запуск вместе с Windows выключен.'),
+  failure:(error,operation)=>error instanceof TypeError?(operation==='load'?'Нет связи с приложением. Запусти его и повтори проверку.':'Нет связи с приложением. Повтори проверку.'):error.message,
+  onChange:()=>renderWindowsSettings(),
+});
+const appModel=createSettingsController({client:appSettingsClient,defaults:APP_DEFAULTS,loading:'Загружаем настройки обновлений…',
+  optimistic:true,invalidateOnSaveError:false,
+  loaded:value=>value.automaticUpdates?'Автообновление при запуске включено.':'Автообновление при запуске выключено.',
+  saved:(key,value)=>key==='automaticUpdates'?(value?'Автообновление при запуске включено.':'Автообновление при запуске выключено.'):(value?'Окно о новой версии включено.':'Окно о новой версии выключено.'),
+  failure:(error,operation)=>operation==='load'?(error instanceof TypeError?'Нет связи с приложением. Повтори загрузку.':error.message):'Не удалось сохранить настройку. '+(error instanceof TypeError?'Проверь, что приложение запущено, и попробуй ещё раз.':error.message),
+  onChange:()=>renderAppSettings(),
+});
+
+const appearance=createAppearanceController({$,onLocalized:rerenderLocalizedContent,toast});
+const renderUiSettings=()=>appearance.render();
+const loadUiSettings=()=>appearance.load();
+const setUiSetting=(key,value)=>appearance.set(key,value);
+const previewCustomAccent=(value,message)=>appearance.preview(value,message);
+const cancelAccentPreview=()=>appearance.cancel();
+const saveCustomAccent=()=>appearance.save();
 let backupPending = false;
 let backupMessage = 'Данные остаются только на этом компьютере, пока ты сам не сохранишь файл.';
-let updateInfo = { status: 'not-checked', currentVersion: $('app-version').textContent.trim() };
 let scanFailed = false;
-let updatePending = false;
-let updateInstalling = false;
-let updateDialogShownVersion = null;
+let updateApplying = false;
 let profile = { initialized: false, revision: 0, categories: [], assignments: {}, draw: cleanDrawState(state) };
 let profileReady = false;
 let profilePending = false;
@@ -88,6 +97,17 @@ const descriptionDisclosure = createDescriptionDisclosure({ description: $('hero
 const scrollActivity = createScrollActivity();
 window.addEventListener('pagehide', () => scrollActivity.dispose(), { once: true });
 const decisions = createDecisionDialog({ dialog: $('decision-dialog'), title: $('decision-title'), message: $('decision-message'), status: $('decision-status'), save: $('decision-save'), discard: $('decision-discard'), cancel: $('decision-cancel') });
+const updates=createUpdateController({client:systemClient,$,version:$('app-version').textContent.trim(),
+  getSettings:()=>({ready:appModel.ready,value:appModel.value}),
+  canApply:()=>!busy&&!scanning&&!launching&&!profilePending&&!savingExclusion&&!backupPending&&!appearance.pending&&!appModel.pending&&!windowsModel.pending&&!displayModel.pending&&!categoryDraftDirty()&&!appearance.previewing&&!$('decision-dialog').open,
+  bridge:window.chrome?.webview,toast,
+  onApplying(value){updateApplying=value;document.querySelector('.app-shell').inert=value;renderCounts();renderHero();},
+  onStatus:()=>renderAppSettings(),
+});
+const renderUpdateStatus=()=>updates.render();
+const checkForUpdate=options=>updates.check(options);
+const installUpdate=()=>updates.install();
+window.addEventListener('pagehide',()=>updates.dispose(),{once:true});
 if (typeof ResizeObserver === 'function') {
   const descriptionObserver = new ResizeObserver(() => descriptionDisclosure.refresh());
   descriptionObserver.observe($('hero-description-space')); descriptionObserver.observe($('spotlight'));
@@ -119,7 +139,7 @@ const descriptions = createDescriptionsClient({ onUpdate(id, language, result) {
   if (!game) return;
   game.storeDescriptions ??= {};
   game.storeDescriptions[language] = result;
-  if (heroGameId === id && uiSettings.language === language && (animationGame?.id === id || previewId === id)) renderHeroDescription(game);
+  if (heroGameId === id && appearance.value.language === language && (animationGame?.id === id || previewId === id)) renderHeroDescription(game);
 } });
 const sizeObserver = typeof IntersectionObserver === 'function' ? new IntersectionObserver(entries => {
   for (const entry of entries) if (entry.isIntersecting) {
@@ -129,7 +149,7 @@ const sizeObserver = typeof IntersectionObserver === 'function' ? new Intersecti
 }, { rootMargin: '180px' }) : null;
 
 function requestOnlineSize(game, priority = false) {
-  if (!game || game.installed !== false || !displayReady || !displaySettings.showUninstalledSize || !state.includeUninstalled || scanning) return;
+  if (!game || game.installed !== false || !displayModel.ready || !displayModel.value.showUninstalledSize || !state.includeUninstalled || scanning) return;
   onlineSizes.request(game.id, priority);
   syncOnlineSize(game);
   for (const node of document.querySelectorAll(`[data-size-id="${game.id}"]`)) renderCardSize(game, node);
@@ -142,7 +162,7 @@ function syncOnlineSize(game) {
 }
 function renderCardSize(game, node) {
   syncOnlineSize(game);
-  const enabled = game.installed === false && displaySettings.showUninstalledSize;
+  const enabled = game.installed === false && displayModel.value.showUninstalledSize;
   node.textContent = game.installed === false ? enabled ? uninstalledSize(game) : 'В библиотеке' : formatSize(game.size);
   node.title = enabled ? sizeDescription(game) : '';
   const url = enabled ? sizeSourceUrl(game) : '';
@@ -154,23 +174,23 @@ function renderCardSize(game, node) {
   }
 }
 function renderHeroBadges(game) {
-  const badges = heroBadges(game, displaySettings);
+  const badges = heroBadges(game, displayModel.value);
   $('hero-disk').textContent = badges.status;
   $('hero-disk').hidden = !badges.status;
   $('hero-size').textContent = badges.size;
   $('hero-size').title = badges.description;
   $('hero-size').hidden = !badges.size;
-  const source = game?.installed === false && displaySettings.showUninstalledSize ? sizeSourceUrl(game) : '';
+  const source = game?.installed === false && displayModel.value.showUninstalledSize ? sizeSourceUrl(game) : '';
   $('hero-size-source').hidden = !source;
   if (source) $('hero-size-source').href = source; else $('hero-size-source').removeAttribute('href');
 }
 
 function requestGameDescription(game) {
   if (!game || scanning) return;
-  descriptions.request(game.id, uiSettings.language, true);
-  const result = descriptions.get(game.id, uiSettings.language);
+  descriptions.request(game.id, appearance.value.language, true);
+  const result = descriptions.get(game.id, appearance.value.language);
   game.storeDescriptions ??= {};
-  if (result) game.storeDescriptions[uiSettings.language] = result;
+  if (result) game.storeDescriptions[appearance.value.language] = result;
 }
 
 function save() {
@@ -250,123 +270,9 @@ function element(tag, className, text) {
   if (text !== undefined) node.textContent = text;
   return node;
 }
-function renderUiSettings() {
-  for (const key of ['language', 'theme', 'accent']) {
-    $(key === 'language' ? 'interfaceLanguage' : key).value = uiSettings[key];
-    $(key === 'language' ? 'interfaceLanguage' : key).disabled = !uiSettingsReady || uiSettingsPending;
-  }
-  if (accentPreviewing) $('accent').value = 'custom';
-  for (const [key, id] of [['base', 'accent-base'], ['hover', 'accent-hover'], ['contrast', 'accent-contrast']]) {
-    $(id).value = customAccentDraft[key];
-    $(id).disabled = !uiSettingsReady || uiSettingsPending;
-  }
-  $('randomize-accent').disabled = !uiSettingsReady || uiSettingsPending;
-  $('save-custom-accent').disabled = !uiSettingsReady || uiSettingsPending || !accentPreviewing;
-  $('cancel-accent-preview').disabled = !uiSettingsReady || uiSettingsPending || !accentPreviewing;
-  $('accent-preview-status').textContent = accentPreviewMessage;
-  $('ui-settings-status').textContent = uiSettingsMessage;
-  $('retry-ui-settings').hidden = uiSettingsReady || uiSettingsPending;
-}
 function rerenderLocalizedContent() {
   renderDisplaySettings(); renderWindowsSettings(); renderAppSettings(); renderUpdateStatus(); renderCounts(); renderHero(); renderHistory(); renderGrid(); renderLibraries();
   if (!$('categories-dialog').hidden) renderCategoriesDialog();
-}
-async function loadUiSettings() {
-  if (uiSettingsPending) return false;
-  uiSettingsPending = true;
-  uiSettingsMessage = 'Загружаем язык и оформление…';
-  renderUiSettings();
-  try {
-    uiSettings = await uiSettingsClient.load();
-    uiSettingsReady = true;
-    customAccentDraft = { ...uiSettings.customAccent };
-    accentPreviewing = false;
-    accentPreviewMessage = uiSettings.accent === 'custom' ? 'Сохранённая палитра включена.' : 'Сохранённая палитра готова к предпросмотру.';
-    applyUiSettings(uiSettings);
-    setLanguage(uiSettings.language);
-    uiSettingsMessage = 'Язык и оформление сохраняются в папке приложения.';
-    rerenderLocalizedContent();
-    return true;
-  } catch (error) {
-    uiSettingsReady = false;
-    uiSettingsMessage = error instanceof TypeError ? 'Нет связи с приложением. Повтори загрузку.' : error.message;
-    return false;
-  } finally {
-    uiSettingsPending = false;
-    renderUiSettings();
-  }
-}
-async function setUiSetting(key, value) {
-  if (!uiSettingsReady || uiSettingsPending) return;
-  const previous = { ...uiSettings, customAccent: { ...uiSettings.customAccent } };
-  uiSettingsPending = true;
-  uiSettingsMessage = 'Сохраняем…';
-  renderUiSettings();
-  try {
-    uiSettings = await uiSettingsClient.set(key, value);
-    if (key === 'accent') {
-      customAccentDraft = { ...uiSettings.customAccent };
-      accentPreviewing = false;
-      accentPreviewMessage = value === 'custom' ? 'Сохранённая палитра включена.' : 'Сохранённая палитра готова к предпросмотру.';
-    }
-    applyUiSettings(accentPreviewing ? { ...uiSettings, accent: 'custom', customAccent: customAccentDraft } : uiSettings);
-    setLanguage(uiSettings.language);
-    uiSettingsMessage = 'Язык и оформление сохранены.';
-    rerenderLocalizedContent();
-  } catch (error) {
-    uiSettings = previous;
-    uiSettingsReady = false;
-    accentPreviewing = false;
-    customAccentDraft = { ...previous.customAccent };
-    applyUiSettings(uiSettings);
-    setLanguage(uiSettings.language);
-    uiSettingsMessage = `Не удалось подтвердить сохранение. ${error instanceof TypeError ? 'Проверь, что приложение запущено.' : error.message}`;
-  } finally {
-    uiSettingsPending = false;
-    renderUiSettings();
-  }
-}
-function previewCustomAccent(next, message = 'Это предпросмотр. Сохрани палитру, если она понравилась.') {
-  if (!uiSettingsReady || uiSettingsPending) return;
-  customAccentDraft = { ...next };
-  accentPreviewing = true;
-  accentPreviewMessage = message;
-  applyUiSettings({ ...uiSettings, accent: 'custom', customAccent: customAccentDraft });
-  renderUiSettings();
-}
-function cancelAccentPreview() {
-  if (!accentPreviewing) return;
-  accentPreviewing = false;
-  customAccentDraft = { ...uiSettings.customAccent };
-  accentPreviewMessage = uiSettings.accent === 'custom' ? 'Сохранённая палитра включена.' : 'Предпросмотр отменён. Возвращена сохранённая тема.';
-  applyUiSettings(uiSettings);
-  renderUiSettings();
-}
-async function saveCustomAccent() {
-  if (!uiSettingsReady || uiSettingsPending || !accentPreviewing) return;
-  const previous = { ...uiSettings, customAccent: { ...uiSettings.customAccent } };
-  uiSettingsPending = true;
-  uiSettingsMessage = 'Сохраняем палитру…';
-  renderUiSettings();
-  try {
-    uiSettings = await uiSettingsClient.saveCustomAccent(customAccentDraft);
-    customAccentDraft = { ...uiSettings.customAccent };
-    accentPreviewing = false;
-    accentPreviewMessage = 'Своя палитра сохранена и включена.';
-    uiSettingsMessage = 'Язык и оформление сохранены.';
-    applyUiSettings(uiSettings);
-    toast('Цветовая палитра сохранена');
-  } catch (error) {
-    uiSettings = previous;
-    uiSettingsReady = false;
-    accentPreviewing = false;
-    customAccentDraft = { ...previous.customAccent };
-    applyUiSettings(previous);
-    uiSettingsMessage = `Не удалось подтвердить сохранение. ${error instanceof TypeError ? 'Проверь, что приложение запущено.' : error.message}`;
-  } finally {
-    uiSettingsPending = false;
-    renderUiSettings();
-  }
 }
 function renderBackup() {
   $('export-backup').disabled = backupPending;
@@ -432,212 +338,35 @@ async function restoreBackup(file) {
 }
 function renderDisplaySettings() {
   for (const key of Object.keys(DISPLAY_DEFAULTS)) {
-    $(key).checked = displaySettings[key];
-    $(key).disabled = !displayReady || displayPending;
+    $(key).checked = displayModel.value[key];
+    $(key).disabled = !displayModel.ready || displayModel.pending;
   }
-  $('display-status').textContent = displayMessage;
-  $('retry-display').hidden = displayReady || displayPending;
-  if (!displaySettings.showUninstalledSize) onlineSizes.clearQueue();
+  $('display-status').textContent = displayModel.message;
+  $('retry-display').hidden = displayModel.ready || displayModel.pending;
+  if (!displayModel.value.showUninstalledSize) onlineSizes.clearQueue();
 }
-async function loadDisplaySettings() {
-  if (displayPending) return;
-  displayPending = true;
-  displayMessage = 'Загружаем настройки…';
-  renderDisplaySettings();
-  try {
-    displaySettings = await displayClient.load();
-    displayReady = true;
-    displayMessage = 'Настройки сохраняются автоматически в папке приложения.';
-  } catch (error) {
-    displayReady = false;
-    displayMessage = error instanceof TypeError ? 'Нет связи с приложением. Запусти его и повтори загрузку настроек.' : error.message;
-  } finally {
-    displayPending = false;
-    renderDisplaySettings(); renderHero(); renderGrid();
-  }
-}
-async function setDisplaySetting(key, value) {
-  if (!displayReady || displayPending) return;
-  displayPending = true;
-  displayMessage = 'Сохраняем…';
-  renderDisplaySettings();
-  try {
-    displaySettings = await displayClient.set(key, value);
-    displayMessage = 'Настройки сохранены.';
-  } catch (error) {
-    // A lost acknowledgement may still mean a successful write. Re-read first.
-    displayReady = false;
-    displayMessage = `Не удалось подтвердить сохранение. ${error instanceof TypeError ? 'Проверь, что приложение запущено.' : error.message} Нажми «Повторить загрузку».`;
-  } finally {
-    displayPending = false;
-    renderDisplaySettings(); renderHero(); renderGrid();
-  }
-}
+const loadDisplaySettings=()=>displayModel.load();
+const setDisplaySetting=(key,value)=>displayModel.set(key,value);
 function renderWindowsSettings() {
   for (const key of ['desktopShortcut', 'startup']) {
-    $(key).checked = windowsSettings[key];
-    $(key).disabled = !windowsReady || windowsPending || !windowsSettings.supported;
+    $(key).checked = windowsModel.value[key];
+    $(key).disabled = !windowsModel.ready || windowsModel.pending || !windowsModel.value.supported;
   }
-  $('windows-status').textContent = windowsMessage;
-  $('retry-windows').hidden = windowsReady || windowsPending || !windowsSettings.supported;
+  $('windows-status').textContent = windowsModel.message;
+  $('retry-windows').hidden = windowsModel.ready || windowsModel.pending || !windowsModel.value.supported;
 }
-async function loadWindowsSettings() {
-  if (windowsPending) return;
-  windowsPending = true;
-  windowsMessage = 'Проверяем настройки Windows…';
-  renderWindowsSettings();
-  try {
-    windowsSettings = await systemClient.loadWindows();
-    windowsReady = true;
-    windowsMessage = windowsSettings.supported ? 'Изменения применяются сразу к этой копии программы.' : 'Эти функции доступны только в Windows.';
-  } catch (error) {
-    windowsReady = false;
-    windowsMessage = error instanceof TypeError ? 'Нет связи с приложением. Запусти его и повтори проверку.' : error.message;
-  } finally {
-    windowsPending = false;
-    renderWindowsSettings();
-  }
-}
-async function setWindowsSetting(key, value) {
-  if (!windowsReady || windowsPending) return;
-  const previous = windowsSettings[key];
-  windowsPending = true;
-  windowsMessage = 'Применяем настройку…';
-  renderWindowsSettings();
-  try {
-    windowsSettings = await systemClient.setWindows(key, value);
-    windowsMessage = key === 'desktopShortcut'
-      ? value ? 'Ярлык Play Next создан на рабочем столе.' : 'Ярлык этой копии удалён с рабочего стола.'
-      : value ? 'Play Next будет запускаться вместе с Windows.' : 'Запуск вместе с Windows выключен.';
-  } catch (error) {
-    windowsSettings[key] = previous;
-    windowsReady = false;
-    windowsMessage = error instanceof TypeError ? 'Нет связи с приложением. Повтори проверку.' : error.message;
-  } finally {
-    windowsPending = false;
-    renderWindowsSettings();
-  }
-}
+const loadWindowsSettings=()=>windowsModel.load();
+const setWindowsSetting=(key,value)=>windowsModel.set(key,value);
 function renderAppSettings() {
   for (const key of Object.keys(APP_DEFAULTS)) {
-    $(key).checked = appSettings[key];
-    $(key).disabled = !appSettingsReady || appSettingsPending;
+    $(key).checked = appModel.value[key];
+    $(key).disabled = !appModel.ready || appModel.pending;
   }
-  $('app-settings-status').textContent = appSettingsMessage;
-  $('retry-app-settings').hidden = appSettingsReady || appSettingsPending;
+  $('app-settings-status').textContent = appModel.message;
+  $('retry-app-settings').hidden = appModel.ready || appModel.pending;
 }
-async function loadAppSettings() {
-  if (appSettingsPending) return false;
-  appSettingsPending = true;
-  appSettingsMessage = 'Загружаем настройки обновлений…';
-  renderAppSettings();
-  try {
-    appSettings = await appSettingsClient.load();
-    appSettingsReady = true;
-    appSettingsMessage = appSettings.automaticUpdates ? 'Автообновление при запуске включено.' : 'Автообновление при запуске выключено.';
-    return true;
-  } catch (error) {
-    appSettingsReady = false;
-    appSettingsMessage = error instanceof TypeError ? 'Нет связи с приложением. Повтори загрузку.' : error.message;
-    return false;
-  } finally {
-    appSettingsPending = false;
-    renderAppSettings();
-  }
-}
-async function setAppSetting(key, value) {
-  if (!appSettingsReady || appSettingsPending) return false;
-  const previous = appSettings[key];
-  appSettings[key] = value;
-  appSettingsPending = true;
-  appSettingsMessage = 'Сохраняем…';
-  renderAppSettings();
-  try {
-    appSettings = await appSettingsClient.set(key, value);
-    appSettingsMessage = key === 'automaticUpdates'
-      ? value ? 'Автообновление при запуске включено.' : 'Автообновление при запуске выключено.'
-      : value ? 'Окно о новой версии включено.' : 'Окно о новой версии выключено.';
-    return true;
-  } catch (error) {
-    appSettings[key] = previous;
-    appSettingsMessage = `Не удалось сохранить настройку. ${error instanceof TypeError ? 'Проверь, что приложение запущено, и попробуй ещё раз.' : error.message}`;
-    return false;
-  } finally {
-    appSettingsPending = false;
-    renderAppSettings();
-  }
-}
-function showUpdateDialog() {
-  if (!appSettings.showUpdateNotifications || updateInstalling || updateInfo.status !== 'ready' || !updateInfo.updateAvailable || !updateInfo.installable || updateDialogShownVersion === updateInfo.latestVersion) return;
-  updateDialogShownVersion = updateInfo.latestVersion;
-  $('update-dialog-description').textContent = `Доступна версия ${updateInfo.latestVersion}. Сейчас установлена ${updateInfo.currentVersion}. Можно обновиться сейчас или вернуться к этому позже.`;
-  if (!$('update-dialog').open) $('update-dialog').showModal();
-}
-function renderUpdateStatus() {
-  $('check-update').disabled = updatePending || updateInstalling;
-  $('check-update').textContent = updatePending ? 'Проверяем…' : 'Проверить сейчас';
-  const link = $('download-update');
-  const install = $('install-update');
-  link.hidden = true;
-  link.removeAttribute('href');
-  install.hidden = true;
-  install.disabled = updateInstalling;
-  if (updateInstalling) $('update-status').textContent = `Устанавливаем версию ${updateInfo.latestVersion}. Play Next перезапустится автоматически, данные сохранятся.`;
-  else if (updatePending) $('update-status').textContent = `Проверяем обновления. Текущая версия: ${updateInfo.currentVersion}.`;
-  else if (updateInfo.status === 'offline') $('update-status').textContent = `Не удалось связаться с GitHub. Текущая версия: ${updateInfo.currentVersion}.`;
-  else if (updateInfo.status === 'ready' && updateInfo.updateAvailable) {
-    $('update-status').textContent = `Доступна версия ${updateInfo.latestVersion}. Установлена ${updateInfo.currentVersion}.`;
-    if (updateInfo.releaseUrl) { link.href = updateInfo.releaseUrl; link.hidden = false; }
-    install.hidden = !updateInfo.installable;
-  } else if (updateInfo.status === 'ready') $('update-status').textContent = `Установлена актуальная версия ${updateInfo.currentVersion}.`;
-  else $('update-status').textContent = `Текущая версия: ${updateInfo.currentVersion}.`;
-}
-async function checkForUpdate({ force = false, notify = false } = {}) {
-  if (updatePending || updateInstalling) return;
-  updatePending = true;
-  let automatic = false;
-  let showDialog = false;
-  renderUpdateStatus();
-  try {
-    updateInfo = await systemClient.checkUpdate(force);
-    if (notify && updateInfo.status === 'ready' && updateInfo.updateAvailable) toast(`Доступна новая версия Play Next: ${updateInfo.latestVersion}`);
-    const startupAction = notify && appSettingsReady ? startupUpdateAction(appSettings, updateInfo) : 'none';
-    automatic = startupAction === 'install';
-    showDialog = startupAction === 'notify';
-  } catch {
-    updateInfo = { status: 'offline', currentVersion: updateInfo.currentVersion };
-  } finally {
-    updatePending = false;
-    renderUpdateStatus();
-  }
-  if (automatic) installUpdate();
-  else if (showDialog) showUpdateDialog();
-}
-async function installUpdate() {
-  if (updateInstalling || updatePending || updateInfo.status !== 'ready' || !updateInfo.updateAvailable || !updateInfo.installable) return;
-  updateInstalling = true;
-  if ($('update-dialog').open) $('update-dialog').close();
-  renderUpdateStatus(); renderAppSettings();
-  try {
-    const targetVersion = updateInfo.latestVersion;
-    await systemClient.installUpdate(targetVersion);
-    if (window.chrome?.webview) { window.chrome.webview.postMessage('update-starting'); return; }
-    toast('Обновление проверяется и устанавливается. Страница перезагрузится сама.');
-    for (let attempt = 0; attempt < 120; attempt++) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      try {
-        const response = await fetch('/api/health', { cache: 'no-store', signal: AbortSignal.timeout(1500) });
-        const health = await response.json();
-        if (response.ok && health.version === targetVersion) { location.reload(); return; }
-      } catch { /* The local server is restarting. */ }
-    }
-    throw new Error('Программа не перезапустилась вовремя. Открой «Play Next.exe» вручную.');
-  } catch (error) {
-    updateInstalling = false;
-    toast(error.message);
-    renderUpdateStatus(); renderAppSettings();
-  }
-}
+const loadAppSettings=()=>appModel.load();
+const setAppSetting=(key,value)=>appModel.set(key,value);
 function lastPlayedLabel(game) {
   if (!game.lastPlayed) return 'Самое время познакомиться поближе.';
   const days = Math.max(0, Math.floor((Date.now() / 1000 - game.lastPlayed) / 86400));
@@ -739,7 +468,7 @@ function renderCounts() {
   $('reset-cycle').hidden = !state.noRepeats;
   $('pool-note').textContent = !profileReady ? (profilePending || !snapshot ? 'Загружаем сохранённые категории и историю.' : tr('Не удалось прочитать сохранённые данные. Нажми «Обновить список».', 'Could not read saved data. Press “Refresh list”.')) : !scoped.length ? 'Добавь библиотеку, чтобы начать.' : !drawingPool.length ? `В режиме «${modeLabel()}» нет подходящих игр.` : state.noRepeats && played === drawingPool.length ? 'Следующий выбор начнёт новый круг.' : `${modeLabel()}: ${drawingPool.length}. У каждой игры равный шанс.`;
   $('draw-label').textContent = busy ? 'Выбираем…' : scoped.some(game => game.id === previewId) ? 'Предложить другую' : 'Выбрать игру';
-  $('online-size-note').hidden = !state.includeUninstalled || !displaySettings.showUninstalledSize;
+  $('online-size-note').hidden = !state.includeUninstalled || !displayModel.value.showUninstalledSize;
   renderCategorySelectors();
 }
 function renderScopeNote() {
@@ -834,8 +563,8 @@ function libraryCategoryMenu(game) {
   return menu;
 }
 function renderHeroDescription(game) {
-  const cached = descriptions.get(game.id, uiSettings.language);
-  const description = cached ?? game.storeDescriptions?.[uiSettings.language];
+  const cached = descriptions.get(game.id, appearance.value.language);
+  const description = cached ?? game.storeDescriptions?.[appearance.value.language];
   const context = game.installed === false ? 'Игра есть в библиотеке аккаунта, но не установлена на этом компьютере. Steam предложит выбрать диск и начать загрузку.' : lastPlayedLabel(game);
   // Decorative frames can use local game details immediately, even offline.
   $('hero-description').textContent = description?.description ?? (busy ? context : description?.status === 'loading' ? 'Загружаем краткое описание из Steam Store…' : context);
@@ -860,7 +589,7 @@ function renderHero() {
   if (!animationGame) requestOnlineSize(game, true);
   renderHeroCategoryMenu(selected);
   $('play-button').hidden = !selected;
-  $('play-button').disabled = busy || scanning || launching || updateInstalling;
+  $('play-button').disabled = busy || scanning || launching || updateApplying;
   $('toggle-description').disabled = busy;
   $('hero-size-source').inert = busy;
   $('spotlight').setAttribute('aria-busy', String(busy));
@@ -903,7 +632,7 @@ function renderHero() {
 }
 async function launchSelectedGame() {
   const game = scopedGames().find(item => item.id === previewId);
-  if (!game || launching || busy || scanning || updateInstalling) return;
+  if (!game || launching || busy || scanning || updateApplying) return;
   launching = true;
   renderHero();
   try {
@@ -966,7 +695,7 @@ function renderGrid() {
     requestOnlineSize(games.find(game => game.id === heroGameId), true);
     return;
   }
-  $('online-size-note').hidden = !state.includeUninstalled || !displaySettings.showUninstalledSize;
+  $('online-size-note').hidden = !state.includeUninstalled || !displayModel.value.showUninstalledSize;
   const term = $('search-input').value.trim().toLocaleLowerCase('ru');
   const hasFilters = !!term || categoryFilter !== 'all' || libraryView.status !== 'all';
   renderActiveFilters();
@@ -976,47 +705,10 @@ function renderGrid() {
   const scoped = scopedGames();
   const visible = sortLibraryGames(filterLibraryGames(scoped, { filter, excluded: state.excluded, category: categoryFilter, assignments: profile.assignments, query: term, status: libraryView.status }), libraryView.sort, getLocale());
   $('game-grid').dataset.view = libraryView.view;
-  const fragment = document.createDocumentFragment();
-  for (const game of visible) {
-    const isExcluded = excluded.has(game.id);
-    const card = element('article', 'game-card' + (isExcluded ? ' excluded' : ''));
-    const art = element('button', 'game-art');
-    art.type = 'button';
-    art.setAttribute('aria-label', tr(`Открыть игру: ${game.name}`, `Open game: ${game.name}`));
-    art.disabled = busy || scanning;
-    art.addEventListener('click', () => { previewId = game.id; renderHero(); workspace.navigate('choose'); });
-    const fallback = element('div', 'game-placeholder');
-    fallback.append(icon('game'), element('span', '', game.name));
-    fallback.setAttribute('aria-hidden', 'true');
-    art.append(fallback, artwork(game), element('span', 'card-disk', game.installed === false ? 'В Steam' : game.disk));
-    const title = element('h3', '', game.name); title.title = game.name;
-    const meta = element('div', 'game-meta');
-    const size = element('span', 'game-size');
-    size.dataset.sizeId = game.id;
-    renderCardSize(game, size);
-    meta.append(size, element('span', '', game.installed === false ? 'Не установлена' : game.updateRequired ? 'Обновление' : 'Установлена'));
-    const toggle = element('label', 'game-toggle');
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox'; checkbox.checked = !isExcluded; checkbox.disabled = busy || scanning || savingExclusion || !exclusionsReady;
-    checkbox.setAttribute('aria-label', `Участвует в розыгрыше: ${game.name}`);
-    checkbox.addEventListener('change', async () => {
-      const nextId = visible[visible.indexOf(game) + 1]?.id ?? visible[visible.indexOf(game) - 1]?.id;
-      await setExcluded(game.id, !checkbox.checked);
-      // Restore a useful keyboard target after rebuilding the filtered list.
-      const target = document.getElementById(`toggle-${game.id}`) ?? document.getElementById(`toggle-${nextId}`);
-      target?.focus({ preventScroll: true });
-    });
-    checkbox.id = `toggle-${game.id}`;
-    toggle.append(checkbox, element('span', '', isExcluded ? 'Исключена' : 'Участвует'));
-    const categoryRow = element('div', 'card-category-row');
-    const badges = element('div', 'category-badges card-category-badges');
-    renderCategoryBadges(badges, game.id);
-    categoryRow.append(badges, libraryCategoryMenu(game));
-    card.append(art, title, meta, categoryRow, toggle);
-    fragment.append(card);
-  }
-  $('game-grid').replaceChildren(fragment);
-  if (displaySettings.showUninstalledSize && state.includeUninstalled) {
+  renderLibraryCards({ $, element, icon, artwork, renderCardSize, renderCategoryBadges, libraryCategoryMenu,
+    onPreview(id){previewId=id;renderHero();workspace.navigate('choose');},onExcluded:setExcluded,
+  }, {visible,excluded,busy,scanning,savingExclusion,exclusionsReady});
+  if (displayModel.value.showUninstalledSize && state.includeUninstalled) {
     requestOnlineSize(games.find(game => game.id === heroGameId), true);
     if (sizeObserver) {
       for (const node of $('game-grid').querySelectorAll('[data-size-id]')) {
@@ -1265,7 +957,7 @@ async function draw() {
     if (sequence.length) {
       $('spotlight').style.setProperty('--draw-card-height', `${$('spotlight').getBoundingClientRect().height}px`);
       $('spotlight').classList.add('is-drawing');
-      for (const game of sequence) descriptions.request(game.id, uiSettings.language);
+      for (const game of sequence) descriptions.request(game.id, appearance.value.language);
       await playDrawFrames(sequence, {
         prepare: () => heroArtwork.preload([...sequence, result.game]),
         render(game) { animationGame = game; renderHero(); },
@@ -1415,6 +1107,7 @@ $('retry-windows').addEventListener('click', loadWindowsSettings);
 $('retry-app-settings').addEventListener('click', loadAppSettings);
 $('check-update').addEventListener('click', () => checkForUpdate({ force: true }));
 $('install-update').addEventListener('click', installUpdate);
+$('cancel-update').addEventListener('click',()=>updates.cancel().catch(error=>toast(error.message)));
 for (const key of Object.keys(DISPLAY_DEFAULTS)) $(key).addEventListener('change', event => setDisplaySetting(key, event.target.checked));
 for (const key of ['desktopShortcut', 'startup']) $(key).addEventListener('change', event => setWindowsSetting(key, event.target.checked));
 for (const key of Object.keys(APP_DEFAULTS)) $(key).addEventListener('change', event => setAppSetting(key, event.target.checked));
@@ -1428,7 +1121,7 @@ $('theme').addEventListener('change', event => setUiSetting('theme', event.targe
 $('accent').addEventListener('change', event => { cancelAccentPreview(); setUiSetting('accent', event.target.value); });
 $('randomize-accent').addEventListener('click', () => previewCustomAccent(createRandomAccent(), 'Случайная палитра включена для предпросмотра. Её можно изменить или сохранить.'));
 for (const [id, key] of [['accent-base', 'base'], ['accent-hover', 'hover'], ['accent-contrast', 'contrast']]) {
-  $(id).addEventListener('input', event => previewCustomAccent({ ...customAccentDraft, [key]: event.target.value }));
+  $(id).addEventListener('input', event => previewCustomAccent({ ...appearance.draft, [key]: event.target.value }));
 }
 $('save-custom-accent').addEventListener('click', saveCustomAccent);
 $('cancel-accent-preview').addEventListener('click', cancelAccentPreview);
@@ -1521,7 +1214,7 @@ workspace = createWorkspace({ beforeChange(previous, next) {
   if (page === 'categories') renderCategoriesDialog();
   if (page === 'library') renderGrid();
   if (page === 'choose') descriptionDisclosure.refresh();
-  if (page === 'settings') { loadUiSettings(); loadDisplaySettings(); loadAppSettings(); loadWindowsSettings(); systemClient.loadUpdate().then(value => { updateInfo = value; renderUpdateStatus(); }).catch(() => {}); }
+  if (page === 'settings') { loadUiSettings(); loadDisplaySettings(); loadAppSettings(); loadWindowsSettings(); systemClient.loadUpdate().then(value => updates.setInfo(value)).catch(() => {}); }
 } });
 document.addEventListener('click', event => {
   if (!event.target.closest('.hero-category-menu')) $('hero-category-menu').open = false;

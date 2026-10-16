@@ -5,6 +5,17 @@ const attributeSources = new WeakMap();
 const listeners = new Set();
 
 const exact = new Map([
+  ['Обновления проверяются при запуске, в том числе в свёрнутом окне. Во время скачивания можно пользоваться программой или отменить подготовку. Замена начнётся после проверки файлов и сохранения твоих правок. Если попытка не удалась, следующая автоматическая попытка будет доступна при запуске не раньше чем через сутки; вручную можно повторить сразу. GitHub видит запросы обновления, но не получает библиотеку и настройки. Категории, история и настройки не заменяются.', 'Updates are checked at startup, including when minimized. Keep using the app or cancel preparation while it downloads. Replacement waits for verified files and saved changes. After a failed attempt, automatic retry is available on a startup at least a day later; manual retry is available immediately. GitHub sees update requests, but not your library or settings. Categories, history and settings are not replaced.'],
+  ['Отменить обновление', 'Cancel update'], ['Загрузка обновления', 'Update download'],
+  ['Автообновление отключено в настройках.', 'Automatic updates are disabled in Settings.'],
+  ['Автообновление этой версии не удалось. Повтори установку вручную в настройках.', 'This version could not update automatically. Retry manually in Settings.'],
+  ['Сначала дождись завершения сохранения данных.', 'Wait for your data to finish saving first.'],
+  ['Обновление применяется. Сохранение снова будет доступно после перезапуска.', 'The update is being applied. Saving will be available after restart.'],
+  ['Некорректный статус установки обновления.', 'Invalid update installation status.'],
+  ['Не удалось прочитать статус обновления.', 'Could not read the update status.'],
+  ['Не удалось подтвердить завершение обновления. Проверь настройки или повтори запуск.', 'Could not confirm completion. Check Settings or restart the app.'],
+  ['Обновление ещё не готово или было отменено.', 'The update is not ready yet or was cancelled.'],
+  ['Замена файлов уже началась или обновление завершено.', 'File replacement has started, or the update has finished.'],
   ['Восстанавливаем данные…', 'Restoring data…'],
   ['Слишком большой запрос.', 'The request is too large.'],
   ['Проверяем резервную копию. Данные пока не изменяются…', 'Checking backup. Your data has not been changed…'],

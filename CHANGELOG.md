@@ -1,5 +1,31 @@
 # Изменения
 
+## 2.5.0
+
+### Русский
+
+- Автообновление при запуске работает и в свёрнутом окне, без ожидания загрузки интерфейса. Установка по-прежнему требует включённой галочки; её выбор сохраняется.
+- Программа остаётся открытой во время скачивания и проверки. Закрытие и замена файлов начинаются только после успешной проверки SHA-256, манифеста и безопасного подтверждения применения.
+- Добавлены статус и прогресс загрузки, отмена подготовки и отмена автоматического обновления при выключении галочки. После начала замены отмена недоступна.
+- Обновление ждёт несохранённые правки, открытые подтверждения и завершение записи данных, в том числе в другом окне. Свёрнутое состояние сохраняется после перезапуска.
+- Неудачная попытка не вызывает цикл закрытия и повторной установки той же версии. Приложение остаётся доступным; повторная установка возможна вручную. После сбоя замены предусмотрен откат, а при невозможности отката резервная копия сохраняется.
+- Главная страница сайта и README теперь на английском; русская версия доступна по ссылке. Старый адрес /en/ ведёт на главную.
+- Добавлена лицензия MIT на оригинальный код; условия сторонних компонентов сохранены отдельно. README, рабочие заметки и история изменений не входят в Windows-архив. Публичный план очищен от внутренних операций.
+- Из app.js выделены управление обновлениями, состояние групп настроек, оформление и построение карточек библиотеки. Критичные сценарии этих модулей проверяются независимо.
+- После неудачной автоматической установки той же версии действует пауза в сутки. Если при запуске нет интернета, предусмотрены три ограниченные попытки проверки без блокировки приложения.
+
+### English
+
+- Opt-in startup updates also work while minimized, without waiting for a renderer. The saved automatic-update preference is preserved.
+- The app stays open during download and validation. Shutdown and file replacement begin only after SHA-256, manifest and path checks, followed by a verified apply acknowledgment.
+- Added download status and progress, cancellation before replacement and cancellation when automatic updates are switched off. Replacement cannot be cancelled once started.
+- Updates wait for unsaved changes, open confirmations and pending data writes, including another window. A minimized window stays minimized after restarting.
+- A failed attempt does not repeatedly close and restart the same version. Manual retries remain available. Replacement failures roll back; a failed rollback preserves recovery files.
+- The website home page and README are English-first, with Russian available by link. The old /en/ address leads to the home page.
+- Added the MIT license for original code while retaining third-party terms. Windows packages exclude READMEs, working notes and changelogs. The public roadmap no longer contains internal operation logs.
+- Extracted update presentation, settings state, appearance and library-card rendering from app.js into independently tested modules.
+- Failed automatic attempts for the same version have a one-day cooldown. Offline startup checks retry up to three times without blocking the app.
+
 ## 2.4.0
 
 ### Русский

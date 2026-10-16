@@ -112,7 +112,3 @@ The script verifies pinned Node.js checksums and packages an explicit file allow
 The static website lives in `docs/`: English at the root and Russian in `docs/ru/`. The old `/en/` address links to the English home page. GitHub Pages publishes `/docs` from the main branch. Update both pages' release links, version, archive size and checksum when publishing a new release.
 
 Play Next is an independent project, not affiliated with Valve. Steam and game artwork belong to their respective owners. The bundled Node.js license is included in `runtime/LICENSE`; see [third-party notices](THIRD_PARTY_NOTICES.md).
-
-## License
-
-Original Play Next code is [MIT licensed](LICENSE). Bundled third-party components retain their own licenses. The Windows package contains the project license at `runtime/PlayNext-LICENSE.txt`, but no READMEs, development plans, working journals or pre-existing logs.

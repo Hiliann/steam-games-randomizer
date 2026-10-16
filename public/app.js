@@ -11,6 +11,7 @@ import { APP_DEFAULTS, createAppSettingsClient } from './app-settings.js';
 import { createRandomAccent } from './ui-settings.js';
 import { createAppearanceController } from './appearance-controller.js';
 import { createBackupClient } from './backup.js';
+import { createDiagnosticsController } from './diagnostics-controller.js';
 import { getLocale, startLocalization, tr } from './i18n.js';
 import { connectBrowserSession } from './browser-session.js';
 import { createDescriptionsClient } from './descriptions.js';
@@ -97,9 +98,11 @@ const descriptionDisclosure = createDescriptionDisclosure({ description: $('hero
 const scrollActivity = createScrollActivity();
 window.addEventListener('pagehide', () => scrollActivity.dispose(), { once: true });
 const decisions = createDecisionDialog({ dialog: $('decision-dialog'), title: $('decision-title'), message: $('decision-message'), status: $('decision-status'), save: $('decision-save'), discard: $('decision-discard'), cancel: $('decision-cancel') });
+const diagnostics=createDiagnosticsController({$,canStart:()=>!backupPending&&!updateApplying&&!$('decision-dialog').open});
+window.addEventListener('pagehide',()=>diagnostics.dispose(),{once:true});
 const updates=createUpdateController({client:systemClient,$,version:$('app-version').textContent.trim(),
   getSettings:()=>({ready:appModel.ready,value:appModel.value}),
-  canApply:()=>!busy&&!scanning&&!launching&&!profilePending&&!savingExclusion&&!backupPending&&!appearance.pending&&!appModel.pending&&!windowsModel.pending&&!displayModel.pending&&!categoryDraftDirty()&&!appearance.previewing&&!$('decision-dialog').open,
+  canApply:()=>!busy&&!scanning&&!launching&&!profilePending&&!savingExclusion&&!backupPending&&!diagnostics.busy&&!appearance.pending&&!appModel.pending&&!windowsModel.pending&&!displayModel.pending&&!categoryDraftDirty()&&!appearance.previewing&&!$('decision-dialog').open,
   bridge:window.chrome?.webview,toast,
   onApplying(value){updateApplying=value;document.querySelector('.app-shell').inert=value;renderCounts();renderHero();},
   onStatus:()=>renderAppSettings(),

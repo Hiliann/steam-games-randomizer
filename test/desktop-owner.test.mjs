@@ -32,6 +32,12 @@ test('native app restricts navigation, releases files for updates and preserves 
   const updater = await readFile(new URL('../scripts/update-common.ps1', import.meta.url), 'utf8');
   assert.ok(updater.indexOf('$desktopProcess.WaitForExit') < updater.lastIndexOf('Move-Item -LiteralPath $incoming'));
   assert.match(updater, /Protected path in manifest/);
+  assert.match(updater, /if \(\$Minimized\) \{ Start-Process[^\r\n]+-WindowStyle Hidden/);
+  assert.match(updater, /else \{ Start-Process[^\r\n]+-WindowStyle Normal/);
   assert.match(source,/CheckBackgroundUpdateAsync/);
+  assert.match(source,/DownloadStarting \+= SaveLocalExport/);
+  assert.match(source,/SaveFileDialog/);
+  assert.match(source,/"blob:" \+ origin/);
+  assert.match(source,/if \(exportDialogOpen \|\| activeExports > 0\)/);
   assert.ok(source.indexOf('UpdateRequestAsync("\/api\/update-apply"')<source.indexOf('updating = true; Close();'));
 });

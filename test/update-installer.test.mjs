@@ -81,7 +81,7 @@ test('rollback recovery files prevent all automatic retries, even for newer vers
 
 test('Windows helper really executes after its hidden bootstrap exits, including quoted paths',{skip:process.platform!=='win32'},async t=>{
   const root=await mkdtemp(path.join(os.tmpdir(),"playnext updater 'quoted' "));
-  t.after(()=>rm(root,{recursive:true,force:true}));
+  t.after(()=>rm(root,{recursive:true,force:true,maxRetries:10,retryDelay:100}));
   const script=path.join(root,'update helper.ps1'),marker=path.join(root,'executed.json');
   await writeFile(script,"param($Version,$DownloadUrl,$ChecksumUrl,$ProcessId,$Port,$DesktopProcessId,$AttemptId,[switch]$Automatic)\nStart-Sleep -Milliseconds 250\n[IO.File]::WriteAllText((Join-Path $PSScriptRoot 'executed.json'),($PSBoundParameters | ConvertTo-Json -Compress))");
   const attemptId='d'.repeat(32);

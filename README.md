@@ -14,7 +14,7 @@ The website includes a fictional demo, project information and downloads. It can
 
 ## Run on Windows
 
-1. Download **PlayNext-2.5.0-win-x64.zip** from [Releases](https://github.com/Hiliann/steam-games-randomizer/releases/latest). Do not use **Code > Download ZIP**: that archive contains source code without the bundled runtime.
+1. Download **PlayNext-2.6.0-win-x64.zip** from [Releases](https://github.com/Hiliann/steam-games-randomizer/releases/latest). Do not use **Code > Download ZIP**: that archive contains source code without the bundled runtime.
 2. Extract the entire archive to a writable folder. Do not run the program from inside the ZIP.
 3. Open **Play Next.exe**. The program opens in its own desktop window, without a browser tab. Its local address is chosen automatically.
 4. Press **Pick a game**, then **Play on Steam**. An uninstalled game instead offers **Install on Steam**. The local program passes the command to Steam without leaving a technical browser tab open.
@@ -41,6 +41,7 @@ The sidebar separates **Choose a game**, **Library**, **Categories** and **Setti
 - Chooses Russian or English from the system language on first launch, while always preserving a saved manual choice. It also offers three dark themes, preset accents and an editable random-palette preview.
 - Shuffles the decorative draw sequence on every pick and avoids adjacent repeats while more than one candidate is available.
 - Exports categories, history, exclusions, library paths and settings to one validated backup file and restores the previous data if an import write fails.
+- Offers a manual diagnostic ZIP with a complete preview before saving, without game names, accounts, paths or automatic uploads.
 - Checks public GitHub releases for a newer version at startup or on demand. Verified updates can be installed manually or automatically at startup through an opt-in setting.
 
 ## Uninstalled games and storage information
@@ -70,6 +71,10 @@ The **Backup** section downloads one JSON file containing categories, assignment
 If one write fails, Play Next attempts to restore the previous data. A successful restore reloads the page. If the connection is interrupted after confirmation, check the result before retrying: a missing response does not by itself mean that data was unchanged. Keep personal backups separate from the clean ZIP shared with friends.
 
 Only the uninstalled-games checkbox and manually added library paths remain in browser storage. They are specific to the browser and local address. Clearing browser data can reset these preferences, but does not remove categories, history or other settings saved in `data`.
+
+**Settings > My data > Export diagnostics** prepares a small ZIP containing app/runtime versions, library counts, saved-file readability and fixed error codes from this session. It uses the latest loaded library snapshot, not a new scan or an online check. The full JSON is shown before saving; the archive contains exactly that report and a fixed bilingual description. It excludes account identifiers, game names and IDs, file paths, category contents, history, settings values and raw logs. Nothing is uploaded. You choose whether and with whom to share it. This report is not a personal-data backup.
+
+Windows asks where to save manual exports. Automatic replacement waits while the save dialog or download is active. Cancelling the dialog does not create an export file.
 
 Send friends the clean release ZIP, not a copy of a folder you have already used. Your used folder may contain personal settings and diagnostic logs.
 

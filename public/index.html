@@ -42,7 +42,7 @@
         <button id="settings-button" class="nav-item" data-page="settings"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg><span>Настройки</span></button>
       </nav>
       <div class="sidebar-library"><strong id="installed-count">-</strong><span>игр установлено</span><small id="library-count">Ищем библиотеки Steam…</small></div>
-      <div class="sidebar-bottom"><button id="libraries-button" class="nav-item" aria-label="Папки Steam"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg><span>Папки Steam</span></button><span class="connection-pill" id="connection-status" role="status">Подключаемся…</span><small>Play Next <span id="app-version">2.5.0</span></small></div>
+      <div class="sidebar-bottom"><button id="libraries-button" class="nav-item" aria-label="Папки Steam"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg><span>Папки Steam</span></button><span class="connection-pill" id="connection-status" role="status">Подключаемся…</span><small>Play Next <span id="app-version">2.6.0</span></small></div>
     </aside>
 
     <main>
@@ -145,7 +145,7 @@
       </div>
       <p id="app-settings-status" class="dialog-intro display-status" role="status">Загружаем настройки обновлений…</p>
       <button id="retry-app-settings" class="button button-quiet" hidden>Повторить загрузку</button>
-      <p id="update-status" class="dialog-intro display-status" role="status">Текущая версия: 2.5.0</p>
+      <p id="update-status" class="dialog-intro display-status" role="status">Текущая версия: 2.6.0</p>
       <progress id="update-progress" aria-label="Загрузка обновления" max="100" hidden></progress>
       <div class="settings-actions"><button id="check-update" class="button button-quiet">Проверить сейчас</button><button id="install-update" class="button button-primary" hidden>Установить сейчас</button><button id="cancel-update" class="button button-quiet" hidden>Отменить обновление</button><a id="download-update" class="button button-quiet" target="_blank" rel="noreferrer noopener" hidden>Открыть страницу релиза</a></div>
       <p class="privacy-note">Обновления проверяются при запуске, в том числе в свёрнутом окне. Во время скачивания можно пользоваться программой или отменить подготовку. Замена начнётся после проверки файлов и сохранения твоих правок. Если попытка не удалась, следующая автоматическая попытка будет доступна при запуске не раньше чем через сутки; вручную можно повторить сразу. GitHub видит запросы обновления, но не получает библиотеку и настройки. Категории, история и настройки не заменяются.</p>
@@ -155,8 +155,22 @@
       <p class="dialog-intro">Сохрани категории, историю, исключения и настройки одним файлом. Его можно использовать после переустановки или переноса программы.</p>
       <div class="settings-actions"><button id="export-backup" class="button button-quiet" type="button">Скачать копию</button><button id="import-backup" class="button button-quiet" type="button">Восстановить из файла</button><input id="backup-file" type="file" accept="application/json,.json" hidden></div>
       <p id="backup-status" class="dialog-intro display-status" role="status">Данные остаются только на этом компьютере, пока ты сам не сохранишь файл.</p>
+      <div class="diagnostics-section">
+        <h3 class="settings-section-title">Диагностика</h3>
+        <p class="dialog-intro">Если что-то работает неправильно, подготовь технический отчёт. Перед сохранением увидишь всё его содержимое.</p>
+        <button id="export-diagnostics" class="button button-quiet" type="button">Экспортировать диагностику</button>
+        <p id="diagnostics-status" class="privacy-note" role="status">Не включает аккаунты, имена игр, пути, категории, историю, значения настроек или исходные журналы. Ничего не отправляется автоматически.</p>
+      </div>
     </section>
   </section>
+  <dialog id="diagnostics-dialog" class="diagnostics-dialog" aria-labelledby="diagnostics-title" aria-describedby="diagnostics-intro">
+    <div class="dialog-heading"><h2 id="diagnostics-title">Проверка диагностики</h2><button id="close-diagnostics" class="icon-button" type="button" aria-label="Закрыть диагностику"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div>
+    <p id="diagnostics-intro" class="dialog-intro">ZIP содержит версии, сводку библиотеки, состояние файлов настроек и обезличенные коды ошибок этой сессии. Это не резервная копия. Ты сам решаешь, кому отправить файл.</p>
+    <p id="diagnostics-dialog-status" role="status" class="dialog-intro"></p>
+    <p id="diagnostics-files" class="privacy-note" hidden></p>
+    <pre id="diagnostics-preview" class="diagnostics-preview" aria-label="Полный отчёт диагностики" tabindex="0" hidden></pre>
+    <div class="settings-actions"><button id="save-diagnostics" type="button" class="button button-primary" disabled>Сохранить ZIP</button><button id="cancel-diagnostics" type="button" class="button button-quiet">Отмена</button></div>
+  </dialog>
   <dialog id="update-dialog" class="update-dialog" aria-labelledby="update-dialog-title">
     <div class="dialog-heading"><div><p class="eyebrow">ДОСТУПНО ОБНОВЛЕНИЕ</p><h2 id="update-dialog-title">Вышла новая версия Play Next</h2></div><button id="close-update-dialog" class="icon-button" aria-label="Закрыть уведомление об обновлении"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div>
     <p id="update-dialog-description" class="dialog-intro">Можно установить новую версию сейчас или вернуться к этому позже.</p>

@@ -1,5 +1,25 @@
 # Изменения
 
+## 2.6.0
+
+### English
+
+- Added manual diagnostic ZIP export in Settings > My data, with a complete report preview and an explicit save step. Nothing is uploaded automatically.
+- Reports contain only versions, library counts, file-readability states and fixed session error codes. Accounts, game names/IDs, paths, categories, history, settings values and raw logs are excluded by a strict schema, not just text redaction.
+- Windows now asks where to save diagnostics and personal backups. Update replacement waits for export dialogs and active downloads.
+- Fixed normal-window restart after an update; minimized startup remains minimized.
+- Added synthetic damaged, truncated and older Steam-cache fixtures. Repeated package records no longer retain stale depot ownership, and invalid records cannot partially change owned-depot results. Installed games remain available when ownership caches fail.
+- Documented intentionally removed releases 1.1.0, 1.2.0 and 1.3.0 without restoring them or changing their tags.
+
+### Русский
+
+- Добавлен ручной экспорт диагностики в ZIP: «Настройки > Мои данные», полный предпросмотр и отдельная кнопка сохранения. Ничего не отправляется автоматически.
+- Отчёт содержит только версии, числовую сводку библиотеки, состояние чтения файлов и фиксированные коды ошибок сессии. Строгая схема исключает аккаунты, названия и ID игр, пути, категории, историю, значения настроек и исходные журналы.
+- При сохранении диагностики и резервной копии Windows предлагает выбрать папку. Обновление ждёт закрытия окна экспорта и завершения загрузки файла.
+- Исправлен перезапуск обычного окна после обновления. Свёрнутый режим по-прежнему сохраняется.
+- Добавлены искусственные повреждённые, обрезанные и старые кэши Steam для регрессионных тестов. Повторная запись пакета больше не сохраняет устаревшие права на депо; ошибочный кэш не оставляет частично изменённый результат. Установленные игры остаются доступны при сбое кэша лицензий.
+- Отмечены намеренно удалённые релизы 1.1.0, 1.2.0 и 1.3.0: без восстановления публикаций или изменения тегов.
+
 ## 2.5.0
 
 ### Русский

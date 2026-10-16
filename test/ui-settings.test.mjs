@@ -78,6 +78,9 @@ test('UI client protects writes and the English translator covers static and cou
   assert.deepEqual(JSON.parse(options.body), { customAccent: { base: '#abcdef', hover: '#bcdefa', contrast: '#123456' } });
   setLanguage('en');
   assert.equal(translate('Настройки'), 'Settings');
+  assert.equal(translate('Отмена'), 'Cancel');
+  assert.equal(translate('Экспортировать диагностику'), 'Export diagnostics');
+  assert.equal(translate('Полный отчёт диагностики'), 'Complete diagnostic report');
   assert.equal(translate('Показано 4 из 20 игр'), 'Showing 4 of 20 games');
   setLanguage('ru');
 });

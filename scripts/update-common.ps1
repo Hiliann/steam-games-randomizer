@@ -139,7 +139,7 @@ function Start-UpdatedPlayNext([string]$Root,[int]$DesktopProcessId,[int]$Port,[
     if ($DesktopProcessId -gt 0) {
         $launcher=Join-Path $Root 'Play Next.exe'
         if ($Minimized) { Start-Process -FilePath $launcher -ArgumentList '--minimized' -WorkingDirectory $Root -WindowStyle Hidden | Out-Null }
-        else { Start-Process -FilePath $launcher -WorkingDirectory $Root -WindowStyle Hidden | Out-Null }
+        else { Start-Process -FilePath $launcher -WorkingDirectory $Root -WindowStyle Normal | Out-Null }
     } else {
         $starter=Join-Path $Root 'start.ps1'
         Start-Process -FilePath 'powershell.exe' -ArgumentList ('-NoProfile -ExecutionPolicy Bypass -File "'+$starter+'" -NoBrowser -Port '+$Port) -WorkingDirectory $Root -WindowStyle Hidden | Out-Null

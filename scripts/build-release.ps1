@@ -70,7 +70,7 @@ $releaseFiles = @(
     'lib\install-size.mjs', 'lib\display-settings.mjs', 'public\display.js',
     'lib\online-sizes.mjs', 'public\online-sizes.js', 'public\descriptions.js',
     'lib\windows-integration.mjs', 'lib\update-check.mjs', 'lib\update-installer.mjs', 'lib\steam-launch.mjs', 'lib\app-settings.mjs', 'lib\ui-settings.mjs', 'lib\backup.mjs',
-    'lib\browser-sessions.mjs', 'lib\desktop-owner.mjs', 'lib\session-frames.mjs', 'lib\update-state.mjs',
+    'lib\browser-sessions.mjs', 'lib\desktop-owner.mjs', 'lib\session-frames.mjs', 'lib\update-state.mjs', 'lib\diagnostics.mjs', 'public\diagnostics.js', 'public\diagnostics-controller.js',
     'scripts\windows-integration.ps1', 'scripts\launch-steam.ps1', 'scripts\apply-update.ps1', 'scripts\update-common.ps1', 'public\update-flow.js', 'public\system.js', 'public\app-settings.js', 'public\ui-settings.js', 'public\i18n.js', 'public\backup.js', 'public\browser-session.js',
     'public\randomizer.js', 'public\workspace.js', 'public\collections.js', 'public\toast.js', 'public\game-details.js', 'public\draw-animation.js', 'public\decision.js', 'public\scroll-activity.js', 'public\startup.js', 'public\style.css', 'public\responsive.css', 'public\desktop.css', 'public\icon.svg', 'public\icon.png', 'public\icon.ico'
 )

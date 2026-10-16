@@ -24,6 +24,7 @@ const powershell=path.join(process.env.SystemRoot,'System32/WindowsPowerShell/v1
 const exec=promisify(execFile),quote=value=>"'"+value.replaceAll("'","''")+"'";
 const ps=command=>exec(powershell,['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-Command',command],{windowsHide:true,timeout:120000,maxBuffer:1024*1024});
 const json=async file=>JSON.parse((await readFile(file,'utf8')).replace(/^\uFEFF/,''));
+const currentVersion=(await json(path.join(source,'package.json'))).version;
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function waitFor(check,limit=90000){const until=Date.now()+limit;let last;while(Date.now()<until){try{const value=await check();if(value)return value;}catch(error){last=error;}await delay(250);}throw new Error('Update check timed out: '+(last?.message??''));}
@@ -62,7 +63,7 @@ const checksum=archive+'.sha256';await writeFile(checksum,hash(await readFile(ar
 const wrapper=`import {createApp} from './server-production.mjs';
 import {watchDesktopOwner,desktopOwnerId} from './lib/desktop-owner.mjs';
 const version='9.9.9',asset='https://github.com/Hiliann/steam-games-randomizer/releases/download/v'+version+'/PlayNext-'+version+'-win-x64.zip';
-const info={status:'ready',currentVersion:'2.5.0',latestVersion:version,updateAvailable:true,downloadUrl:asset,checksumUrl:asset+'.sha256'};
+const info={status:'ready',currentVersion:'${currentVersion}',latestVersion:version,updateAvailable:true,downloadUrl:asset,checksumUrl:asset+'.sha256'};
 const owner=desktopOwnerId(process.env.PLAYNEXT_DESKTOP_OWNER);
 let app;const stop=()=>{app.closeBrowserSessions();app.close(()=>process.exit(0));};
 app=createApp({desktopOwner:owner,onUpdateInstall:stop,onBrowserSessionsEmpty:stop,updates:{read:()=>info,check:async()=>info},scan:async()=>({games:[],libraries:[],warnings:[],cacheRoots:[],skipped:0,utilities:0})});
@@ -97,12 +98,12 @@ Invoke-PlayNextUpdate @PSBoundParameters`);
   await writeFile(path.join(directory,'scripts/apply-update.ps1'),entry);
   const originalManifest=await json(path.join(source,'release-manifest.json'));
   const appBefore=await Promise.all([...originalManifest.files,...originalManifest.bootstrapFiles].map(async item=>[item.path,hash(await readFile(path.join(directory,item.path)))]));
-  const child=spawn(path.join(directory,'Play Next.exe'),['--minimized'],{cwd:directory,windowsHide:true,stdio:'ignore'});
-  let spawnError;child.once('error',error=>{spawnError=error;});
+  const minimized=mode!=='success-window';
+  const child={pid:Number((await ps(`$p=Start-Process -FilePath ${quote(path.join(directory,'Play Next.exe'))} -WorkingDirectory ${quote(directory)} ${minimized?"-WindowStyle Hidden -ArgumentList '--minimized'":'-WindowStyle Normal'} -PassThru;$p.Id`)).stdout.trim())};
   const record=async()=>json(path.join(directory,'.server-process.json'));
   const state=async()=>json(path.join(directory,'data/update-status.json'));
   try{
-    const initial=await waitFor(async()=>{if(spawnError)throw spawnError;const value=await record();return value.desktopOwner===child.pid?value:false;});
+    const initial=await waitFor(async()=>{const value=await record();return value.desktopOwner===child.pid?value:false;});
     const base=`http://127.0.0.1:${initial.port}`;
     const post=(route,body)=>fetch(base+route,{method:'POST',headers:{'Content-Type':'application/json','X-Randomizer':'1'},body:JSON.stringify(body)});
     if(mode==='cancel'){
@@ -112,21 +113,27 @@ Invoke-PlayNextUpdate @PSBoundParameters`);
       const active=await state();assert.equal((await post('/api/update-cancel',{attemptId:active.attemptId})).status,202);
     }
     const finished=await waitFor(async()=>{const value=await state();return ['complete','failed','cancelled'].includes(value.stage)?value:false;});
-    if(mode==='success'){
+    if(mode==='success'||mode==='success-window'){
       assert.equal(finished.stage,'complete');
       const restarted=await waitFor(async()=>{const value=await record();if(value.desktopOwner===initial.desktopOwner)return false;const health=await fetch(`http://127.0.0.1:${value.port}/api/health`).then(r=>r.json());return health.version===targetVersion&&health.instanceId===getInstanceId(directory)?value:false;});
       assert.notEqual(restarted.processId,initial.processId);
-      assert.equal((await json(path.join(directory,'data/update-request.json'))).restartMinimized,true);
-      await assert.rejects(access(path.join(directory,'data/webview')), {code:'ENOENT'});
+      assert.equal((await json(path.join(directory,'data/update-request.json'))).restartMinimized,minimized);
+      if(minimized)await assert.rejects(access(path.join(directory,'data/webview')), {code:'ENOENT'});
+      else{
+        await waitFor(async()=>{const value=await ps(`$p=Get-Process -Id ${restarted.desktopOwner} -ErrorAction Stop;if($p.Path -ne ${quote(path.join(directory,'Play Next.exe'))}){throw 'Unexpected desktop process.'};$p.MainWindowHandle.ToInt64()`);return Number(value.stdout.trim())>0;});
+        await waitFor(async()=>{try{await access(path.join(directory,'data/webview'));return true;}catch{return false;}});
+        await delay(3000);
+        await assert.rejects(access(path.join(directory,'.launcher-error.log')), {code:'ENOENT'});
+      }
     }else{
       assert.equal(finished.stage,mode==='cancel'?'cancelled':'failed');
       if(mode==='rollback'){
         assert.equal(finished.reason,'apply-failed');
-        await waitFor(async()=>{const value=await record();if(value.processId===initial.processId)return false;return (await fetch(`http://127.0.0.1:${value.port}/api/health`).then(r=>r.json())).version==='2.5.0';});
+        await waitFor(async()=>{const value=await record();if(value.processId===initial.processId)return false;return (await fetch(`http://127.0.0.1:${value.port}/api/health`).then(r=>r.json())).version===currentVersion;});
       }else{
         const health=await fetch(base+'/api/health').then(r=>r.json());assert.equal(health.processId,initial.processId);
       }
-      assert.equal((await json(path.join(directory,'package.json'))).version,'2.5.0');
+      assert.equal((await json(path.join(directory,'package.json'))).version,currentVersion);
       const appAfter=await Promise.all(appBefore.map(async([name])=>[name,hash(await readFile(path.join(directory,name)))]));
       assert.deepEqual(appAfter,appBefore);
       if(mode==='corrupt'){
@@ -146,7 +153,7 @@ Invoke-PlayNextUpdate @PSBoundParameters`);
   }catch(error){console.error('Fixture kept at '+directory);throw error;}
   finally{await stopOwned(directory);await delay(1500);}
 }
-for(const mode of ['success','corrupt','cancel','rollback'])await nativeFixture(mode);
+for(const mode of ['success','success-window','corrupt','cancel','rollback'])await nativeFixture(mode);
 
 if(process.argv[3]){
   const legacy=path.resolve(process.argv[3]),directory=path.join(root,'legacy-2.4.0');
@@ -154,7 +161,7 @@ if(process.argv[3]){
   const original=await readFile(path.join(legacy,'scripts/apply-update.ps1'));
   const command=`function Invoke-WebRequest {param($Uri,$OutFile,[switch]$UseBasicParsing)if($Uri.EndsWith('.sha256')){Copy-Item -LiteralPath ${quote(source+'.zip.sha256')} -Destination $OutFile}else{Copy-Item -LiteralPath ${quote(source+'.zip')} -Destination $OutFile}}
 function Start-Process {param($FilePath,$ArgumentList,$WorkingDirectory,$WindowStyle)}
-& ${quote(path.join(directory,'scripts/apply-update.ps1'))} -Version 2.5.0 -DownloadUrl 'https://github.com/Hiliann/steam-games-randomizer/releases/download/v2.5.0/PlayNext-2.5.0-win-x64.zip' -ChecksumUrl 'https://github.com/Hiliann/steam-games-randomizer/releases/download/v2.5.0/PlayNext-2.5.0-win-x64.zip.sha256' -ProcessId 2147483647 -Port 3210`;
+& ${quote(path.join(directory,'scripts/apply-update.ps1'))} -Version ${currentVersion} -DownloadUrl 'https://github.com/Hiliann/steam-games-randomizer/releases/download/v${currentVersion}/PlayNext-${currentVersion}-win-x64.zip' -ChecksumUrl 'https://github.com/Hiliann/steam-games-randomizer/releases/download/v${currentVersion}/PlayNext-${currentVersion}-win-x64.zip.sha256' -ProcessId 2147483647 -Port 3210`;
   assert.deepEqual(await readFile(path.join(directory,'scripts/apply-update.ps1')),original);
   await ps(command);
   const expected=await json(path.join(source,'release-manifest.json'));

@@ -1,6 +1,6 @@
 # История версий / Release history
 
-Current app version / Актуальная версия: **2.5.0**. [Download / Скачать](https://github.com/Hiliann/steam-games-randomizer/releases/latest).
+Current app version / Актуальная версия: **2.6.0**. [Download / Скачать](https://github.com/Hiliann/steam-games-randomizer/releases/latest).
 
 ## Русский
 
@@ -8,6 +8,8 @@ Current app version / Актуальная версия: **2.5.0**. [Download / 
 с исходными именами и содержимым. Начиная с 1.7.0 дополнительно проверен манифест
 каждого файла. В архивы не включены пользовательские данные или кэш игр.
 Исторические версии приведены для справки; для обычной работы используй актуальную.
+Релизы 1.1.0, 1.2.0 и 1.3.0 намеренно удалены владельцем: их архивы недоступны,
+а исходные теги и исторические контрольные суммы оставлены для справки.
 При ручном обновлении закрой окно приложения и сохрани свою папку `data`.
 
 История разработки до 1.9.0 сохранена без переписывания. Если полноценный снимок
@@ -25,6 +27,9 @@ manifests. No personal data or game caches are included. Historical builds are f
 reference; use the latest version for everyday use. Close the app and keep your
 `data` folder when updating manually.
 
+Releases 1.1.0, 1.2.0 and 1.3.0 were intentionally removed by the owner. Their
+downloads are unavailable; source tags and historical checksums remain for reference.
+
 Existing development history through 1.9.0 is not rewritten. When a complete old
 source checkout is unavailable, its tag contains authentic source files recovered
 from that Windows package and a `PACKAGE-SNAPSHOT.md` note, not a complete development
@@ -33,14 +38,15 @@ on `main`; restoration dates are not presented as original publication dates.
 
 | Версия / Version | Архив / Archive | SHA-256 |
 | --- | --- | --- |
+| [2.6.0](https://github.com/Hiliann/steam-games-randomizer/releases/tag/v2.6.0) | `PlayNext-2.6.0-win-x64.zip` | `6496c8952f811cc5dc51e52d4b07ae4316403010f8b1068b2adf27c09f1840c3` |
 | [2.5.0](https://github.com/Hiliann/steam-games-randomizer/releases/tag/v2.5.0) | `PlayNext-2.5.0-win-x64.zip` | `111c988e01005ae1d3d3e331d9da57bfa6a468cd728333fb003fa9be03c9ed56` |
 | [2.4.0](https://github.com/Hiliann/steam-games-randomizer/releases/tag/v2.4.0) | `PlayNext-2.4.0-win-x64.zip` | `2098e0b5eebe1c867c1333189238a1045e9149924f698582adb993734f568853` |
 | [2.3.1](https://github.com/Hiliann/steam-games-randomizer/releases/tag/v2.3.1) | `PlayNext-2.3.1-win-x64.zip` | `bb3f80dab1f9a99b6fd299a6a7f8fce2d577b0004d2c8b9245eac2506f0020c7` |
 | [2.3.0](https://github.com/Hiliann/steam-games-randomizer/releases/tag/v2.3.0) | `PlayNext-2.3.0-win-x64.zip` | `9937d3b1f3001744b425ca4eb6b3473b959510464ba3491c54d4cec58575b436` |
-| [1.1.0](https://github.com/Hiliann/steam-games-randomizer/releases/tag/v1.1.0) | `PlayNext-Portable-1.1.0-win-x64.zip` | `f103a1614261bae0051bd477375d9486a09da179ea23c09e27c189289f1a2988` |
-| [1.2.0](https://github.com/Hiliann/steam-games-randomizer/releases/tag/v1.2.0) | `PlayNext-Portable-1.2.0-win-x64.zip` | `1ecb590635020f4ae3d5980cbcc93444cb643711a50bc4c660dc1359aefd40da` |
+| [1.1.0](https://github.com/Hiliann/steam-games-randomizer/tree/v1.1.0) | Unavailable / Удалён: `PlayNext-Portable-1.1.0-win-x64.zip` | `f103a1614261bae0051bd477375d9486a09da179ea23c09e27c189289f1a2988` |
+| [1.2.0](https://github.com/Hiliann/steam-games-randomizer/tree/v1.2.0) | Unavailable / Удалён: `PlayNext-Portable-1.2.0-win-x64.zip` | `1ecb590635020f4ae3d5980cbcc93444cb643711a50bc4c660dc1359aefd40da` |
 | [1.2.1](https://github.com/Hiliann/steam-games-randomizer/releases/tag/v1.2.1) | `PlayNext-Portable-1.2.1-win-x64.zip` | `8e94b42ef9b435f6252f40c34199e391e85e3dfa6fb885791b86ac5a6b25577c` |
-| [1.3.0](https://github.com/Hiliann/steam-games-randomizer/releases/tag/v1.3.0) | `PlayNext-Portable-1.3.0-win-x64.zip` | `207c46354e90a86a4b270624a0f9aa2be7b1ef71ece882e0573e3cef40c107a1` |
+| [1.3.0](https://github.com/Hiliann/steam-games-randomizer/tree/v1.3.0) | Unavailable / Удалён: `PlayNext-Portable-1.3.0-win-x64.zip` | `207c46354e90a86a4b270624a0f9aa2be7b1ef71ece882e0573e3cef40c107a1` |
 | [1.4.0](https://github.com/Hiliann/steam-games-randomizer/releases/tag/v1.4.0) | `PlayNext-Portable-1.4.0-win-x64.zip` | `b3eb4c034a210350d89bf33d40e3efbd0c3dc52136d6dcfb1615e60aeda9213c` |
 | [1.4.1](https://github.com/Hiliann/steam-games-randomizer/releases/tag/v1.4.1) | `PlayNext-1.4.1-win-x64.zip` | `ba7d34e97c219e11596444531b11da6b173033abf9fe6db334d5b55251f50f41` |
 | [1.5.0](https://github.com/Hiliann/steam-games-randomizer/releases/tag/v1.5.0) | `PlayNext-1.5.0-win-x64.zip` | `a7635f6fb14dd05e1b722a500f59216519bde5d42da1905798239b3c0d8c42e1` |

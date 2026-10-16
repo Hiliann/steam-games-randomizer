@@ -13,7 +13,7 @@ async function collect(directory){
   return result;
 }
 const files=['server.mjs'];
-for(const directory of ['lib','public','scripts','test','docs'])files.push(...await collect(directory));
+for(const directory of ['lib','public','scripts','test','docs','fixtures'])files.push(...await collect(directory));
 for(const file of files){
   const result=spawnSync(process.execPath,['--check',path.join(project,file)],{windowsHide:true,encoding:'utf8'});
   if(result.error)throw result.error;

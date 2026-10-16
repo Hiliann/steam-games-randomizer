@@ -19,9 +19,10 @@ import { createBrowserSessions, validBrowserSessionId } from './lib/browser-sess
 import { languageFromLocale } from './public/ui-settings.js';
 import { desktopOwnerId, watchDesktopOwner } from './lib/desktop-owner.mjs';
 import { attachSessionFrames } from './lib/session-frames.mjs';
+import { createDiagnosticsService } from './lib/diagnostics.mjs';
 
 const base = path.dirname(fileURLToPath(import.meta.url));
-export const APP_VERSION = '2.5.0';
+export const APP_VERSION = '2.6.0';
 export function getInstanceId(directory = base) {
   const resolved = path.resolve(directory);
   return createHash('sha256').update(process.platform === 'win32' ? resolved.toLowerCase() : resolved).digest('hex').slice(0, 24);
@@ -52,6 +53,8 @@ const staticFiles = new Map([
   ['/ui-settings.js', ['ui-settings.js', 'text/javascript; charset=utf-8']],
   ['/i18n.js', ['i18n.js', 'text/javascript; charset=utf-8']],
   ['/backup.js', ['backup.js', 'text/javascript; charset=utf-8']],
+  ['/diagnostics.js', ['diagnostics.js', 'text/javascript; charset=utf-8']],
+  ['/diagnostics-controller.js', ['diagnostics-controller.js', 'text/javascript; charset=utf-8']],
   ['/update-flow.js', ['update-flow.js', 'text/javascript; charset=utf-8']],
   ['/browser-session.js', ['browser-session.js', 'text/javascript; charset=utf-8']],
   ['/style.css', ['style.css', 'text/css; charset=utf-8']],
@@ -120,15 +123,23 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
   const profile = createProfileStore(profileFile);
   const backup = createBackupService({ exclusions, displaySettings, appSettings, uiSettings, profile, appVersion: APP_VERSION });
   const owner = desktopOwnerId(desktopOwner);
+  const diagnostics=createDiagnosticsService({appVersion:APP_VERSION,desktopWindow:owner>0,stores:{
+    profile:{file:profileFile,read:()=>profile.read()},exclusions:{file:exclusionsFile,read:()=>exclusions.read()},
+    display:{file:displaySettingsFile,read:()=>displaySettings.read()},application:{file:appSettingsFile,read:()=>appSettings.read()},
+    appearance:{file:uiSettingsFile,read:()=>uiSettings.read()},
+  }});
   const browserSessions = createBrowserSessions({ ...browserSessionOptions, onEmpty: owner ? () => {} : onBrowserSessionsEmpty });
   let snapshot;
+  let scanFailed=false,latestInstallation;
   let activeWrites=0, applyingUpdate=false;
   const writeRoutes=new Set(['/api/profile','/api/exclusions','/api/display-settings','/api/app-settings','/api/ui-settings','/api/backup','/api/windows-settings','/api/launch']);
   let scanQueue = Promise.resolve();
   const artworkCache = new Map();
   const refresh = (customPaths, includeUninstalled = false) => {
     const task = scanQueue.then(async () => {
-      snapshot = await scan({ customPaths, includeUninstalled });
+      try {snapshot = await scan({ customPaths, includeUninstalled });scanFailed=false;}
+      catch(error){scanFailed=true;diagnostics.record('library','scan-failed');throw error;}
+      if(snapshot.warnings?.length||['partial','unavailable'].includes(snapshot.ownedLibrary?.status))diagnostics.record('library','scan-incomplete');
       // Loading a library reads only the cache; internet lookups are explicit,
       // limited requests for a selected game or visible uninstalled cards.
       await Promise.all(snapshot.games.filter(game => game.installed === false).map(async game => {
@@ -169,10 +180,17 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
       if (url.pathname === '/api/ui-settings' && request.method === 'GET') return json(response, 200, await uiSettings.initialize(languageFromLocale(request.headers['accept-language'])));
       if (url.pathname === '/api/profile' && request.method === 'GET') return json(response, 200, await profile.read());
       if (url.pathname === '/api/backup' && request.method === 'GET') return json(response, 200, await backup.export());
+      if(url.pathname==='/api/diagnostics'&&request.method==='POST'){
+        if(request.headers['x-randomizer']!=='1')return json(response,403,{error:'Отсутствует заголовок приложения.'});
+        const body=await requestJson(request,64);
+        if(!body||typeof body!=='object'||Array.isArray(body)||Object.keys(body).length!==0)return json(response,400,{error:'Некорректный запрос диагностики.'});
+        return json(response,200,await diagnostics.collect({snapshot,scanFailed,updateCheck:updates.read(),installation:latestInstallation}));
+      }
       if (url.pathname === '/api/windows-settings' && request.method === 'GET') return json(response, 200, await windowsIntegration.read());
       if (url.pathname === '/api/update' && request.method === 'GET') return json(response, 200, updates.read());
       if (url.pathname === '/api/update-install' && request.method === 'GET') {
         const state=await updateInstaller.read();
+        latestInstallation=state;
         if(['failed','cancelled','idle'].includes(state.stage))applyingUpdate=false;
         return json(response,200,state);
       }
@@ -190,6 +208,7 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
         if (available.status !== 'ready' || !available.updateAvailable || body.version !== available.latestVersion || !available.downloadUrl || !available.checksumUrl) return json(response, 409, { error: 'Сначала проверь обновления. Для релиза должны быть доступны архив и контрольная сумма.' });
         if(body.automatic===true&&!(await appSettings.read()).automaticUpdates)return json(response,409,{error:'Автообновление отключено в настройках.'});
         const result = await updateInstaller.install({ version: available.latestVersion, downloadUrl: available.downloadUrl, checksumUrl: available.checksumUrl, processId: process.pid, port, desktopProcessId: owner, automatic: body.automatic===true });
+        latestInstallation={stage:'starting',reason:null};
         json(response, 202, result);
         return;
       }
@@ -205,6 +224,7 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
           applyingUpdate=true;
           try {result=await updateInstaller.apply(body);}catch(error){applyingUpdate=false;throw error;}
         } else result=await updateInstaller.cancel(body.attemptId);
+        latestInstallation={stage:applying?'applying':'cancelling',reason:null};
         json(response,202,result);
         // Native hosts close only after receiving the verified apply receipt.
         if(applying && !owner){const timer=setTimeout(onUpdateInstall,250);timer.unref?.();}
@@ -300,6 +320,9 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
       }
       return json(response, 404, { error: 'Страница не найдена.' });
     } catch (error) {
+      const status=Number.isInteger(error.status)?error.status:500;
+      const area=request.url?.startsWith('/api/update')?'update':request.url?.startsWith('/api/launch')?'steam':/^\/api\/(profile|exclusions|.*settings|backup)(?:[/?]|$)/.test(request.url??'')?'storage':'http';
+      diagnostics.record(area,status<500?'request-rejected':'request-failed',status);
       console.error(error.message);
       if (!response.headersSent) json(response, error.status ?? 500, { error: error.status ? error.message : 'Не удалось прочитать библиотеку. Попробуйте обновить список.' });
       else response.end();

@@ -21,8 +21,8 @@ using Microsoft.Web.WebView2.WinForms;
 [assembly: AssemblyDescription("Steam Games Randomizer")]
 [assembly: AssemblyProduct("Play Next")]
 [assembly: AssemblyCompany("Hiliann")]
-[assembly: AssemblyVersion("2.5.0.0")]
-[assembly: AssemblyFileVersion("2.5.0.0")]
+[assembly: AssemblyVersion("2.6.0.0")]
+[assembly: AssemblyFileVersion("2.6.0.0")]
 
 internal static class PlayNextLauncher
 {
@@ -173,7 +173,8 @@ internal sealed class PlayNextWindow : Form
     private readonly HttpClient http = new HttpClient(new HttpClientHandler { UseProxy = false });
     private readonly System.Windows.Forms.Timer healthTimer = new System.Windows.Forms.Timer();
     private string origin;
-    private bool recovering, closing, updating, serverStarted;
+    private bool recovering, closing, updating, serverStarted, exportDialogOpen;
+    private int activeExports;
     private int failures, recoveries;
     private readonly int preferredPort;
     private readonly int owner = Process.GetCurrentProcess().Id;
@@ -226,6 +227,7 @@ internal sealed class PlayNextWindow : Form
                 view.CoreWebView2.NavigationStarting += delegate(object sender, CoreWebView2NavigationStartingEventArgs e) { if (!IsLocal(e.Uri)) { e.Cancel = true; OpenExternal(e.Uri); } };
                 view.CoreWebView2.NewWindowRequested += delegate(object sender, CoreWebView2NewWindowRequestedEventArgs e) { e.Handled = true; OpenExternal(e.Uri); };
                 view.CoreWebView2.PermissionRequested += delegate(object sender, CoreWebView2PermissionRequestedEventArgs e) { e.State = CoreWebView2PermissionState.Deny; };
+                view.CoreWebView2.DownloadStarting += SaveLocalExport;
                 view.CoreWebView2.WebMessageReceived += async delegate(object sender, CoreWebView2WebMessageReceivedEventArgs e) { if (!IsLocal(e.Source)) return; try { string command = e.TryGetWebMessageAsString(); if (command.StartsWith("update-starting:", StringComparison.Ordinal)) { await ApplyPreparedUpdateAsync(command.Substring(16)); } else if (command == "recover") { recoveries = 0; await StartAsync(); } } catch (Exception error) { PlayNextLauncher.Log(error); if (!closing && view != null && view.CoreWebView2 != null) view.CoreWebView2.PostWebMessageAsString("update-apply-failed"); } };
                 view.CoreWebView2.ProcessFailed += async delegate { if (!closing && !updating) { view.Dispose(); Controls.Remove(view); view = null; if (++recoveries <= 3) await StartAsync(); else ShowStatus(PlayNextLauncher.Text("Окно приложения не отвечает. Повтори запуск.", "The app window is not responding. Try again."), true); } };
                 view.CoreWebView2.NavigationCompleted += delegate(object sender, CoreWebView2NavigationCompletedEventArgs e) { if (e.IsSuccess) status.Visible = false; else ShowStatus(PlayNextLauncher.Text("Связь прервана. Восстанавливаем приложение…", "Connection interrupted. Recovering the app…"), true); };
@@ -248,6 +250,40 @@ internal sealed class PlayNextWindow : Form
         finally { recovering = false; }
     }
     private bool IsLocal(string url) { Uri uri; return Uri.TryCreate(url, UriKind.Absolute, out uri) && uri.GetLeftPart(UriPartial.Authority) == origin; }
+    private void SaveLocalExport(object sender, CoreWebView2DownloadStartingEventArgs e)
+    {
+        string name = Path.GetFileName(e.ResultFilePath);
+        bool diagnostic = System.Text.RegularExpressions.Regex.IsMatch(name, @"^PlayNext-diagnostics-[0-9]+\.[0-9]+\.[0-9]+\.zip$");
+        bool backup = System.Text.RegularExpressions.Regex.IsMatch(name, @"^Play-Next-backup-[0-9]{4}-[0-9]{2}-[0-9]{2}\.json$");
+        if ((!diagnostic && !backup) || !e.DownloadOperation.Uri.StartsWith("blob:" + origin + "/", StringComparison.Ordinal)) { e.Cancel = true; return; }
+        if (exportDialogOpen || closing || updating) { e.Cancel = true; return; }
+        e.Handled = true; exportDialogOpen = true;
+        var deferral = e.GetDeferral();
+        try {
+            BeginInvoke(new Action(delegate {
+                try {
+                    using (var dialog = new SaveFileDialog()) {
+                        dialog.FileName = name;
+                        dialog.Filter = diagnostic ? "ZIP archive (*.zip)|*.zip" : "JSON backup (*.json)|*.json";
+                        dialog.DefaultExt = diagnostic ? "zip" : "json"; dialog.AddExtension = true; dialog.OverwritePrompt = true;
+                        if (closing || dialog.ShowDialog(this) != DialogResult.OK) { e.Cancel = true; return; }
+                        e.ResultFilePath = dialog.FileName;
+                        var operation = e.DownloadOperation; activeExports++;
+                        bool finished = false;
+                        EventHandler<object> changed = null;
+                        changed = delegate {
+                            if (!finished && operation.State != CoreWebView2DownloadState.InProgress) {
+                                finished = true; activeExports--; operation.StateChanged -= changed;
+                            }
+                        };
+                        try { operation.StateChanged += changed; changed(operation, null); }
+                        catch { if (!finished) { finished = true; activeExports--; } operation.StateChanged -= changed; throw; }
+                    }
+                } catch (Exception error) { e.Cancel = true; PlayNextLauncher.Log(error); }
+                finally { exportDialogOpen = false; deferral.Complete(); }
+            }));
+        } catch { exportDialogOpen = false; e.Cancel = true; deferral.Complete(); }
+    }
     private bool backgroundUpdateChecked, backgroundUpdateBusy;
     private int backgroundOfflineRetries;
     private DateTime nextBackgroundCheck = DateTime.MinValue;
@@ -270,6 +306,7 @@ internal sealed class PlayNextWindow : Form
     {
         Guid parsed;
         if (attempt.Length != 32 || !Guid.TryParseExact(attempt, "N", out parsed) || updating || closing || (background && (view != null || WindowState != FormWindowState.Minimized))) return;
+        if (exportDialogOpen || activeExports > 0) { if (view != null && view.CoreWebView2 != null) view.CoreWebView2.PostWebMessageAsString("update-apply-deferred"); return; }
         Dictionary<string, object> receipt = null;
         Exception applyError = null;
         try { receipt = await UpdateRequestAsync("/api/update-apply", new { attemptId = attempt, restartMinimized = WindowState == FormWindowState.Minimized }); }

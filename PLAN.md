@@ -13,9 +13,9 @@ telemetry, invented game metadata or weighted random draws.
 
 ## Reliability and trust
 
-- Add anonymized regression fixtures for incomplete, corrupt and older Steam caches.
-- Add a manual diagnostic export with a visible contents preview and no personal data.
-- Verify release integrity and the clean Windows build process.
+- [x] Add synthetic regression fixtures for incomplete, corrupt and older Steam caches, without copying personal cache data.
+- [x] Add a manual diagnostic export with an exact contents preview and no personal data or automatic upload.
+- [x] Verify release integrity, the clean Windows build process and preserved personal stores during updates.
 - Configure publisher signing when an appropriate signing identity is available.
 - Prepare an installer, then verified winget and optional Scoop distribution.
 

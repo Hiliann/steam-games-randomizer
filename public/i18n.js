@@ -5,6 +5,15 @@ const attributeSources = new WeakMap();
 const listeners = new Set();
 
 const exact = new Map([
+  ['Диагностика','Diagnostics'], ['Экспортировать диагностику','Export diagnostics'],
+  ['Отмена','Cancel'],
+  ['Проверка диагностики','Review diagnostics'], ['Закрыть диагностику','Close diagnostics'],
+  ['Полный отчёт диагностики','Complete diagnostic report'], ['Сохранить ZIP','Save ZIP'],
+  ['Если что-то работает неправильно, подготовь технический отчёт. Перед сохранением увидишь всё его содержимое.','If something is not working, prepare a technical report. Review its complete contents before saving.'],
+  ['Не включает аккаунты, имена игр, пути, категории, историю, значения настроек или исходные журналы. Ничего не отправляется автоматически.','Does not include accounts, game names, paths, categories, history, settings values or raw logs. Nothing is sent automatically.'],
+  ['ZIP содержит версии, сводку библиотеки, состояние файлов настроек и обезличенные коды ошибок этой сессии. Это не резервная копия. Ты сам решаешь, кому отправить файл.','The ZIP contains versions, a library summary, settings-file health and anonymized error codes from this session. This is not a backup. You decide who receives it.'],
+  ['Приложение вернуло некорректный отчёт диагностики.','The app returned an invalid diagnostic report.'],
+  ['Не удалось подготовить диагностику. Попробуй ещё раз.','Could not prepare diagnostics. Please try again.'],
   ['Обновления проверяются при запуске, в том числе в свёрнутом окне. Во время скачивания можно пользоваться программой или отменить подготовку. Замена начнётся после проверки файлов и сохранения твоих правок. Если попытка не удалась, следующая автоматическая попытка будет доступна при запуске не раньше чем через сутки; вручную можно повторить сразу. GitHub видит запросы обновления, но не получает библиотеку и настройки. Категории, история и настройки не заменяются.', 'Updates are checked at startup, including when minimized. Keep using the app or cancel preparation while it downloads. Replacement waits for verified files and saved changes. After a failed attempt, automatic retry is available on a startup at least a day later; manual retry is available immediately. GitHub sees update requests, but not your library or settings. Categories, history and settings are not replaced.'],
   ['Отменить обновление', 'Cancel update'], ['Загрузка обновления', 'Update download'],
   ['Автообновление отключено в настройках.', 'Automatic updates are disabled in Settings.'],

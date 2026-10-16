@@ -436,6 +436,11 @@ dialog::backdrop { background: #0009; backdrop-filter: blur(4px); }
 @media (min-width: 1600px), (max-width: 640px) { .is-drawing .spotlight-body { flex-basis: 360px; height: 360px; } }
 .description-dialog { width: min(620px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); padding: 24px; }
 .description-dialog h2 { font-size: 24px; overflow-wrap: anywhere; }
+.diagnostics-section { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--border); }
+.diagnostics-dialog { width: min(720px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); padding: 24px; }
+.diagnostics-dialog h2 { font-size: clamp(20px, 4vw, 28px); }
+.diagnostics-preview { max-height: min(40dvh, 380px); overflow: auto; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); font-size: 12px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 2; }
+.diagnostics-dialog .settings-actions { margin-top: 20px; }
 .description-dialog p { font-size: 14px; line-height: 1.7; white-space: pre-line; margin-top: 16px; }
 @media (min-width: 1600px) { .spotlight { min-height: 640px; } .hero-description-space { --description-max-lines: 4; } }
 @media (max-width: 850px) { .spotlight { min-height: 560px; } }

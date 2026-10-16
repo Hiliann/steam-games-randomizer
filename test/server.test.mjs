@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import net from 'node:net';
 import { once } from 'node:events';
-import { readFile, mkdtemp, rm } from 'node:fs/promises';
+import { readFile, mkdtemp, rm, writeFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { createApp, APP_VERSION, getInstanceId } from '../server.mjs';
@@ -25,7 +25,7 @@ async function fixture(t, options = {}) {
     server.closeAllConnections();
     await new Promise(resolve => server.close(resolve));
   });
-  return { url: `http://127.0.0.1:${port}`, port, requests };
+  return { url: `http://127.0.0.1:${port}`, port, requests, root };
 }
 test('local health, page and scripts are served with restrictive security headers', async t => {
   const { url } = await fixture(t);
@@ -55,6 +55,22 @@ test('local health, page and scripts are served with restrictive security header
     const expected = await readFile(new URL('../public/' + (asset.endsWith('.ico') ? 'icon.ico' : 'icon.png'), import.meta.url));
     assert.deepEqual(Buffer.from(await response.arrayBuffer()), expected);
   }
+});
+
+test('manual diagnostics is protected, read-only and never scans or checks the network automatically',async t=>{
+  const {url,root,requests}=await fixture(t,{updates:{read:()=>({status:'offline'}),check:()=>{throw new Error('Must not call the network');}}});
+  const post=(body={},headers={})=>fetch(url+'/api/diagnostics',{method:'POST',headers:{'Content-Type':'application/json','X-Randomizer':'1',...headers},body:JSON.stringify(body)});
+  assert.equal((await fetch(url+'/api/diagnostics')).status,404);
+  assert.equal((await post({}, {'X-Randomizer':''})).status,403);
+  assert.equal((await post({}, {Origin:'https://example.com'})).status,403);
+  assert.equal((await post({path:'C:\\private'})).status,400);
+  assert.equal((await post({x:'x'.repeat(100)})).status,413);
+  const report=await(await post()).json();assert.equal(report.format,'play-next-diagnostics');assert.equal(report.library.status,'not-scanned');
+  assert.equal(report.update.check,'offline');assert.equal(requests.length,0);assert.deepEqual(await readdir(root),[]);
+  await writeFile(path.join(root,'profile.json'),'{PRIVATE_SENTINEL');
+  const corrupted=await(await post()).json();assert.equal(corrupted.stores.profile,'unreadable');
+  assert.doesNotMatch(JSON.stringify(corrupted),/PRIVATE_SENTINEL|[A-Z]:\\/);
+  assert.equal(await readFile(path.join(root,'profile.json'),'utf8'),'{PRIVATE_SENTINEL');
 });
 
 test('browser page lifecycle is same-origin protected and closes only the last page', async t => {

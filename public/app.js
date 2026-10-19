@@ -736,7 +736,7 @@ function renderHistory() {
   for (const [i, entry] of entries.entries()) {
     const button = element('button', 'history-item');
     button.type = 'button';
-    button.title = `${entry.game.name} · ${new Date(entry.at).toLocaleString('ru-RU')}`;
+    button.title = `${entry.game.name} · ${new Date(entry.at).toLocaleString(getLocale())}`;
     const image = artwork(entry.game); image.className = 'history-image';
     button.append(element('span', 'history-index', String(i + 1).padStart(2, '0')), image, element('span', '', entry.game.name));
     button.addEventListener('click', () => { if (!busy) { previewId = entry.game.id; renderHero(); workspace.navigate('choose'); } });

@@ -188,8 +188,9 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
       if (url.pathname === '/api/ui-settings' && request.method === 'GET') return json(response, 200, await uiSettings.initialize(languageFromLocale(request.headers['accept-language'])));
       if (url.pathname === '/api/profile' && request.method === 'GET') return json(response, 200, await profile.read());
       if (url.pathname === '/api/store-details' && request.method === 'GET') {
-        const since = Number(url.searchParams.get('since') ?? 0);
-        if (!Number.isSafeInteger(since) || since < 0) return json(response, 400, { error: 'Некорректный запрос.' });
+        // An invalid revision simply asks for everything again.
+        const requested = Number(url.searchParams.get('since') ?? 0);
+        const since = Number.isSafeInteger(requested) && requested >= 0 ? requested : 0;
         return json(response, 200, storeDetails ? await storeDetails.read(since) : { revision: 0, progress: { state: 'idle', total: 0, known: 0, unavailable: 0, pending: 0 }, entries: {}, names: {} });
       }
       if (url.pathname === '/api/backup' && request.method === 'GET') return json(response, 200, await backup.export());

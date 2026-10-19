@@ -157,7 +157,7 @@ test('the app schedules genres after a scan, follows the switch and reports coun
   for (let i = 0; i < 50 && result.progress.state !== 'idle'; i++) { await new Promise(resolve => setTimeout(resolve, 10)); result = await client.load(); }
   assert.deepEqual(result.progress, { state: 'idle', total: 2, known: 2, unavailable: 0, pending: 0 });
   assert.deepEqual(result.entries['20'], { genres: ['1'], features: { single: true, multi: true, coop: true } });
-  assert.equal((await fetch(url + '/api/store-details?since=-1')).status, 400);
+  assert.equal(Object.keys((await (await fetch(url + '/api/store-details?since=-1')).json()).entries).length, 2, 'an invalid revision returns everything');
   assert.equal((await fetch(url + '/store-details.js')).status, 200);
   const report = await (await post('/api/diagnostics', {})).json();
   assert.equal(report.library.storeDetails, 'idle');

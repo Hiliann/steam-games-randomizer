@@ -23,18 +23,18 @@ export function cleanGenreNames(value) {
 
 // Steam's English genre names are stored; common game genres get a local label.
 const GENRE_LABELS = {
-  1: ['Экшен', 'Action'], 2: ['Стратегия', 'Strategy'], 3: ['Ролевая', 'RPG'], 4: ['Казуальная', 'Casual'], 9: ['Гонки', 'Racing'],
-  18: ['Спорт', 'Sports'], 23: ['Инди', 'Indie'], 25: ['Приключение', 'Adventure'], 28: ['Симулятор', 'Simulation'],
-  29: ['MMO', 'Massively Multiplayer'], 37: ['Бесплатная', 'Free to Play'], 70: ['Ранний доступ', 'Early Access'],
-  51: ['Анимация и моделирование', 'Animation & Modeling'], 52: ['Работа со звуком', 'Audio Production'], 53: ['Дизайн и иллюстрация', 'Design & Illustration'],
-  54: ['Обучение', 'Education'], 55: ['Обработка фото', 'Photo Editing'], 56: ['Обучение работе с ПО', 'Software Training'], 57: ['Утилиты', 'Utilities'],
-  58: ['Видеомонтаж', 'Video Production'], 59: ['Веб-публикации', 'Web Publishing'], 60: ['Разработка игр', 'Game Development'],
-  71: ['Сексуальный контент', 'Sexual Content'], 72: ['Обнажённая натура', 'Nudity'], 73: ['Насилие', 'Violent'], 74: ['Жестокость', 'Gore'],
-  81: ['Документальные', 'Documentary'], 84: ['Обучающие', 'Tutorial'],
+  1: () => tr('Экшен', 'Action'), 2: () => tr('Стратегия', 'Strategy'), 3: () => tr('Ролевая', 'RPG'), 4: () => tr('Казуальная', 'Casual'), 9: () => tr('Гонки', 'Racing'),
+  18: () => tr('Спорт', 'Sports'), 23: () => tr('Инди', 'Indie'), 25: () => tr('Приключение', 'Adventure'), 28: () => tr('Симулятор', 'Simulation'),
+  29: () => tr('MMO', 'Massively Multiplayer'), 37: () => tr('Бесплатная', 'Free to Play'), 70: () => tr('Ранний доступ', 'Early Access'),
+  51: () => tr('Анимация и моделирование', 'Animation & Modeling'), 52: () => tr('Работа со звуком', 'Audio Production'), 53: () => tr('Дизайн и иллюстрация', 'Design & Illustration'),
+  54: () => tr('Обучение', 'Education'), 55: () => tr('Обработка фото', 'Photo Editing'), 56: () => tr('Обучение работе с ПО', 'Software Training'), 57: () => tr('Утилиты', 'Utilities'),
+  58: () => tr('Видеомонтаж', 'Video Production'), 59: () => tr('Веб-публикации', 'Web Publishing'), 60: () => tr('Разработка игр', 'Game Development'),
+  71: () => tr('Сексуальный контент', 'Sexual Content'), 72: () => tr('Обнажённая натура', 'Nudity'), 73: () => tr('Насилие', 'Violent'), 74: () => tr('Жестокость', 'Gore'),
+  81: () => tr('Документальные', 'Documentary'), 84: () => tr('Обучающие', 'Tutorial'),
 };
 export function genreLabel(id, names = {}) {
   const local = GENRE_LABELS[id];
-  return local ? tr(local[0], local[1]) : names[id] ?? tr(`Жанр ${id}`, `Genre ${id}`);
+  return local ? local() : names[id] ?? tr(`Жанр ${id}`, `Genre ${id}`);
 }
 export function featureLabel(feature) {
   if (feature === 'single') return tr('Одиночная игра', 'Single-player');

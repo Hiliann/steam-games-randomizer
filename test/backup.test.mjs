@@ -50,7 +50,7 @@ test('one backup restores categories, history, exclusions and all settings', asy
   assert.deepEqual(await stores.appSettings.read(), backup.data.appSettings);
   assert.deepEqual(await stores.uiSettings.read(), backup.data.uiSettings);
   const restoredProfile = await stores.profile.read();
-  assert.deepEqual({ ...restoredProfile, initialized: undefined }, { ...profile, initialized: undefined });
+  assert.deepEqual({ ...restoredProfile, initialized: undefined }, { ...profile, presets: [], initialized: undefined }, 'a backup without presets restores none');
 });
 
 test('damaged backup is rejected before any saved data changes', async t => {
@@ -71,7 +71,7 @@ test('backup preview validates the whole file without changing or reading saved 
   backup.data.exclusions = ['30','40'];
   const never = () => { throw new Error('Preview must not access saved data.'); };
   const readonly = createBackupService(Object.fromEntries(['exclusions','displaySettings','appSettings','uiSettings','profile'].map(key=>[key,{read:never,replace:never}])));
-  assert.deepEqual(readonly.preview(backup), {createdAt:backup.createdAt,appVersion:'1.8.0',categories:1,assignedGames:1,history:1,exclusions:2,customPaths:1});
+  assert.deepEqual(readonly.preview(backup), {createdAt:backup.createdAt,appVersion:'1.8.0',categories:1,assignedGames:1,history:1,presets:0,exclusions:2,customPaths:1});
   backup.data.profile.assignments['10']=['missing'];
   assert.throws(()=>readonly.preview(backup), {status:400});
 });

@@ -35,6 +35,7 @@ const staticFiles = new Map([
   ['/settings-controller.js', ['settings-controller.js', 'text/javascript; charset=utf-8']],
   ['/appearance-controller.js', ['appearance-controller.js', 'text/javascript; charset=utf-8']],
   ['/workspace.js', ['workspace.js', 'text/javascript; charset=utf-8']],
+  ['/filter-presets.js', ['filter-presets.js', 'text/javascript; charset=utf-8']],
   ['/collections.js', ['collections.js', 'text/javascript; charset=utf-8']],
   ['/toast.js', ['toast.js', 'text/javascript; charset=utf-8']],
   ['/game-details.js', ['game-details.js', 'text/javascript; charset=utf-8']],

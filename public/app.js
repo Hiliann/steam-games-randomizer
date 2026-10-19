@@ -1,5 +1,6 @@
 import { createSettingsController } from './settings-controller.js';
 import { renderLibraryCards } from './library-view.js';
+import { createFilterPresetsView } from './filter-presets.js';
 import { STORAGE_KEY, cleanState, cleanDrawState, gamesInScope, gameAction, eligibleGames, drawGame, animationGames, hasPlayed } from './randomizer.js';
 import { createExclusionsClient } from './exclusions.js';
 import { DISPLAY_DEFAULTS, createDisplayClient, formatSize, uninstalledSize, sizeDescription, sizeSourceUrl, heroBadges } from './display.js';
@@ -80,7 +81,7 @@ let backupPending = false;
 let backupMessage = 'Данные остаются только на этом компьютере, пока ты сам не сохранишь файл.';
 let scanFailed = false;
 let updateApplying = false;
-let profile = { initialized: false, revision: 0, categories: [], assignments: {}, draw: cleanDrawState(state) };
+let profile = { initialized: false, revision: 0, categories: [], assignments: {}, draw: cleanDrawState(state), presets: [] };
 let profileReady = false;
 let profilePending = false;
 let categoryFilter = 'all';
@@ -124,6 +125,12 @@ let libraryView = cleanLibraryView();
 try { libraryView = cleanLibraryView(JSON.parse(localStorage.getItem(LIBRARY_VIEW_KEY) ?? '{}')); }
 catch { /* A view preference must never prevent loading the saved game data. */ }
 const scopedGames = () => gamesInScope(games, state);
+const filterPresets = createFilterPresetsView({ container: $('filter-presets'), element, icon,
+  getPresets: () => profile.presets, getCategories: () => profile.categories, getFilters: currentLibraryFilters,
+  isBusy: () => !profileReady || profilePending || busy || scanning, onApply: applyFilterPreset,
+  onSave: (name, filters) => mutateProfile(revision => profileClient.addPreset(revision, name, filters), tr('Набор фильтров сохранён', 'Filter preset saved')),
+  onDelete: preset => mutateProfile(revision => profileClient.deletePreset(revision, preset.id), tr('Набор фильтров удалён', 'Filter preset deleted')),
+});
 const eligible = () => eligibleGames(games, state, profile.assignments);
 let heroGameId = null;
 let cacheWarningShown = false;
@@ -705,6 +712,7 @@ function renderGrid() {
   const term = $('search-input').value.trim().toLocaleLowerCase('ru');
   const hasFilters = !!term || categoryFilter !== 'all' || libraryView.status !== 'all';
   renderActiveFilters();
+  filterPresets.render();
   $('clear-search').hidden = !$('search-input').value;
   $('reset-library-filters').hidden = !hasFilters;
   const excluded = new Set(state.excluded);
@@ -1249,6 +1257,15 @@ function renderLibraryView() {
   $('installation-filter').value = libraryView.status;
   for (const button of document.querySelectorAll('[data-library-view]')) button.setAttribute('aria-pressed', String(button.dataset.libraryView === libraryView.view));
   renderGrid();
+}
+function currentLibraryFilters() {
+  return { filter, category: categoryFilter, status: libraryView.status, sort: libraryView.sort, query: $('search-input').value.trim() };
+}
+function applyFilterPreset(preset) {
+  const { filters } = preset;
+  $('search-input').value = filters.query; libraryView.status = filters.status; libraryView.sort = filters.sort;
+  categoryFilter = profile.categories.some(category => category.id === filters.category) ? filters.category : 'all';
+  renderCategorySelectors(); setFilter(filters.filter); saveLibraryView();
 }
 function resetLibraryFilters() {
   $('search-input').value = ''; categoryFilter = 'all'; libraryView.status = 'all';

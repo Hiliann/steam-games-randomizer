@@ -1,6 +1,7 @@
 import { createSettingsController } from './settings-controller.js';
 import { renderLibraryCards } from './library-view.js';
 import { createFilterPresetsView } from './filter-presets.js';
+import { STORE_FEATURES, createStoreDetailsClient, featureLabel, genreLabel, storeProgressText } from './store-details.js';
 import { STORAGE_KEY, cleanState, cleanDrawState, gamesInScope, gameAction, eligibleGames, drawGame, animationGames, hasPlayed } from './randomizer.js';
 import { createExclusionsClient } from './exclusions.js';
 import { DISPLAY_DEFAULTS, createDisplayClient, formatSize, uninstalledSize, sizeDescription, sizeSourceUrl, heroBadges } from './display.js';
@@ -84,7 +85,7 @@ let updateApplying = false;
 let profile = { initialized: false, revision: 0, categories: [], assignments: {}, draw: cleanDrawState(state), presets: [] };
 let profileReady = false;
 let profilePending = false;
-let categoryFilter = 'all';
+let categoryFilter = 'all', genreFilter = 'all', featureFilter = 'all';
 let categorySelectedId = null;
 let categoryDraft = new Set();
 let categoryDraftOriginal = new Set();
@@ -125,8 +126,63 @@ let libraryView = cleanLibraryView();
 try { libraryView = cleanLibraryView(JSON.parse(localStorage.getItem(LIBRARY_VIEW_KEY) ?? '{}')); }
 catch { /* A view preference must never prevent loading the saved game data. */ }
 const scopedGames = () => gamesInScope(games, state);
-const filterPresets = createFilterPresetsView({ container: $('filter-presets'), element, icon,
-  getPresets: () => profile.presets, getCategories: () => profile.categories, getFilters: currentLibraryFilters,
+const storeClient = createStoreDetailsClient();
+let storeDetails = { revision: 0, progress: null, entries: {}, names: {} }, storeTimer = null, storeLoading = false;
+function applyStoreDetails() { for (const game of games) game.store = storeDetails.entries[game.id] ?? null; }
+// Genres load in the background on the local service; poll only while it works.
+async function loadStoreDetails({ reset = false } = {}) {
+  clearTimeout(storeTimer); storeTimer = null;
+  if (storeLoading) return;
+  storeLoading = true;
+  try {
+    const result = await storeClient.load(reset ? 0 : storeDetails.revision);
+    const changed = reset || Object.keys(result.entries).length > 0;
+    storeDetails = { revision: result.revision, progress: result.progress, entries: reset ? result.entries : { ...storeDetails.entries, ...result.entries }, names: { ...storeDetails.names, ...result.names } };
+    if (changed) { applyStoreDetails(); renderCounts(); if (workspace?.current === 'library') renderGrid(); }
+    if (['loading', 'blocked'].includes(result.progress.state)) storeTimer = setTimeout(loadStoreDetails, result.progress.state === 'blocked' ? 60000 : 4000);
+  } catch {
+    // Genres are optional. The next library refresh asks again.
+  } finally {
+    storeLoading = false;
+    renderStoreStatus();
+  }
+}
+function renderStoreStatus() {
+  const text = storeProgressText(storeDetails.progress);
+  $('store-details-status').textContent = text;
+  $('store-details-status').hidden = !text;
+  $('store-genres-note').textContent = tr('Этот переключатель также управляет фоновой загрузкой жанров и режимов игры (одиночная, мультиплеер, кооператив) из Steam Store для всей библиотеки. Уже загруженные сведения хранятся в data/store-details.json без срока годности, повторно запрашиваются только недостающие игры.', 'This switch also controls background loading of genres and play modes (single-player, multiplayer, co-op) from Steam Store for the whole library. Loaded details are kept in data/store-details.json without expiry; only missing games are requested again.');
+}
+function fillSelect(select, options, value) {
+  const key = JSON.stringify(options);
+  if (select.dataset.options !== key) {
+    select.replaceChildren(...options.map(([optionValue, label]) => { const option = element('option', '', label); option.value = optionValue; return option; }));
+    select.dataset.options = key;
+  }
+  select.value = value;
+}
+function libraryGenres(scoped) {
+  const counts = new Map();
+  for (const game of scoped) for (const id of game.store?.genres ?? []) counts.set(id, (counts.get(id) ?? 0) + 1);
+  const collator = new Intl.Collator(getLocale(), { sensitivity: 'base' });
+  return [...counts].sort(([a], [b]) => collator.compare(genreLabel(a, storeDetails.names), genreLabel(b, storeDetails.names)));
+}
+function renderStoreFilters(scoped) {
+  const known = scoped.filter(game => game.store).length;
+  const show = known > 0 || genreFilter !== 'all' || featureFilter !== 'all';
+  $('genre-filter-label').hidden = !show; $('feature-filter-label').hidden = !show;
+  if (!show) return;
+  $('genre-filter-caption').textContent = tr('Жанр', 'Genre');
+  $('feature-filter-caption').textContent = tr('Режим игры', 'Play mode');
+  const genres = libraryGenres(scoped).map(([id, count]) => [id, `${genreLabel(id, storeDetails.names)} (${count})`]);
+  if (!['all', 'unknown'].includes(genreFilter) && !genres.some(([id]) => id === genreFilter)) genres.push([genreFilter, genreLabel(genreFilter, storeDetails.names)]);
+  // Offer the unknown state only while some games have no confirmed Store data.
+  const unknownGenre = known < scoped.length || genreFilter === 'unknown' ? [['unknown', tr('Жанр не загружен', 'Genre not loaded')]] : [];
+  const unknownFeature = scoped.some(game => !game.store?.features) || featureFilter === 'unknown' ? [['unknown', featureLabel('unknown')]] : [];
+  fillSelect($('genre-filter'), [['all', tr('Любой жанр', 'Any genre')], ...genres, ...unknownGenre], genreFilter);
+  fillSelect($('feature-filter'), [['all', tr('Любой режим', 'Any mode')], ...STORE_FEATURES.map(feature => [feature, featureLabel(feature)]), ...unknownFeature], featureFilter);
+}const filterPresets = createFilterPresetsView({ container: $('filter-presets'), element, icon,
+  getPresets: () => profile.presets, getCategories: () => profile.categories, getGenreNames: () => storeDetails.names, getFilters: currentLibraryFilters,
   isBusy: () => !profileReady || profilePending || busy || scanning, onApply: applyFilterPreset,
   onSave: (name, filters) => mutateProfile(revision => profileClient.addPreset(revision, name, filters), tr('Набор фильтров сохранён', 'Filter preset saved')),
   onDelete: preset => mutateProfile(revision => profileClient.deletePreset(revision, preset.id), tr('Набор фильтров удалён', 'Filter preset deleted')),
@@ -281,7 +337,7 @@ function element(tag, className, text) {
   return node;
 }
 function rerenderLocalizedContent() {
-  renderDisplaySettings(); renderWindowsSettings(); renderAppSettings(); renderUpdateStatus(); renderCounts(); renderHero(); renderHistory(); renderGrid(); renderLibraries();
+  renderDisplaySettings(); renderWindowsSettings(); renderAppSettings(); renderUpdateStatus(); renderCounts(); renderHero(); renderHistory(); renderGrid(); renderLibraries(); renderStoreStatus();
   if (!$('categories-dialog').hidden) renderCategoriesDialog();
 }
 function renderBackup() {
@@ -354,6 +410,9 @@ function renderDisplaySettings() {
   $('display-status').textContent = displayModel.message;
   $('retry-display').hidden = displayModel.ready || displayModel.pending;
   if (!displayModel.value.showUninstalledSize) onlineSizes.clearQueue();
+  // The service resumes genres when the switch is turned on; follow its progress.
+  if (displayModel.ready && displayModel.value.showUninstalledSize && storeDetails.progress?.state === 'disabled' && !storeTimer) storeTimer = setTimeout(loadStoreDetails, 1000);
+  else if (displayModel.ready && !displayModel.value.showUninstalledSize && storeDetails.progress && ['loading', 'blocked'].includes(storeDetails.progress.state)) loadStoreDetails();
 }
 const loadDisplaySettings=()=>displayModel.load();
 const setDisplaySetting=(key,value)=>displayModel.set(key,value);
@@ -412,6 +471,8 @@ function modeLabel(mode = state.mode) {
   if (mode === 'unplayed') return 'Ещё не запускались';
   if (mode === 'dormant') return 'Не запускались 90 дней';
   if (mode === 'recent') return tr('Запускались за 30 дней', 'Played in the last 30 days');
+  if (STORE_FEATURES.includes(mode)) return featureLabel(mode);
+  if (mode.startsWith('genre:')) return genreLabel(mode.slice(6), storeDetails.names);
   if (mode.startsWith('category:')) return profile.categories.find(category => category.id === mode.slice(9))?.name ?? 'Категория';
   return 'Все участвующие';
 }
@@ -435,6 +496,17 @@ function renderCategorySelectors() {
     for (const category of profile.categories) {
       const option = element('option', '', category.name); option.value = `category:${category.id}`; group.append(option);
     }
+    drawFragment.append(group);
+  }
+  // Store play modes and genres appear once Steam Store confirmed them for a game.
+  const scoped = scopedGames();
+  const features = STORE_FEATURES.filter(feature => drawValue === feature || scoped.some(game => game.store?.features?.[feature]));
+  const genres = libraryGenres(scoped).map(([id]) => id);
+  if (drawValue.startsWith('genre:') && !genres.includes(drawValue.slice(6))) genres.push(drawValue.slice(6));
+  for (const [label, values] of [[tr('Режим игры', 'Play mode'), features.map(feature => [feature, featureLabel(feature)])], [tr('Жанры', 'Genres'), genres.map(id => [`genre:${id}`, genreLabel(id, storeDetails.names)])]]) {
+    if (!values.length) continue;
+    const group = document.createElement('optgroup'); group.label = label;
+    for (const [value, text] of values) { const option = element('option', '', text); option.value = value; group.append(option); }
     drawFragment.append(group);
   }
   $('draw-mode').replaceChildren(drawFragment);
@@ -710,14 +782,15 @@ function renderGrid() {
   }
   $('online-size-note').hidden = !state.includeUninstalled || !displayModel.value.showUninstalledSize;
   const term = $('search-input').value.trim().toLocaleLowerCase('ru');
-  const hasFilters = !!term || categoryFilter !== 'all' || libraryView.status !== 'all';
+  const hasFilters = !!term || categoryFilter !== 'all' || libraryView.status !== 'all' || genreFilter !== 'all' || featureFilter !== 'all';
   renderActiveFilters();
+  renderStoreFilters(scopedGames());
   filterPresets.render();
   $('clear-search').hidden = !$('search-input').value;
   $('reset-library-filters').hidden = !hasFilters;
   const excluded = new Set(state.excluded);
   const scoped = scopedGames();
-  const visible = sortLibraryGames(filterLibraryGames(scoped, { filter, excluded: state.excluded, category: categoryFilter, assignments: profile.assignments, query: term, status: libraryView.status }), libraryView.sort, getLocale());
+  const visible = sortLibraryGames(filterLibraryGames(scoped, { filter, excluded: state.excluded, category: categoryFilter, assignments: profile.assignments, query: term, status: libraryView.status, genre: genreFilter, feature: featureFilter }), libraryView.sort, getLocale());
   $('game-grid').dataset.view = libraryView.view;
   renderLibraryCards({ $, element, icon, artwork, renderCardSize, renderCategoryBadges, libraryCategoryMenu,
     onPreview(id){previewId=id;renderHero();workspace.navigate('choose');},onExcluded:setExcluded,
@@ -1063,7 +1136,7 @@ async function scan({ addedPath } = {}) {
     const response = await fetch('/api/scan', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Randomizer': '1' }, body: JSON.stringify({ paths, includeUninstalled: state.includeUninstalled }) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error ?? 'Не удалось прочитать библиотеки.');
-    snapshot = data; games = data.games; heroArtwork.reset();
+    snapshot = data; games = data.games; applyStoreDetails(); heroArtwork.reset();
     scanFailed = false;
     if (addedPath) {
       const failed = data.warnings.some(warning => warning.startsWith('Не найдена папка steamapps:') && warning.includes(addedPath));
@@ -1083,6 +1156,7 @@ async function scan({ addedPath } = {}) {
     $('add-path-form').querySelector('button').disabled = false;
     renderCounts(); renderHero(); renderHistory(); renderGrid(); renderLibraries();
   }
+  if (success) loadStoreDetails({ reset: true });
   return success;
 }
 
@@ -1104,6 +1178,8 @@ $('reset-library-filters').addEventListener('click', resetLibraryFilters);
 $('installation-filter').addEventListener('change', event => { libraryView.status = event.target.value; saveLibraryView(); });
 for (const tab of document.querySelectorAll('.filter-tab')) tab.addEventListener('click', () => setFilter(tab.dataset.filter));
 $('category-filter').addEventListener('change', event => { categoryFilter = event.target.value; renderGrid(); });
+$('genre-filter').addEventListener('change', event => { genreFilter = event.target.value; renderGrid(); });
+$('feature-filter').addEventListener('change', event => { featureFilter = event.target.value; renderGrid(); });
 $('draw-mode').addEventListener('change', event => updateDraw({ mode: event.target.value }, `Режим выбора: ${event.target.options[event.target.selectedIndex].textContent}`));
 $('no-repeats').addEventListener('change', event => updateDraw({ noRepeats: event.target.checked }));
 $('reset-cycle').addEventListener('click', () => updateDraw({ seen: [] }, 'Новый круг: все подходящие игры снова доступны'));
@@ -1250,6 +1326,8 @@ function renderActiveFilters() {
   if (term) add(tr(`Поиск: ${term}`, `Search: ${term}`), () => { $('search-input').value = ''; });
   if (categoryFilter !== 'all') add(profile.categories.find(category => category.id === categoryFilter)?.name ?? tr('Категория', 'Category'), () => { categoryFilter = 'all'; renderCategorySelectors(); });
   if (libraryView.status !== 'all') add(libraryView.status === 'installed' ? tr('Установленные', 'Installed') : tr('Неустановленные', 'Not installed'), () => { libraryView.status = 'all'; });
+  if (genreFilter !== 'all') add(genreFilter === 'unknown' ? tr('Жанр не загружен', 'Genre not loaded') : genreLabel(genreFilter, storeDetails.names), () => { genreFilter = 'all'; });
+  if (featureFilter !== 'all') add(featureLabel(featureFilter), () => { featureFilter = 'all'; });
   container.replaceChildren(...chips); container.hidden = !chips.length;
 }
 function renderLibraryView() {
@@ -1259,16 +1337,17 @@ function renderLibraryView() {
   renderGrid();
 }
 function currentLibraryFilters() {
-  return { filter, category: categoryFilter, status: libraryView.status, sort: libraryView.sort, query: $('search-input').value.trim() };
+  return { filter, category: categoryFilter, status: libraryView.status, sort: libraryView.sort, query: $('search-input').value.trim(), genre: genreFilter, feature: featureFilter };
 }
 function applyFilterPreset(preset) {
   const { filters } = preset;
   $('search-input').value = filters.query; libraryView.status = filters.status; libraryView.sort = filters.sort;
+  genreFilter = filters.genre; featureFilter = filters.feature;
   categoryFilter = profile.categories.some(category => category.id === filters.category) ? filters.category : 'all';
   renderCategorySelectors(); setFilter(filters.filter); saveLibraryView();
 }
 function resetLibraryFilters() {
-  $('search-input').value = ''; categoryFilter = 'all'; libraryView.status = 'all';
+  $('search-input').value = ''; categoryFilter = 'all'; libraryView.status = 'all'; genreFilter = 'all'; featureFilter = 'all';
   renderCategorySelectors(); setFilter('all'); saveLibraryView();
 }
 function saveLibraryView() {
@@ -1278,6 +1357,7 @@ function saveLibraryView() {
 for (const button of document.querySelectorAll('[data-library-view]')) button.addEventListener('click', () => { libraryView.view = button.dataset.libraryView; saveLibraryView(); });
 $('library-sort').addEventListener('change', event => { libraryView.sort = event.target.value; saveLibraryView(); });
 renderLibraryView();
+renderStoreStatus();
 renderWindowsSettings();
 renderAppSettings();
 renderUpdateStatus();

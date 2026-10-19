@@ -7,6 +7,8 @@ import { scanSteam, normalizeLibrary, findArtwork } from './lib/steam.mjs';
 import { createExclusionsStore, MAX_EXCLUSIONS_BYTES } from './lib/exclusions.mjs';
 import { createDisplayStore, MAX_DISPLAY_BYTES } from './lib/display-settings.mjs';
 import { createOnlineSizeService } from './lib/online-sizes.mjs';
+import { createRequestGate } from './lib/request-gate.mjs';
+import { createStoreDetailsService } from './lib/store-details.mjs';
 import { createProfileStore, MAX_PROFILE_BYTES } from './lib/profile.mjs';
 import { createWindowsIntegration, MAX_WINDOWS_SETTINGS_BYTES } from './lib/windows-integration.mjs';
 import { createUpdateService } from './lib/update-check.mjs';
@@ -36,6 +38,7 @@ const staticFiles = new Map([
   ['/appearance-controller.js', ['appearance-controller.js', 'text/javascript; charset=utf-8']],
   ['/workspace.js', ['workspace.js', 'text/javascript; charset=utf-8']],
   ['/filter-presets.js', ['filter-presets.js', 'text/javascript; charset=utf-8']],
+  ['/store-details.js', ['store-details.js', 'text/javascript; charset=utf-8']],
   ['/collections.js', ['collections.js', 'text/javascript; charset=utf-8']],
   ['/toast.js', ['toast.js', 'text/javascript; charset=utf-8']],
   ['/game-details.js', ['game-details.js', 'text/javascript; charset=utf-8']],
@@ -116,7 +119,7 @@ function attachBrowserSessions(server, browserSessions) {
   return () => { for (const socket of sockets) socket.destroy(); sockets.clear(); };
 }
 
-export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, 'data/exclusions.json'), displaySettingsFile = path.join(base, 'data/display-settings.json'), appSettingsFile = path.join(base, 'data/app-settings.json'), uiSettingsFile = path.join(base, 'data/ui-settings.json'), profileFile = path.join(base, 'data/profile.json'), onlineSizes = createOnlineSizeService({ filename: path.join(base, 'data/online-sizes.json') }), windowsIntegration = createWindowsIntegration(), updates = createUpdateService({ currentVersion: APP_VERSION }), steamLauncher = createSteamLauncher(), updateInstaller = createUpdateInstaller(), onUpdateInstall = () => {}, onBrowserSessionsEmpty = () => {}, browserSessionOptions = {}, desktopOwner = 0 } = {}) {
+export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, 'data/exclusions.json'), displaySettingsFile = path.join(base, 'data/display-settings.json'), appSettingsFile = path.join(base, 'data/app-settings.json'), uiSettingsFile = path.join(base, 'data/ui-settings.json'), profileFile = path.join(base, 'data/profile.json'), onlineSizes = createOnlineSizeService({ filename: path.join(base, 'data/online-sizes.json') }), storeDetails = null, windowsIntegration = createWindowsIntegration(), updates = createUpdateService({ currentVersion: APP_VERSION }), steamLauncher = createSteamLauncher(), updateInstaller = createUpdateInstaller(), onUpdateInstall = () => {}, onBrowserSessionsEmpty = () => {}, browserSessionOptions = {}, desktopOwner = 0 } = {}) {
   const exclusions = createExclusionsStore(exclusionsFile);
   const displaySettings = createDisplayStore(displaySettingsFile);
   const appSettings = createAppSettingsStore(appSettingsFile);
@@ -131,6 +134,9 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
   }});
   const browserSessions = createBrowserSessions({ ...browserSessionOptions, onEmpty: owner ? () => {} : onBrowserSessionsEmpty });
   let snapshot;
+  // Background Store genres follow the same switch as other online Store details.
+  const storeEnabled = async () => (await displaySettings.read()).showUninstalledSize === true;
+  const scheduleStoreDetails = () => { if (snapshot) storeDetails?.schedule(snapshot.games.map(game => game.id), storeEnabled).catch(() => {}); };
   let scanFailed=false,latestInstallation;
   let activeWrites=0, applyingUpdate=false;
   const writeRoutes=new Set(['/api/profile','/api/exclusions','/api/display-settings','/api/app-settings','/api/ui-settings','/api/backup','/api/windows-settings','/api/launch']);
@@ -147,6 +153,7 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
         game.onlineSize = await onlineSizes.getCached(game.id, game.installSize?.platform ?? 'windows');
       }));
       artworkCache.clear();
+      scheduleStoreDetails();
       return snapshot;
     });
     scanQueue = task.catch(() => {});
@@ -180,12 +187,17 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
       if (url.pathname === '/api/app-settings' && request.method === 'GET') return json(response, 200, await appSettings.read());
       if (url.pathname === '/api/ui-settings' && request.method === 'GET') return json(response, 200, await uiSettings.initialize(languageFromLocale(request.headers['accept-language'])));
       if (url.pathname === '/api/profile' && request.method === 'GET') return json(response, 200, await profile.read());
+      if (url.pathname === '/api/store-details' && request.method === 'GET') {
+        const since = Number(url.searchParams.get('since') ?? 0);
+        if (!Number.isSafeInteger(since) || since < 0) return json(response, 400, { error: 'Некорректный запрос.' });
+        return json(response, 200, storeDetails ? await storeDetails.read(since) : { revision: 0, progress: { state: 'idle', total: 0, known: 0, unavailable: 0, pending: 0 }, entries: {}, names: {} });
+      }
       if (url.pathname === '/api/backup' && request.method === 'GET') return json(response, 200, await backup.export());
       if(url.pathname==='/api/diagnostics'&&request.method==='POST'){
         if(request.headers['x-randomizer']!=='1')return json(response,403,{error:'Отсутствует заголовок приложения.'});
         const body=await requestJson(request,64);
         if(!body||typeof body!=='object'||Array.isArray(body)||Object.keys(body).length!==0)return json(response,400,{error:'Некорректный запрос диагностики.'});
-        return json(response,200,await diagnostics.collect({snapshot,scanFailed,updateCheck:updates.read(),installation:latestInstallation}));
+        return json(response,200,await diagnostics.collect({snapshot,scanFailed,updateCheck:updates.read(),installation:latestInstallation,storeDetails:storeDetails?.progress()}));
       }
       if (url.pathname === '/api/windows-settings' && request.method === 'GET') return json(response, 200, await windowsIntegration.read());
       if (url.pathname === '/api/update' && request.method === 'GET') return json(response, 200, updates.read());
@@ -250,7 +262,9 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
       }
       if (url.pathname === '/api/display-settings' && request.method === 'POST') {
         if (request.headers['x-randomizer'] !== '1') return json(response, 403, { error: 'Отсутствует заголовок приложения.' });
-        return json(response, 200, await displaySettings.change(await requestJson(request, MAX_DISPLAY_BYTES)));
+        const settings = await displaySettings.change(await requestJson(request, MAX_DISPLAY_BYTES));
+        if (settings.showUninstalledSize) scheduleStoreDetails();
+        return json(response, 200, settings);
       }
       if (url.pathname === '/api/app-settings' && request.method === 'POST') {
         if (request.headers['x-randomizer'] !== '1') return json(response, 403, { error: 'Отсутствует заголовок приложения.' });
@@ -331,7 +345,7 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
   });
   const closeBrowserSockets = attachBrowserSessions(server, browserSessions);
   server.closeBrowserSessions = closeBrowserSockets;
-  server.once('close', () => { closeBrowserSockets(); browserSessions.dispose(); });
+  server.once('close', () => { closeBrowserSockets(); browserSessions.dispose(); storeDetails?.dispose(); });
   return server;
 }
 
@@ -345,7 +359,10 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     server.close(() => process.exit(0));
   };
   const desktopOwner = desktopOwnerId(process.env.PLAYNEXT_DESKTOP_OWNER);
-  server = createApp({ onUpdateInstall: stop, onBrowserSessionsEmpty: stop, desktopOwner });
+  const gate = createRequestGate();
+  const onlineSizes = createOnlineSizeService({ filename: path.join(base, 'data/online-sizes.json'), gate });
+  const storeDetails = createStoreDetailsService({ filename: path.join(base, 'data/store-details.json'), gate, isForegroundBusy: onlineSizes.busy });
+  server = createApp({ onUpdateInstall: stop, onBrowserSessionsEmpty: stop, desktopOwner, onlineSizes, storeDetails });
   const stopWatching = watchDesktopOwner(desktopOwner, { onExit: stop });
   server.once('close', stopWatching);
   process.once('SIGTERM', stop);

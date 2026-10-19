@@ -3,6 +3,7 @@ export const STORE_NAMES = ['profile','exclusions','display','application','appe
 export const DIAGNOSTIC_AREAS = ['library','storage','update','steam','http'];
 export const DIAGNOSTIC_CODES = ['scan-failed','scan-incomplete','request-rejected','request-failed'];
 export const INSTALL_STAGES = ['unknown','idle','starting','downloading','verifying','ready','applying','complete','failed','cancelled','cancelling'];
+export const STORE_DETAIL_STATES = ['not-requested','idle','loading','blocked','disabled'];
 export const UPDATE_REASONS = ['interrupted','launch-failed','prepare-failed','apply-failed','rollback-failed','cancelled','status-unavailable','unknown'];
 const exact=(value,keys)=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).sort().join(',')===[...keys].sort().join(',');
 const count=value=>Number.isSafeInteger(value)&&value>=0&&value<=1000000;
@@ -15,9 +16,10 @@ export function validateDiagnosticReport(value) {
   if(!exact(app,['version','node','platform','architecture','systemRelease','desktopWindow'])||!version(app.version)||!version(app.node)
     ||!['win32','linux','darwin','other'].includes(app.platform)||!['x64','arm64','ia32','other'].includes(app.architecture)
     ||typeof app.systemRelease!=='string'||!(/^(?:\d{1,8}\.){0,3}\d{1,8}$/.test(app.systemRelease)||app.systemRelease==='unknown')||typeof app.desktopWindow!=='boolean')throw invalid();
-  if(!exact(library,['status','installedGames','uninstalledGames','libraries','unavailableLibraries','warnings','skipped','ownedCache'])
+  if(!exact(library,['status','installedGames','uninstalledGames','libraries','unavailableLibraries','warnings','skipped','ownedCache','storeDetails','storeDetailsKnown','storeDetailsMissing'])
     ||!['not-scanned','ready','partial','failed'].includes(library.status)||!['not-requested','ready','partial','unavailable','unknown'].includes(library.ownedCache)
-    ||['installedGames','uninstalledGames','libraries','unavailableLibraries','warnings','skipped'].some(key=>!count(library[key])))throw invalid();
+    ||!STORE_DETAIL_STATES.includes(library.storeDetails)
+    ||['installedGames','uninstalledGames','libraries','unavailableLibraries','warnings','skipped','storeDetailsKnown','storeDetailsMissing'].some(key=>!count(library[key])))throw invalid();
   if(!exact(value.stores,STORE_NAMES)||STORE_NAMES.some(key=>!['missing','readable','unreadable'].includes(value.stores[key])))throw invalid();
   if(!exact(update,['check','installation','reason'])||!['not-checked','ready','offline','unknown'].includes(update.check)||!INSTALL_STAGES.includes(update.installation)
     ||!(update.reason===null||UPDATE_REASONS.includes(update.reason)))throw invalid();
@@ -33,13 +35,15 @@ diagnostics.json: the complete report shown before saving.
 CONTENTS.txt: this description.
 
 Includes: application/runtime/system versions, library counts and cache status,
+numbers of games with and without loaded Store genres,
 settings-file health, last known update status, fixed error codes from this session.
 No game IDs or titles, accounts, credentials, paths, settings values, categories,
 play history, screenshots, raw logs, environment variables or machine identifiers.
 No precise timestamps. No automatic upload. This archive is not a settings backup.
 
 diagnostics.json содержит весь отчёт, показанный перед сохранением.
-Включены версии, сводные количества и статусы, состояние файлов настроек,
+Включены версии, сводные количества и статусы, число игр с загруженными
+и незагруженными жанрами Steam Store, состояние файлов настроек,
 последний известный статус обновления и технические коды ошибок этой сессии.
 Имена игр, аккаунты, токены, пути, категории, история, настройки и исходные журналы
 не включаются. Архив не отправляется автоматически и не заменяет резервную копию.

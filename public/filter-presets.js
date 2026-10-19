@@ -1,10 +1,12 @@
 import { tr } from './i18n.js';
+import { featureLabel, genreLabel } from './store-details.js';
 
 export const MAX_FILTER_PRESETS = 12;
-export const PRESET_DEFAULTS = Object.freeze({ filter: 'included', category: 'all', status: 'all', sort: 'name', query: '' });
+export const PRESET_DEFAULTS = Object.freeze({ filter: 'included', category: 'all', status: 'all', sort: 'name', query: '', genre: 'all', feature: 'all' });
 const FILTERS = ['included', 'all', 'excluded'];
 const STATUSES = ['all', 'installed', 'uninstalled'];
 const SORTS = ['name', 'recent', 'size'];
+const FEATURES = ['all', 'unknown', 'single', 'multi', 'coop'];
 const validPresetId = id => typeof id === 'string' && /^preset-[a-f0-9]{12}$/.test(id);
 const validCategoryId = id => typeof id === 'string' && /^[a-z][a-z0-9-]{0,31}$/.test(id);
 
@@ -17,11 +19,12 @@ export function cleanPresetName(value) {
 // Strict: a saved preset is either fully valid or rejected, never partially guessed.
 export function cleanPresetFilters(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  const { filter, category, status, sort, query } = value;
+  const { filter, category, status, sort, query, genre = 'all', feature = 'all' } = value;
   if (!FILTERS.includes(filter) || !STATUSES.includes(status) || !SORTS.includes(sort)) return null;
   if (category !== 'all' && !validCategoryId(category)) return null;
   if (typeof query !== 'string' || query.length > 100 || /[\u0000-\u001f\u007f]/.test(query)) return null;
-  return { filter, category, status, sort, query: query.trim() };
+  if (!['all', 'unknown'].includes(genre) && !(typeof genre === 'string' && /^[1-9]\d{0,3}$/.test(genre)) || !FEATURES.includes(feature)) return null;
+  return { filter, category, status, sort, query: query.trim(), genre, feature };
 }
 
 export function validatePresets(value, categoryIds) {
@@ -51,13 +54,16 @@ export function presetNameError(name, presets) {
   return null;
 }
 
-export function describePreset(filters, categories = []) {
+export function describePreset(filters, categories = [], genreNames = {}) {
   const parts = [];
   if (filters.filter === 'all') parts.push(tr('все игры', 'all games'));
   if (filters.filter === 'excluded') parts.push(tr('исключённые', 'excluded'));
   if (filters.category !== 'all') parts.push(categories.find(item => item.id === filters.category)?.name ?? tr('категория', 'category'));
   if (filters.status === 'installed') parts.push(tr('установленные', 'installed'));
   if (filters.status === 'uninstalled') parts.push(tr('неустановленные', 'not installed'));
+  if (filters.genre === 'unknown') parts.push(tr('жанр не загружен', 'genre not loaded'));
+  else if (filters.genre !== 'all') parts.push(genreLabel(filters.genre, genreNames));
+  if (filters.feature !== 'all') parts.push(featureLabel(filters.feature));
   if (filters.query) parts.push(`«${filters.query}»`);
   if (filters.sort === 'recent') parts.push(tr('по последнему запуску', 'by last played'));
   if (filters.sort === 'size') parts.push(tr('по размеру', 'by size'));
@@ -65,7 +71,7 @@ export function describePreset(filters, categories = []) {
 }
 
 // Renders the preset bar. All persistence goes through the injected callbacks.
-export function createFilterPresetsView({ container, element, icon, getPresets, getCategories, getFilters, isBusy, onApply, onSave, onDelete }) {
+export function createFilterPresetsView({ container, element, icon, getPresets, getCategories, getGenreNames = () => ({}), getFilters, isBusy, onApply, onSave, onDelete }) {
   let editing = false, error = '', draftName = '';
   // Grid renders happen on every search keystroke. Keep an open name form
   // intact so typing, focus and the caret are not lost.
@@ -92,7 +98,7 @@ export function createFilterPresetsView({ container, element, icon, getPresets, 
       const apply = element('button', 'filter-preset-apply', preset.name);
       apply.type = 'button'; apply.disabled = busy;
       apply.setAttribute('aria-pressed', String(active));
-      apply.title = describePreset(preset.filters, getCategories());
+      apply.title = describePreset(preset.filters, getCategories(), getGenreNames());
       apply.addEventListener('click', () => onApply(preset));
       const remove = element('button', 'filter-preset-remove');
       remove.type = 'button'; remove.disabled = busy; remove.append(icon('close'));

@@ -24,9 +24,13 @@ async function fixture(t) {
 
 test('preset filters accept only known values and trim the query', () => {
   assert.deepEqual(cleanPresetFilters(filters({ category: 'favorite', status: 'uninstalled', sort: 'size', query: '  souls ' })),
-    { filter: 'included', category: 'favorite', status: 'uninstalled', sort: 'size', query: 'souls' });
+    { filter: 'included', category: 'favorite', status: 'uninstalled', sort: 'size', query: 'souls', genre: 'all', feature: 'all' });
+  const { genre, feature, ...older } = filters();
+  assert.deepEqual(cleanPresetFilters(older), filters(), 'presets saved before genres default to any genre and mode');
+  assert.deepEqual(cleanPresetFilters(filters({ genre: '23', feature: 'coop' })), filters({ genre: '23', feature: 'coop' }));
   for (const bad of [null, [], filters({ filter: 'weighted' }), filters({ status: 'owned' }), filters({ sort: 'playtime' }),
-    filters({ category: '../x' }), filters({ query: 'x'.repeat(101) }), filters({ query: 'a\u0000b' }), filters({ query: 5 })]) {
+    filters({ category: '../x' }), filters({ query: 'x'.repeat(101) }), filters({ query: 'a\u0000b' }), filters({ query: 5 }),
+    filters({ genre: 'action' }), filters({ genre: '0' }), filters({ feature: 'pvp' })]) {
     assert.equal(cleanPresetFilters(bad), null);
   }
 });

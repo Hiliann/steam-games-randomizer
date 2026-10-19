@@ -119,6 +119,94 @@ const exact = new Map([
   ['В Steam Store передаётся только публичный номер запрашиваемой игры, а для краткого описания - выбранный язык интерфейса; сервис также видит IP-адрес соединения. Аккаунт, лицензии, пути к файлам и исключения не отправляются. Сохранённые размеры и описания находятся в папке data приложения и не входят в ZIP для друзей.', 'Only the public game ID is sent to Steam Store, plus the selected interface language for a short description; the service also sees the connection IP address. Your account, licenses, file paths and exclusions are not sent. Cached sizes and descriptions stay in the app\'s data folder and are not included in the ZIP shared with friends.'],
   ['Обновления проверяются при запуске. Если автообновление включено, новая версия установится во время запуска программы. Иначе о ней сообщит отдельное окно, пока ты не отключишь его. Обновление всегда можно запустить вручную здесь. Архив и контрольная сумма загружаются с GitHub, а папка data не заменяется.', 'Updates are checked at startup. When automatic updates are enabled, a new version is installed while the app starts. Otherwise a separate notice appears until you disable it. You can always install an update manually here. The archive and checksum are downloaded from GitHub, while the data folder is never replaced.'],
   ['Самое время познакомиться поближе.', 'A perfect time to get acquainted.'], ['Ты уже заглядывал сюда сегодня. Продолжим?', 'You already played this today. Keep going?'], ['Следующий выбор начнёт новый круг.', 'The next pick will start a new round.'], ['Добавь библиотеку, чтобы начать.', 'Add a library to get started.'], ['Загружаем сохранённые категории и историю.', 'Loading saved categories and history.'], ['Выбираем…', 'Picking…'], ['Сохраняем исключения…', 'Saving exclusions…'], ['Исключения сохранены в приложении', 'Exclusions saved in the app'], ['Исключения ещё не загружены', 'Exclusions are not loaded yet'],
+  // Notifications, empty states and client-side errors.
+  ['Не удалось сохранить настройки программы.', 'Could not save application settings.'],
+  ['Приложение вернуло некорректные настройки. Обнови страницу.', 'The app returned invalid settings. Reload the page.'],
+  ['Нет связи с приложением. Запусти его и повтори загрузку настроек.', 'No connection to the app. Start it and reload the settings.'],
+  ['Не удалось подтвердить сохранение.', 'Could not confirm the save.'], ['Проверь, что приложение запущено.', 'Check that the app is running.'],
+  ['Нажми «Повторить загрузку».', 'Press “Retry loading”.'],
+  ['Ярлык Play Next создан на рабочем столе.', 'A Play Next shortcut was created on the desktop.'], ['Ярлык этой копии удалён с рабочего стола.', 'The desktop shortcut for this copy was removed.'],
+  ['Play Next будет запускаться вместе с Windows.', 'Play Next will start with Windows.'], ['Запуск вместе с Windows выключен.', 'Starting with Windows is turned off.'],
+  ['Нет связи с приложением. Запусти его и повтори проверку.', 'No connection to the app. Start it and check again.'], ['Нет связи с приложением. Повтори проверку.', 'No connection to the app. Check again.'],
+  ['Нет связи с приложением. Повтори загрузку.', 'No connection to the app. Try loading again.'], ['Не удалось сохранить настройку.', 'Could not save the setting.'],
+  ['Проверь, что приложение запущено, и попробуй ещё раз.', 'Check that the app is running and try again.'],
+  ['Размер получен, но не сохранён на диск. Проверь доступ к папке data приложения.', 'The size was received but not saved to disk. Check access to the app’s data folder.'],
+  ['Не удалось загрузить категории и историю.', 'Could not load collections and history.'], ['Нажми «Обновить список», чтобы перечитать данные.', 'Press “Refresh list” to read the data again.'],
+  ['Не удалось подтвердить сохранение истории или режима выбора.', 'Could not confirm that the history or pick mode was saved.'],
+  ['Читаем локальную библиотеку аккаунта Steam…', 'Reading the local Steam account library…'], ['Для загрузки библиотеки нажми «Обновить список».', 'Press “Refresh list” to load the library.'],
+  ['Категорий пока нет. Создай первую подборку.', 'No collections yet. Create your first one.'],
+  ['Игра есть в библиотеке аккаунта, но не установлена на этом компьютере. Steam предложит выбрать диск и начать загрузку.', 'The game is in your account library but is not installed on this computer. Steam will ask you to choose a drive and start the download.'],
+  ['Steam открыт для установки игры.', 'Steam opened to install the game.'], ['Игра передана в Steam.', 'The game was sent to Steam.'],
+  ['Нет связи с Play Next. Запусти программу и повтори.', 'No connection to Play Next. Start the app and try again.'], ['Запусти приложение, если оно закрыто.', 'Start the app if it is closed.'],
+  ['Не удалось подтвердить сохранение исключения.', 'Could not confirm that the exclusion was saved.'], ['Нажми «Обновить список», чтобы перечитать сохранённые данные.', 'Press “Refresh list” to read the saved data again.'],
+  ['Ничего не нашлось', 'Nothing found'], ['Все игры в деле', 'Every game is in play'], ['Все игры исключены', 'All games are excluded'],
+  ['Открой библиотеку в Steam онлайн и обнови список. При необходимости укажи папку клиента Steam.', 'Open your library in Steam while online and refresh the list. If needed, choose the Steam client folder.'],
+  ['Исключённые игры появятся здесь. Сейчас каждая может выпасть.', 'Excluded games will appear here. Right now every game can be picked.'],
+  ['Открой вкладку «Исключены» и верни игры в розыгрыш.', 'Open the “Excluded” tab and add games back to the draw.'], ['Показать все игры', 'Show all games'],
+  ['Удалить категорию', 'Delete category'], ['Не удалось подтвердить изменение категорий.', 'Could not confirm the collection change.'],
+  ['Категория переименована', 'Category renamed'], ['Категория удалена', 'Category deleted'], ['Категория добавлена', 'Category added'],
+  ['Сохранённый профиль сейчас недоступен.', 'The saved profile is unavailable right now.'],
+  ['Игра выбрана, но результат не удалось сохранить, поэтому розыгрыш отменён.', 'A game was picked, but the result could not be saved, so the draw was cancelled.'],
+  ['Не удалось завершить выбор игры.', 'Could not finish picking a game.'],
+  ['Убрать ручной путь (автоматически найденные библиотеки останутся)', 'Remove custom path (automatically found libraries stay)'],
+  ['Не удалось прочитать библиотеки.', 'Could not read the libraries.'], ['Не найдена папка steamapps:', 'steamapps folder not found:'],
+  ['В этой папке не найдена steamapps. Проверь путь и подключение диска.', 'No steamapps folder was found here. Check the path and that the drive is connected.'],
+  ['Библиотека добавлена', 'Library added'], ['Список игр обновлён', 'Game list updated'],
+  ['Новый круг: все подходящие игры снова доступны', 'New round: all eligible games are available again'], ['История очищена. Текущий круг сохранён.', 'History cleared. The current round was kept.'],
+  ['Можно добавить не больше 20 ручных путей.', 'You can add up to 20 custom paths.'],
+  ['Не удалось сохранить настройки отображения.', 'Could not save display settings.'], ['Не удалось сохранить исключения.', 'Could not save exclusions.'],
+  ['Приложение вернуло некорректный список исключений. Обнови страницу.', 'The app returned an invalid exclusion list. Reload the page.'],
+  ['В Steam', 'In Steam'], ['Приложение вернуло некорректные категории. Обнови страницу.', 'The app returned invalid collections. Reload the page.'],
+  ['Не удалось сохранить категории или историю.', 'Could not save collections or history.'],
+  ['Приложение вернуло некорректные настройки Windows.', 'The app returned invalid Windows settings.'], ['Приложение вернуло некорректные сведения об обновлении.', 'The app returned invalid update information.'],
+  ['Приложение вернуло некорректную версию обновления.', 'The app returned an invalid update version.'], ['Не удалось изменить настройку.', 'Could not change the setting.'],
+  ['Не удалось прочитать настройки Windows.', 'Could not read Windows settings.'], ['Не удалось прочитать сведения об обновлении.', 'Could not read update information.'],
+  ['Применение обновления не подтверждено.', 'Applying the update was not confirmed.'], ['Отмена обновления не подтверждена.', 'Cancelling the update was not confirmed.'],
+  ['Приложение не подтвердило установку обновления.', 'The app did not confirm the update installation.'], ['Steam не подтвердил запуск.', 'Steam did not confirm the launch.'],
+  ['Не удалось сохранить язык и оформление.', 'Could not save language and appearance.'],
+  ['Приложение вернуло некорректные настройки интерфейса. Обнови страницу.', 'The app returned invalid interface settings. Reload the page.'],
+  ['ИГРЫ ИЗ STEAM', 'GAMES FROM STEAM'], ['Сохранить изменения?', 'Save changes?'],
+  // Messages returned by the local server.
+  ['Ожидается JSON.', 'JSON expected.'], ['Некорректный JSON.', 'Invalid JSON.'], ['Разрешён только локальный доступ.', 'Only local access is allowed.'],
+  ['Запрос с другого сайта запрещён.', 'Requests from other sites are not allowed.'], ['Отсутствует заголовок приложения.', 'The app header is missing.'],
+  ['Некорректный запрос диагностики.', 'Invalid diagnostics request.'], ['Некорректный запрос обновления.', 'Invalid update request.'], ['Некорректный запрос установки.', 'Invalid installation request.'],
+  ['Сначала проверь обновления. Для релиза должны быть доступны архив и контрольная сумма.', 'Check for updates first. The release must provide an archive and a checksum.'],
+  ['Укажи игру из текущей библиотеки.', 'Choose a game from the current library.'], ['Игра не найдена в текущей библиотеке.', 'The game was not found in the current library.'],
+  ['Укажи игру из библиотеки.', 'Choose a game from the library.'], ['Неустановленная игра не найдена в текущей библиотеке.', 'The uninstalled game was not found in the current library.'],
+  ['Укажи игру из библиотеки и язык описания.', 'Choose a game from the library and a description language.'],
+  ['Укажите абсолютный путь к локальной папке Steam или SteamLibrary (до 20 папок).', 'Enter the absolute path of a local Steam or SteamLibrary folder (up to 20 folders).'],
+  ['Настройка неустановленных игр должна быть галочкой.', 'The uninstalled games setting must be a checkbox.'], ['Страница не найдена.', 'Page not found.'],
+  ['Не удалось прочитать библиотеку. Попробуйте обновить список.', 'Could not read the library. Try refreshing the list.'],
+  ['Не удалось прочитать настройки программы. Файл data/app-settings.json оставлен без изменений.', 'Could not read application settings. The file data/app-settings.json was left unchanged.'],
+  ['Не удалось сохранить настройки программы. Проверь доступ к папке data.', 'Could not save application settings. Check access to the data folder.'],
+  ['Некорректные настройки программы.', 'Invalid application settings.'], ['Некорректная настройка программы.', 'Invalid application setting.'],
+  ['Не удалось прочитать настройки отображения. Файл data/display-settings.json оставлен без изменений. Проверь доступ к папке приложения.', 'Could not read display settings. The file data/display-settings.json was left unchanged. Check access to the app folder.'],
+  ['Не удалось сохранить настройки отображения. Проверь, что папка приложения доступна для записи.', 'Could not save display settings. Check that the app folder is writable.'],
+  ['Некорректные настройки отображения.', 'Invalid display settings.'], ['Некорректная настройка отображения.', 'Invalid display setting.'], ['Некорректный список исключений.', 'Invalid exclusion list.'],
+  ['Не удалось прочитать сохранённые исключения. Файл data/exclusions.json оставлен без изменений. Проверь доступ к папке приложения и обнови список.', 'Could not read saved exclusions. The file data/exclusions.json was left unchanged. Check access to the app folder and refresh the list.'],
+  ['Не удалось сохранить исключения. Проверь, что папка приложения доступна для записи, и обнови список перед повторной попыткой.', 'Could not save exclusions. Check that the app folder is writable and refresh the list before trying again.'],
+  ['Некорректная игра или платформа.', 'Invalid game or platform.'], ['Некорректная игра или язык описания.', 'Invalid game or description language.'], ['Пользователь Steam', 'Steam user'],
+  ['Не найден аккаунт Steam. Войди в Steam, открой библиотеку и нажми «Обновить список».', 'No Steam account was found. Sign in to Steam, open your library and press “Refresh list”.'],
+  ['Часть сведений отсутствует в кэше. Открой библиотеку в Steam онлайн и обнови список здесь.', 'Some information is missing from the cache. Open your library in Steam while online and refresh the list here.'],
+  ['По локальным лицензиям Steam. После покупок и смены аккаунта обнови список. Семейные и временные лицензии не добавляются.', 'Based on local Steam licenses. Refresh the list after purchases or switching accounts. Family and temporary licenses are not added.'],
+  ['Не удалось прочитать библиотеку аккаунта. Открой Steam онлайн, дождись загрузки библиотеки и обнови список. Установленные игры по-прежнему доступны.', 'Could not read the account library. Open Steam while online, wait for the library to load and refresh the list. Installed games are still available.'],
+  ['Название категории должно быть текстом.', 'The category name must be text.'], ['Название категории должно содержать от 1 до 32 символов.', 'The category name must be 1 to 32 characters long.'],
+  ['Не удалось прочитать категории и историю. Файл data/profile.json оставлен без изменений. Проверь доступ к папке приложения.', 'Could not read collections and history. The file data/profile.json was left unchanged. Check access to the app folder.'],
+  ['Не удалось сохранить категории или историю. Проверь, что папка приложения доступна для записи.', 'Could not save collections or history. Check that the app folder is writable.'],
+  ['Некорректное изменение профиля.', 'Invalid profile change.'], ['Сначала обнови список, чтобы создать профиль.', 'Refresh the list first to create a profile.'],
+  ['Категории или история изменились в другом окне. Обнови список и повтори действие.', 'Collections or history changed in another window. Refresh the list and try again.'],
+  ['Категория с таким названием уже есть.', 'A category with this name already exists.'], ['Категория не найдена.', 'Category not found.'],
+  ['Некорректная категория игры.', 'Invalid game category.'], ['Некорректный список игр категории.', 'Invalid list of games in the category.'], ['Неизвестное изменение профиля.', 'Unknown profile change.'],
+  ['Запуск через Play Next доступен только в Windows.', 'Launching through Play Next is only available on Windows.'],
+  ['Не удалось открыть Steam. Проверь, что клиент Steam установлен.', 'Could not open Steam. Check that the Steam client is installed.'],
+  ['Не удалось прочитать настройки интерфейса. Файл data/ui-settings.json оставлен без изменений.', 'Could not read interface settings. The file data/ui-settings.json was left unchanged.'],
+  ['Некорректные настройки интерфейса.', 'Invalid interface settings.'], ['Некорректная настройка интерфейса.', 'Invalid interface setting.'],
+  ['Не удалось сохранить настройки интерфейса. Проверь доступ к папке data.', 'Could not save interface settings. Check access to the data folder.'],
+  ['Автоматическая установка доступна только в Windows.', 'Automatic installation is only available on Windows.'], ['Релиз не прошёл проверку перед установкой.', 'The release failed verification before installation.'],
+  ['Установка обновления уже началась.', 'The update installation has already started.'], ['Не удалось запустить установщик обновления.', 'Could not start the update installer.'],
+  ['Некорректный запрос применения обновления.', 'Invalid request to apply the update.'], ['Некорректный запрос отмены обновления.', 'Invalid request to cancel the update.'],
+  ['Не удалось изменить настройки Windows. Проверь доступ к рабочему столу и папке автозагрузки.', 'Could not change Windows settings. Check access to the desktop and the Startup folder.'],
+  ['Некорректная настройка Windows.', 'Invalid Windows setting.'],
 ]);
 
 const patterns = [
@@ -156,20 +244,56 @@ const patterns = [
   [/^Служебные компоненты Steam скрыты: (\d+)\.$/, match => `Hidden Steam utility components: ${match[1]}.`],
   [/^Пропущены незавершённые, пустые или недоступные установки: (\d+)\.$/, match => `Skipped incomplete, empty or unavailable installations: ${match[1]}.`],
   [/^Последняя проверка: (.+)\.$/, match => `Last checked: ${match[1]}.`],
+  [/^(.+) · добавлено неустановленных: (\d+)\. ([\s\S]*)$/, match => `${translate(match[1])} · uninstalled games added: ${match[2]}. ${translate(match[3])}`],
+  [/^Убрать ручной путь (.+)$/, match => `Remove custom path ${match[1]}`],
+  [/^Удалить недоступный ручной путь (.+)$/, match => `Remove unavailable custom path ${match[1]}`],
+  [/^Можно создать не больше (\d+) категорий\.$/, match => `You can create up to ${match[1]} categories.`],
+  [/^Не найдена папка steamapps: (.+)$/, match => `steamapps folder not found: ${match[1]}`],
+  [/^Не удалось прочитать список библиотек: (.+)$/, match => `Could not read the library list: ${match[1]}`],
+  [/^Не удалось прочитать (\S+) в (.+)$/, match => `Could not read ${match[1]} in ${match[2]}`],
 ];
 
 export function getLanguage() { return language; }
 export function getLocale() { return language === 'en' ? 'en-US' : 'ru-RU'; }
 export function tr(ru, en) { return language === 'en' ? en : ru; }
 
-export function translate(source) {
-  if (language !== 'en' || typeof source !== 'string' || !source) return source;
+function translateWhole(source) {
   if (exact.has(source)) return exact.get(source);
   for (const [pattern, replacer] of patterns) {
     const match = pattern.exec(source);
     if (match) return replacer(match);
   }
   return source;
+}
+
+// Messages are often joined from a prefix, a server error and a hint, so a
+// message without its own entry is translated sentence by sentence.
+function translateSentences(source) {
+  const sentences = source.split(/(?<=[.!?…])\s+(?=[«"(]?[А-ЯЁA-Z])/);
+  if (sentences.length < 2) return source;
+  const translated = [];
+  let changed = false;
+  for (let start = 0; start < sentences.length;) {
+    // Prefer the longest run of sentences that has its own entry, such as a multi-sentence server error.
+    let end = sentences.length;
+    let result;
+    for (; end > start; end--) {
+      const part = sentences.slice(start, end).join(' ');
+      result = translateWhole(part);
+      if (result !== part) break;
+    }
+    if (end === start) { translated.push(sentences[start]); start++; continue; }
+    translated.push(result);
+    changed = true;
+    start = end;
+  }
+  return changed ? translated.join(' ') : source;
+}
+
+export function translate(source) {
+  if (language !== 'en' || typeof source !== 'string' || !source) return source;
+  const whole = translateWhole(source);
+  return whole === source ? translateSentences(source) : whole;
 }
 
 function translateTextNode(node) {

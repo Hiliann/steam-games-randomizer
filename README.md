@@ -29,7 +29,7 @@ The sidebar separates **Choose a game**, **Library**, **Categories** and **Setti
 - Automatically detects Steam libraries across multiple drives; custom paths can be added manually.
 - Chooses only eligible games, with optional no-repeat rounds and a history of recent picks.
 - Adds saved categories directly from the picked game, plus a bulk editor for the whole library. A category can filter the visible library or become the active randomization mode.
-- Includes modes for all participating games, installed or uninstalled games, never-played games, games dormant for 90 days and any saved category. Every eligible game keeps the same probability.
+- Includes modes for all participating games, installed or uninstalled games, never-played games, games dormant for 90 days, games played in the last 30 days (offered only when local Steam data has launch dates) and any saved category. Every eligible game keeps the same probability.
 - Lets you exclude individual games. Exclusions survive closing the program, changing ports and clearing browser storage.
 - Shows artwork from the local Steam cache, with a game-name fallback when artwork is unavailable.
 - Shows a complete card during shuffle: artwork, title, description and categories belong to the same game. Actions stay visible but disabled until the result is confirmed.

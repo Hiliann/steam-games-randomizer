@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanState, cleanDrawState, gamesInScope, gameAction, eligibleGames, drawGame, randomIndex, matchesMode, animationGames } from '../public/randomizer.js';
+import { cleanState, cleanDrawState, gamesInScope, gameAction, eligibleGames, drawGame, randomIndex, matchesMode, animationGames, hasPlayed } from '../public/randomizer.js';
 
 const games = [{ id: '10', name: 'One' }, { id: '20', name: 'Two' }, { id: '30', name: 'Three' }];
 
@@ -120,6 +120,20 @@ test('modes filter the draw pool without changing probabilities', () => {
   assert.equal(matchesMode(library[0], 'dormant', assignments, 2_000_000_000), true);
   assert.equal(matchesMode(library[1], 'dormant', assignments, 2_000_000_000), false);
   assert.equal(drawGame(library, cleanState({ mode: 'category:favorite', includeUninstalled: true }), () => 1, undefined, assignments).game.id, '30');
+});
+
+test('recent mode includes only games with a confirmed launch in the last 30 days', () => {
+  const now = 2_000_000_000;
+  const library = [
+    { id: '10', name: 'Yesterday', lastPlayed: now - 86400 },
+    { id: '20', name: 'Exactly 30 days', lastPlayed: now - 30 * 86400 },
+    { id: '30', name: 'Never', lastPlayed: 0 },
+    { id: '40', name: 'Unknown' },
+    { id: '50', name: 'Invalid', lastPlayed: Number.NaN },
+  ];
+  assert.deepEqual(library.filter(game => matchesMode(game, 'recent', {}, now)).map(game => game.id), ['10']);
+  assert.equal(cleanDrawState({ mode: 'recent' }).mode, 'recent');
+  assert.deepEqual(library.filter(hasPlayed).map(game => game.id), ['10', '20']);
 });
 
 test('draw state accepts only supported modes and Steam IDs', () => {

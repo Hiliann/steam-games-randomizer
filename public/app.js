@@ -1,6 +1,6 @@
 import { createSettingsController } from './settings-controller.js';
 import { renderLibraryCards } from './library-view.js';
-import { STORAGE_KEY, cleanState, cleanDrawState, gamesInScope, gameAction, eligibleGames, drawGame, animationGames } from './randomizer.js';
+import { STORAGE_KEY, cleanState, cleanDrawState, gamesInScope, gameAction, eligibleGames, drawGame, animationGames, hasPlayed } from './randomizer.js';
 import { createExclusionsClient } from './exclusions.js';
 import { DISPLAY_DEFAULTS, createDisplayClient, formatSize, uninstalledSize, sizeDescription, sizeSourceUrl, heroBadges } from './display.js';
 import { createOnlineSizesClient } from './online-sizes.js';
@@ -404,6 +404,7 @@ function modeLabel(mode = state.mode) {
   if (mode === 'uninstalled') return 'Только неустановленные';
   if (mode === 'unplayed') return 'Ещё не запускались';
   if (mode === 'dormant') return 'Не запускались 90 дней';
+  if (mode === 'recent') return tr('Запускались за 30 дней', 'Played in the last 30 days');
   if (mode.startsWith('category:')) return profile.categories.find(category => category.id === mode.slice(9))?.name ?? 'Категория';
   return 'Все участвующие';
 }
@@ -416,6 +417,8 @@ function renderCategorySelectors() {
     ['unplayed', 'Ещё не запускались'],
     ['dormant', 'Не запускались 90 дней'],
   ];
+  // Offer continuing played games only when local Steam data has launch dates.
+  if (drawValue === 'recent' || scopedGames().some(hasPlayed)) drawOptions.push(['recent', tr('Запускались за 30 дней', 'Played in the last 30 days')]);
   const drawFragment = document.createDocumentFragment();
   for (const [value, label] of drawOptions) {
     const option = element('option', '', label); option.value = value; drawFragment.append(option);

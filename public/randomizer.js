@@ -1,6 +1,7 @@
 export const STORAGE_KEY = 'steam-randomizer.v1';
 
-export const DRAW_MODES = Object.freeze(['all', 'installed', 'uninstalled', 'unplayed', 'dormant']);
+export const DRAW_MODES = Object.freeze(['all', 'installed', 'uninstalled', 'unplayed', 'dormant', 'recent']);
+export const RECENT_DAYS = 30;
 const validSteamId = id => typeof id === 'string' && /^\d{1,10}$/.test(id) && Number(id) <= 0xffffffff;
 export function cleanDrawState(input = {}) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) input = {};
@@ -31,8 +32,14 @@ export function matchesMode(game, mode = 'all', assignments = {}, nowSeconds = D
   if (mode === 'uninstalled') return game.installed === false;
   if (mode === 'unplayed') return !Number.isFinite(game.lastPlayed) || game.lastPlayed <= 0;
   if (mode === 'dormant') return !Number.isFinite(game.lastPlayed) || game.lastPlayed <= 0 || nowSeconds - game.lastPlayed >= 90 * 86400;
+  // Only a confirmed local Steam launch time counts; unknown dates never qualify.
+  if (mode === 'recent') return hasPlayed(game) && nowSeconds - game.lastPlayed < RECENT_DAYS * 86400;
   if (mode.startsWith('category:')) return (assignments[game.id] ?? []).includes(mode.slice(9));
   return true;
+}
+
+export function hasPlayed(game) {
+  return Number.isFinite(game?.lastPlayed) && game.lastPlayed > 0;
 }
 
 export function eligibleGames(games, state, assignments = {}) {

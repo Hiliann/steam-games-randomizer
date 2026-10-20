@@ -60,7 +60,10 @@ test('a new copy chooses its initial language from the system locale only once',
   const store = createUiSettingsStore(filename);
   assert.equal(languageFromLocale('ru-UA,ru;q=0.9'), 'ru');
   assert.equal(languageFromLocale('uk-UA,uk;q=0.9'), 'uk');
-  assert.equal(languageFromLocale('de-DE,de;q=0.9'), 'en');
+  assert.equal(languageFromLocale('de-AT,de;q=0.9'), 'de');
+  assert.equal(languageFromLocale('pt-PT,pt;q=0.9'), 'pt-BR');
+  assert.equal(languageFromLocale('es-419'), 'es');
+  assert.equal(languageFromLocale('fr-FR,fr;q=0.9'), 'en');
   assert.equal(languageFromLocale('*'), 'ru');
   assert.equal((await store.initialize('en')).language, 'en');
   assert.equal((await createUiSettingsStore(filename).initialize('ru')).language, 'en');

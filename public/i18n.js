@@ -1,5 +1,8 @@
 import * as english from './i18n-en.js';
 import * as ukrainian from './i18n-uk.js';
+import * as spanish from './i18n-es.js';
+import * as portuguese from './i18n-pt-br.js';
+import * as german from './i18n-de.js';
 
 // Russian is the source language: the interface is written in Russian and each
 // dictionary translates the rendered Russian text. tr(ru, en) carries its own
@@ -9,6 +12,9 @@ export const LANGUAGES = Object.freeze({
   ru: Object.freeze({ name: 'Русский', locale: 'ru-RU', dictionary: null }),
   en: Object.freeze({ name: 'English', locale: 'en-US', dictionary: dictionary(english) }),
   uk: Object.freeze({ name: 'Українська', locale: 'uk-UA', dictionary: dictionary(ukrainian) }),
+  es: Object.freeze({ name: 'Español', locale: 'es-ES', dictionary: dictionary(spanish) }),
+  'pt-BR': Object.freeze({ name: 'Português (Brasil)', locale: 'pt-BR', dictionary: dictionary(portuguese) }),
+  de: Object.freeze({ name: 'Deutsch', locale: 'de-DE', dictionary: dictionary(german) }),
 });
 
 let language = 'ru';

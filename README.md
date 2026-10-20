@@ -109,6 +109,15 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-release.ps
 
 The script verifies pinned Node.js checksums and packages an explicit file allowlist. It refuses to overwrite existing releases. Use `-OutputDirectory` for another destination. See the [Russian documentation](README.ru.md) for detailed cache formats, API boundaries and source references.
 
-The static website lives in `docs/`: English at the root and Russian in `docs/ru/`. The old `/en/` address links to the English home page. GitHub Pages publishes `/docs` from the main branch. Update both pages' release links, version, archive size and checksum when publishing a new release.
+The static website lives in `docs/`: English at the root and Russian in `docs/ru/`. The old `/en/` address links to the English home page. GitHub Pages publishes `/docs` from the main branch.
+
+To publish a new version, set it once before building, then point the website and release history at the finished archive:
+
+```text
+node scripts/set-version.mjs 2.7.0
+node scripts/set-version.mjs --release dist/PlayNext-2.7.0-win-x64.zip
+```
+
+The first command updates `package.json`, `release.json`, the server, the app window and the desktop host. The second reads the archive's size and SHA-256 and updates both website pages and `RELEASE_HISTORY.md`. A test fails if any of these files name a different version.
 
 Play Next is an independent project, not affiliated with Valve. Steam and game artwork belong to their respective owners. The bundled Node.js license is included in `runtime/LICENSE`; see [third-party notices](THIRD_PARTY_NOTICES.md).

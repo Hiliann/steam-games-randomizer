@@ -64,7 +64,7 @@ export function storeProgressText(progress) {
   if (!progress || !progress.total) return '';
   const { state, known, total, unavailable } = progress;
   const done = known + unavailable;
-  if (state === 'disabled') return tr(`Жанры и режимы: ${done} из ${total}. Загрузка приостановлена: сведения из Steam Store выключены в настройках.`, `Genres and modes: ${done} of ${total}. Loading is paused because Steam Store information is turned off in Settings.`);
+  if (state === 'disabled') return tr(`Жанры и режимы: ${done} из ${total}. Загрузка на паузе: в «Настройки > Игры» выключен переключатель «Размер неустановленных игр».`, `Genres and modes: ${done} of ${total}. Loading is paused because “Uninstalled game size” is off in Settings > Games.`);
   if (state === 'blocked') return tr(`Жанры и режимы: ${done} из ${total}. Steam Store временно ограничил запросы, продолжим позже.`, `Genres and modes: ${done} of ${total}. Steam Store is limiting requests; loading will resume later.`);
   if (state === 'loading') return tr(`Жанры и режимы: ${done} из ${total}. Загружаем в фоне из Steam Store…`, `Genres and modes: ${done} of ${total}. Loading in the background from Steam Store…`);
   if (done < total) return tr(`Жанры и режимы известны для ${done} из ${total} игр. Остальные проверим при следующем обновлении списка.`, `Genres and modes are known for ${done} of ${total} games. The rest will be checked on the next refresh.`);

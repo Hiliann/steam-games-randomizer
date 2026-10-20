@@ -18,7 +18,7 @@ import { createUpdateInstaller } from './lib/update-installer.mjs';
 import { createUiSettingsStore, MAX_UI_SETTINGS_BYTES } from './lib/ui-settings.mjs';
 import { createBackupService, MAX_BACKUP_BYTES } from './lib/backup.mjs';
 import { createBrowserSessions, validBrowserSessionId } from './lib/browser-sessions.mjs';
-import { languageFromLocale } from './public/ui-settings.js';
+import { STORE_LANGUAGES, languageFromLocale } from './public/ui-settings.js';
 import { desktopOwnerId, watchDesktopOwner } from './lib/desktop-owner.mjs';
 import { attachSessionFrames } from './lib/session-frames.mjs';
 import { createDiagnosticsService } from './lib/diagnostics.mjs';
@@ -56,6 +56,8 @@ const staticFiles = new Map([
   ['/app-settings.js', ['app-settings.js', 'text/javascript; charset=utf-8']],
   ['/ui-settings.js', ['ui-settings.js', 'text/javascript; charset=utf-8']],
   ['/i18n.js', ['i18n.js', 'text/javascript; charset=utf-8']],
+  ['/i18n-en.js', ['i18n-en.js', 'text/javascript; charset=utf-8']],
+  ['/i18n-uk.js', ['i18n-uk.js', 'text/javascript; charset=utf-8']],
   ['/backup.js', ['backup.js', 'text/javascript; charset=utf-8']],
   ['/diagnostics.js', ['diagnostics.js', 'text/javascript; charset=utf-8']],
   ['/diagnostics-controller.js', ['diagnostics-controller.js', 'text/javascript; charset=utf-8']],
@@ -303,10 +305,10 @@ export function createApp({ scan = scanSteam, exclusionsFile = path.join(base, '
         if (request.headers['x-randomizer'] !== '1') return json(response, 403, { error: 'Отсутствует заголовок приложения.' });
         const body = await requestJson(request, 1024);
         if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.id !== 'string' || !/^[1-9]\d{0,9}$/.test(body.id)
-          || Number(body.id) > 0xffffffff || !['ru', 'en'].includes(body.language) || Object.keys(body).sort().join(',') !== 'id,language') return json(response, 400, { error: 'Укажи игру из библиотеки и язык описания.' });
+          || Number(body.id) > 0xffffffff || !Object.hasOwn(STORE_LANGUAGES, body.language) || Object.keys(body).sort().join(',') !== 'id,language') return json(response, 400, { error: 'Укажи игру из библиотеки и язык описания.' });
         const game = snapshot?.games.find(game => game.id === body.id);
         if (!game) return json(response, 404, { error: 'Игра не найдена в текущей библиотеке.' });
-        return json(response, 200, await onlineSizes.lookupDescription(game.id, body.language === 'ru' ? 'russian' : 'english'));
+        return json(response, 200, await onlineSizes.lookupDescription(game.id, STORE_LANGUAGES[body.language]));
       }
       if (url.pathname === '/api/scan' && request.method === 'POST') {
         if (request.headers['x-randomizer'] !== '1') return json(response, 403, { error: 'Отсутствует заголовок приложения.' });

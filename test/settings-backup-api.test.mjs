@@ -57,5 +57,5 @@ test('appearance and backup APIs are local-only, bounded and restore a valid exp
 
 test('release allowlist contains every module needed by appearance and backup features', async () => {
   const script = await import('node:fs/promises').then(fs => fs.readFile(new URL('../scripts/build-release.ps1', import.meta.url), 'utf8'));
-  for (const file of ['lib\\ui-settings.mjs', 'lib\\backup.mjs', 'public\\ui-settings.js', 'public\\i18n.js', 'public\\backup.js']) assert.ok(script.includes(`'${file}'`), file);
+  for (const file of ['lib\\ui-settings.mjs', 'lib\\backup.mjs', 'public\\ui-settings.js', 'public\\i18n.js', 'public\\i18n-en.js', 'public\\i18n-uk.js', 'public\\backup.js']) assert.ok(script.includes(`'${file}'`), file);
 });

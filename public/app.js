@@ -14,7 +14,7 @@ import { createRandomAccent } from './ui-settings.js';
 import { createAppearanceController } from './appearance-controller.js';
 import { createBackupClient } from './backup.js';
 import { createDiagnosticsController } from './diagnostics-controller.js';
-import { getLocale, startLocalization, tr } from './i18n.js';
+import { getLocale, startLocalization, tr, translate } from './i18n.js';
 import { connectBrowserSession } from './browser-session.js';
 import { createDescriptionsClient } from './descriptions.js';
 import { createWorkspace, cleanLibraryView, filterLibraryGames, sortLibraryGames, LIBRARY_VIEW_KEY } from './workspace.js';
@@ -582,7 +582,7 @@ function renderHeroCategoryMenu(game) {
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox'; checkbox.checked = assigned.has(category.id);
     checkbox.disabled = !profileReady || profilePending || busy || scanning;
-    checkbox.setAttribute('aria-label', tr(`Категория ${category.name}: ${game.name}`, `Category ${category.name}: ${game.name}`));
+    checkbox.setAttribute('aria-label', tr(`Категория ${category.name}: ${game.name}`, `Category ${translate(category.name)}: ${game.name}`));
     checkbox.addEventListener('change', async () => {
       const next = checkbox.checked;
       const saved = await mutateProfile(revision => profileClient.setCategory(revision, game.id, category.id, next), next ? `Добавлено в «${category.name}»` : `Убрано из «${category.name}»`);
@@ -630,7 +630,7 @@ function libraryCategoryMenu(game) {
       checkbox.type = 'checkbox'; checkbox.checked = assigned.has(category.id);
       checkbox.disabled = !profileReady || profilePending || busy || scanning;
       checkbox.id = `quick-category-${game.id}-${category.id}`;
-      checkbox.setAttribute('aria-label', tr(`Категория ${category.name}: ${game.name}`, `Category ${category.name}: ${game.name}`));
+      checkbox.setAttribute('aria-label', tr(`Категория ${category.name}: ${game.name}`, `Category ${translate(category.name)}: ${game.name}`));
       checkbox.addEventListener('change', async () => {
         const next = checkbox.checked;
         libraryCategoryMenuId = game.id;
@@ -974,7 +974,7 @@ function renderCategoriesDialog() {
     row.addEventListener('submit', event => { event.preventDefault(); renameCategory(category.id, input.value); });
     deleteButton.addEventListener('click', () => {
       const ask = () => decisions.request({ title: tr('Удалить категорию?', 'Delete category?'),
-        message: tr(`Будет удалена только подборка «${category.name}». Игры и их участие в выборе не изменятся.`, `Only the collection “${category.name}” will be deleted. Games and their participation in picks remain unchanged.`),
+        message: tr(`Будет удалена только подборка «${category.name}». Игры и их участие в выборе не изменятся.`, `Only the collection “${translate(category.name)}” will be deleted. Games and their participation in picks remain unchanged.`),
         discardLabel: tr('Удалить категорию', 'Delete category'), cancelLabel: tr('Отменить', 'Cancel'), danger: true,
         onDiscard: () => deleteCategory(category.id) });
       if (categoryDraftDirty()) resolveCategoryDraft(ask); else ask();

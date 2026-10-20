@@ -39,7 +39,7 @@ The sidebar separates **Choose a game**, **Library**, **Categories** and **Setti
 - Optionally adds uninstalled games backed by local Steam licenses, without a public Steam profile or account sign-in through Play Next.
 - Shows storage requirements for uninstalled games and lets you toggle size information and the installed-game badge.
 - Can create a desktop shortcut and start in the background with Windows, without administrator rights.
-- Chooses Russian or English from the system language on first launch, while always preserving a saved manual choice. It also offers three dark themes, preset accents and an editable random-palette preview.
+- Offers Russian, English and Ukrainian. The first launch follows the system language, while always preserving a saved manual choice. It also offers three dark themes, preset accents and an editable random-palette preview.
 - Shuffles the decorative draw sequence on every pick and avoids adjacent repeats while more than one candidate is available.
 - Exports categories, history, exclusions, library paths and settings to one validated backup file and restores the previous data if an import write fails.
 - Offers a manual diagnostic ZIP with a complete preview before saving, without game names, accounts, paths or automatic uploads.

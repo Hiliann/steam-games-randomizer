@@ -51,7 +51,8 @@ test('short Steam descriptions are plain, bounded text and cached per interface 
   assert.equal((await restarted.lookupDescription('10', 'english')).sourceUrl, 'https://store.steampowered.com/app/10/');
   assert.equal(calls, 2);
   await assert.rejects(service.lookupDescription('../secret', 'english'), { status: 400 });
-  await assert.rejects(service.lookupDescription('10', 'ukrainian'), { status: 400 });
+  await assert.rejects(service.lookupDescription('10', 'german'), { status: 400 });
+  assert.equal((await service.lookupDescription('10', 'ukrainian')).language, 'ukrainian');
 });
 test('lookup uses only a fixed HTTPS Steam host and public ID, with correct platform selection', async () => {
   const calls = [];
@@ -171,7 +172,7 @@ test('API allows only scoped uninstalled IDs and honours the display switch', as
   assert.equal((await description({ id: '20', language: 'en' }).then(r => r.json())).description, 'Description 20');
   assert.equal(networkCalls, 2);
   assert.equal((await description({ id: '30', language: 'en' })).status, 404);
-  assert.equal((await description({ id: '20', language: 'uk' })).status, 400);
+  assert.equal((await description({ id: '20', language: 'de' })).status, 400);
   assert.equal((await description({ id: '20', language: 'en' }, {})).status, 403);
   assert.equal((await fetch(base + '/data/online-sizes.json')).status, 404);
   assert.equal((await fetch(base + '/online-sizes.js')).status, 200);

@@ -133,6 +133,15 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-release.ps
 
 Если `runtime` уже распакован из официальной сборки, можно передать `-RuntimeDirectory .\runtime` вместо повторной загрузки архива. Перед копированием проверяются закреплённые SHA-256 обоих файлов - `node.exe` и `LICENSE`.
 
+Новую версию задают один раз до сборки, а после сборки сайт и история релизов получают данные готового архива:
+
+```text
+node scripts/set-version.mjs 2.7.0
+node scripts/set-version.mjs --release dist/PlayNext-2.7.0-win-x64.zip
+```
+
+Первая команда обновляет `package.json`, `release.json`, сервер, окно приложения и оболочку Windows. Вторая считает размер и SHA-256 архива и обновляет обе страницы сайта и `RELEASE_HISTORY.md`. Тест не пройдёт, если где-то останется другая версия.
+
 ## Для разработки
 
 Дальнейшие этапы и критерии проверки записаны в [плане развития](PLAN.md).

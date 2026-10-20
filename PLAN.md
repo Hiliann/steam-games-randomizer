@@ -29,12 +29,13 @@ Start only after the critical foundation is verified.
 
 ## Localization
 
-- Separate dictionaries and test fallback behavior and long translations.
-- Add Ukrainian, Spanish, Brazilian Portuguese and German, in that order.
+- [x] Separate dictionaries and test fallback behavior and long translations.
+- [x] Add Ukrainian.
+- Add Spanish, Brazilian Portuguese and German, in that order.
 
 ## Release gate
 
 All critical tests pass. The clean package starts without system Node.js.
 Existing categories, exclusions, history and settings survive an update.
 Failures do not strand the UI. No personal files or technical logs enter the package.
-Check both languages, narrow windows, offline behavior and a clean Windows environment.
+Check every interface language, narrow windows, offline behavior and a clean Windows environment.

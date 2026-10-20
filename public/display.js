@@ -29,10 +29,11 @@ export function sizeSourceUrl(game) {
 export function sizeDescription(game) {
   if (sizeSourceUrl(game)) {
     const info = game.onlineSize;
-    return tr(
-      `Место на диске по системным требованиям издателя в Steam Store (${info.platform}). Это не точный объём установленной игры и не размер загрузки. Проверено ${new Date(info.checkedAt).toLocaleDateString('ru-RU')}.${info.stale ? ' Сохранённые данные: обновить сейчас не удалось.' : ''}`,
-      `Disk space from the publisher's Steam Store system requirements (${info.platform}). This is not the exact installed size or download size. Checked ${new Date(info.checkedAt).toLocaleDateString(getLocale())}.${info.stale ? ' Cached data is shown because it could not be refreshed.' : ''}`,
+    const checked = tr(
+      `Место на диске по системным требованиям издателя в Steam Store (${info.platform}). Это не точный объём установленной игры и не размер загрузки. Проверено ${new Date(info.checkedAt).toLocaleDateString('ru-RU')}.`,
+      `Disk space from the publisher's Steam Store system requirements (${info.platform}). This is not the exact installed size or download size. Checked ${new Date(info.checkedAt).toLocaleDateString(getLocale())}.`,
     );
+    return info.stale ? `${checked} ${tr('Сохранённые данные: обновить сейчас не удалось.', 'Cached data is shown because it could not be refreshed.')}` : checked;
   }
   if (!Number.isSafeInteger(game?.installSize?.bytes) || game.installSize.bytes <= 0) {
     if (['queued', 'loading'].includes(game?.onlineSizeStatus)) return tr('Запрашиваем системные требования в Steam Store. Розыгрыш можно продолжать.', 'Requesting system requirements from Steam Store. You can keep using the draw.');

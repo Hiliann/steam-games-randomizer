@@ -1,4 +1,4 @@
-import { tr } from './i18n.js';
+import { tr, translate } from './i18n.js';
 import { featureLabel, genreLabel } from './store-details.js';
 
 export const MAX_FILTER_PRESETS = 12;
@@ -58,7 +58,8 @@ export function describePreset(filters, categories = [], genreNames = {}) {
   const parts = [];
   if (filters.filter === 'all') parts.push(tr('все игры', 'all games'));
   if (filters.filter === 'excluded') parts.push(tr('исключённые', 'excluded'));
-  if (filters.category !== 'all') parts.push(categories.find(item => item.id === filters.category)?.name ?? tr('категория', 'category'));
+  // Built-in category names are stored in Russian and shown in the interface language.
+  if (filters.category !== 'all') parts.push(translate(categories.find(item => item.id === filters.category)?.name) ?? tr('категория', 'category'));
   if (filters.status === 'installed') parts.push(tr('установленные', 'installed'));
   if (filters.status === 'uninstalled') parts.push(tr('неустановленные', 'not installed'));
   if (filters.genre === 'unknown') parts.push(tr('жанр не загружен', 'genre not loaded'));

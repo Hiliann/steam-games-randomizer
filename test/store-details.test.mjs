@@ -131,7 +131,7 @@ test('a damaged cache is preserved and results stay in memory', async t => {
 
 test('progress text and client validation', async () => {
   assert.match(storeProgressText({ state: 'loading', total: 850, known: 100, unavailable: 20, pending: 730 }), /120 из 850/);
-  assert.match(storeProgressText({ state: 'disabled', total: 2, known: 0, unavailable: 0, pending: 2 }), /выключены/);
+  assert.match(storeProgressText({ state: 'disabled', total: 2, known: 0, unavailable: 0, pending: 2 }), /выключен переключатель «Размер неустановленных игр»/);
   assert.equal(storeProgressText({ state: 'idle', total: 2, known: 2, unavailable: 0, pending: 0 }), '');
   const reply = body => async () => ({ ok: true, json: async () => body });
   const progress = { state: 'idle', total: 1, known: 1, unavailable: 0, pending: 0 };

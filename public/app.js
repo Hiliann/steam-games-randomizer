@@ -965,13 +965,19 @@ function renderCategoriesDialog() {
     const row = element('form', 'category-manage-row');
     const marker = categoryBadge(category); marker.textContent = ''; marker.setAttribute('aria-hidden', 'true');
     const input = document.createElement('input');
-    input.value = category.name; input.maxLength = 32; input.required = true;
+    // Built-in names are stored in Russian, so the field shows them in the interface language.
+    const shownName = translate(category.name);
+    input.value = shownName; input.maxLength = 32; input.required = true;
     input.setAttribute('aria-label', `Название категории ${category.name}`); input.disabled = !profileReady || profilePending;
     const saveButton = element('button', 'button button-quiet', 'Сохранить'); saveButton.type = 'submit';
     const deleteButton = element('button', 'icon-button'); deleteButton.type = 'button'; deleteButton.append(icon('close'));
     deleteButton.title = 'Удалить категорию'; deleteButton.setAttribute('aria-label', `Удалить категорию ${category.name}`);
     saveButton.disabled = deleteButton.disabled = !profileReady || profilePending;
-    row.addEventListener('submit', event => { event.preventDefault(); renameCategory(category.id, input.value); });
+    row.addEventListener('submit', event => {
+      event.preventDefault();
+      // Saving the shown name unchanged keeps the stored one, so a built-in name keeps following the interface language.
+      if (input.value.trim().replace(/\s+/g, ' ') !== shownName) renameCategory(category.id, input.value);
+    });
     deleteButton.addEventListener('click', () => {
       const ask = () => decisions.request({ title: tr('Удалить категорию?', 'Delete category?'),
         message: tr(`Будет удалена только подборка «${category.name}». Игры и их участие в выборе не изменятся.`, `Only the collection “${translate(category.name)}” will be deleted. Games and their participation in picks remain unchanged.`),

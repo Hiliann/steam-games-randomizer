@@ -30,8 +30,7 @@ Start only after the critical foundation is verified.
 ## Localization
 
 - [x] Separate dictionaries and test fallback behavior and long translations.
-- [x] Add Ukrainian.
-- Add Spanish, Brazilian Portuguese and German, in that order.
+- [x] Add Ukrainian, Spanish, Brazilian Portuguese and German.
 
 ## Release gate
 

@@ -166,6 +166,8 @@ test('every dictionary covers the English entries and message patterns', async (
     assert.deepEqual([...english.exact.keys()].filter(key => !exact.has(key)), [], code);
     const sources = new Set(patterns.map(([pattern]) => pattern.source));
     assert.deepEqual(english.patterns.map(([pattern]) => pattern.source).filter(source => !sources.has(source)), [], code);
+    // Languages other than English also translate the text tr() builds from templates.
+    if (code !== 'en') assert.deepEqual(patterns.map(([pattern]) => pattern.source), LANGUAGES.uk.dictionary.patterns.map(([pattern]) => pattern.source), code);
   }
 });
 

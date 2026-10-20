@@ -1,7 +1,9 @@
 export const DEFAULT_CUSTOM_ACCENT = Object.freeze({ base: '#72e6c1', hover: '#a1f2d8', contrast: '#102a23' });
 export const UI_DEFAULTS = Object.freeze({ language: 'ru', theme: 'forest', accent: 'lime', customAccent: DEFAULT_CUSTOM_ACCENT });
 // The Steam Store language used for game descriptions in each interface language.
-export const STORE_LANGUAGES = Object.freeze({ ru: 'russian', en: 'english', uk: 'ukrainian' });
+export const STORE_LANGUAGES = Object.freeze({ ru: 'russian', en: 'english', uk: 'ukrainian', es: 'spanish', 'pt-BR': 'brazilian', de: 'german' });
+// System languages with an interface of their own; every other language opens in English.
+const LOCALE_LANGUAGES = Object.freeze({ ru: 'ru', uk: 'uk', es: 'es', pt: 'pt-BR', de: 'de' });
 export const UI_OPTIONS = Object.freeze({
   language: Object.freeze(Object.keys(STORE_LANGUAGES)),
   theme: Object.freeze(['forest', 'midnight', 'graphite']),
@@ -10,10 +12,8 @@ export const UI_OPTIONS = Object.freeze({
 
 export function languageFromLocale(locale, fallback = UI_DEFAULTS.language) {
   const primary = String(locale ?? '').split(',')[0].trim().toLowerCase();
-  if (/^ru(?:-|$)/.test(primary)) return 'ru';
-  if (/^uk(?:-|$)/.test(primary)) return 'uk';
-  if (/^[a-z]{2,3}(?:-|$)/.test(primary)) return 'en';
-  return fallback;
+  const match = /^([a-z]{2,3})(?:-|$)/.exec(primary);
+  return match ? LOCALE_LANGUAGES[match[1]] ?? 'en' : fallback;
 }
 
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;

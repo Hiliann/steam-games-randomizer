@@ -39,7 +39,7 @@ test('local health, page and scripts are served with restrictive security header
   assert.match(page.headers.get('content-security-policy'), /frame-ancestors 'none'/);
   assert.equal(page.headers.get('access-control-allow-origin'), null);
   assert.match(await page.text(), /Play Next/);
-  for (const asset of ['/app.js', '/workspace.js', '/collections.js', '/toast.js', '/game-details.js', '/draw-animation.js', '/decision.js', '/scroll-activity.js', '/startup.js', '/randomizer.js', '/ui-settings.js', '/i18n.js', '/i18n-en.js', '/i18n-uk.js', '/backup.js', '/browser-session.js', '/descriptions.js', '/update-flow.js', '/update-controller.js', '/library-view.js', '/settings-controller.js']) {
+  for (const asset of ['/app.js', '/workspace.js', '/collections.js', '/toast.js', '/game-details.js', '/draw-animation.js', '/decision.js', '/scroll-activity.js', '/startup.js', '/randomizer.js', '/ui-settings.js', '/i18n.js', '/i18n-en.js', '/i18n-uk.js', '/i18n-es.js', '/i18n-pt-br.js', '/i18n-de.js', '/backup.js', '/browser-session.js', '/descriptions.js', '/update-flow.js', '/update-controller.js', '/library-view.js', '/settings-controller.js']) {
     const response = await fetch(url + asset);
     assert.equal(response.status, 200);
     assert.match(response.headers.get('content-type'), /javascript/);

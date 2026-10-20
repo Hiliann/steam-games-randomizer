@@ -23,9 +23,9 @@ telemetry, invented game metadata or weighted random draws.
 
 Start only after the critical foundation is verified.
 
-- Cache confirmed Store genres and single/multiplayer features, with an unknown state.
-- Add saved filter presets without inventing playtime or session-length data.
-- Offer continuing previously played games only when local data supports it.
+- [x] Cache confirmed Store genres and single/multiplayer features, with an unknown state.
+- [x] Add saved filter presets without inventing playtime or session-length data.
+- [x] Offer continuing previously played games only when local data supports it.
 
 ## Localization
 

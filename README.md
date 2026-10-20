@@ -24,17 +24,18 @@ Requires **Windows 10/11 x64 (Intel/AMD), .NET Framework 4.6.2+, Steam and Micro
 
 ## Features
 
-The sidebar separates **Choose a game**, **Library**, **Categories** and **Settings**. Labels remain visible in narrow windows; the navigation moves to the bottom on very small screens. The library supports card/list views and sorting by name, last played or size. Click a cover to preview and launch a game without changing the random-draw history, or assign categories directly on its card. The collection editor supports bulk changes and a shortcut to pick from that collection. Settings are organized into Appearance, Games, Windows, Updates and My data tabs. **Ctrl+F** opens library search; Space draws a game only on the chooser screen.
+The sidebar separates **Choose a game**, **Library**, **Categories** and **Settings**. Labels remain visible in narrow windows; the navigation moves to the bottom on very small screens. The library supports card/list views and sorting by name, last played or size. Save the current filters, search and sort as a named preset (up to 12) and restore it in one click. Click a cover to preview and launch a game without changing the random-draw history, or assign categories directly on its card. The collection editor supports bulk changes and a shortcut to pick from that collection. Settings are organized into Appearance, Games, Windows, Updates and My data tabs. **Ctrl+F** opens library search; Space draws a game only on the chooser screen.
 
 - Automatically detects Steam libraries across multiple drives; custom paths can be added manually.
 - Chooses only eligible games, with optional no-repeat rounds and a history of recent picks.
 - Adds saved categories directly from the picked game, plus a bulk editor for the whole library. A category can filter the visible library or become the active randomization mode.
-- Includes modes for all participating games, installed or uninstalled games, never-played games, games dormant for 90 days and any saved category. Every eligible game keeps the same probability.
+- Includes modes for all participating games, installed or uninstalled games, never-played games, games dormant for 90 days, games played in the last 30 days (offered only when local Steam data has launch dates), Store genres and play modes, and any saved category. Every eligible game keeps the same probability.
 - Lets you exclude individual games. Exclusions survive closing the program, changing ports and clearing browser storage.
 - Shows artwork from the local Steam cache, with a game-name fallback when artwork is unavailable.
 - Shows a complete card during shuffle: artwork, title, description and categories belong to the same game. Actions stay visible but disabled until the result is confirmed.
 - Loads short Steam Store descriptions for the selected game and a small set of frames, with plain-text validation and local caching. Offline frames use local game details.
 - Includes search, keyboard controls, reduced-motion support and a responsive interface for narrow and wide windows.
+- Filters the library and the draw by Steam Store genre and by single-player, multiplayer or co-op play. Genres load in the background with visible progress; games without confirmed Store data are shown as unknown instead of guessed.
 - Optionally adds uninstalled games backed by local Steam licenses, without a public Steam profile or account sign-in through Play Next.
 - Shows storage requirements for uninstalled games and lets you toggle size information and the installed-game badge.
 - Can create a desktop shortcut and start in the background with Windows, without administrator rights.
@@ -66,7 +67,7 @@ The updater accepts only this repository's release archive, verifies its publish
 
 The app remains usable while the update downloads. You can cancel before replacement, including by switching off automatic updates. Replacement waits for unsaved edits, confirmations and pending saves, then restarts the app; a minimized startup remains minimized. A failed download leaves the old app open. Failed automatic attempts for the same version have a one-day cooldown; an explicit manual retry is available immediately. Offline checks retry up to three times. Update progress is stored separately from personal settings.
 
-The **Backup** section downloads one JSON file containing categories, assignments, history, the current round, exclusions, manual library paths and settings. The selected file is fully validated without changing saved data. A confirmation then shows the backup date, app version and counts of categories, assigned games, history and exclusions. Cancel is focused by default; replacement starts only after pressing **Replace data**. To keep your current data, cancel and download a backup first.
+The **Backup** section downloads one JSON file containing categories, assignments, filter presets, history, the current round, exclusions, manual library paths and settings. The selected file is fully validated without changing saved data. A confirmation then shows the backup date, app version and counts of categories, assigned games, history and exclusions. Cancel is focused by default; replacement starts only after pressing **Replace data**. To keep your current data, cancel and download a backup first.
 
 If one write fails, Play Next attempts to restore the previous data. A successful restore reloads the page. If the connection is interrupted after confirmation, check the result before retrying: a missing response does not by itself mean that data was unchanged. Keep personal backups separate from the clean ZIP shared with friends.
 
@@ -82,7 +83,7 @@ Send friends the clean release ZIP, not a copy of a folder you have already used
 
 The local server listens only on `127.0.0.1`. Steam files are read, not modified. Play Next does not require a Steam password or API key and does not upload account data, licenses, file paths or exclusions.
 
-For uninstalled-game storage information and short descriptions, it makes HTTPS requests to `store.steampowered.com` using public game IDs. The description request also includes the interface language. Steam can see the connection's IP address. These requests do not include cookies or your account information. Size requests can be turned off; descriptions are requested only for the current result and a small set of shuffle frames. Games and Steam may make their own network requests independently.
+For uninstalled-game storage information and short descriptions, it makes HTTPS requests to `store.steampowered.com` using public game IDs. The description request also includes the interface language. Steam can see the connection's IP address. These requests do not include cookies or your account information. **Genres and play modes are requested in the background for every game in the loaded library**, one public game ID per request, at most one Store request every 2 seconds shared with size and description lookups, which go first. Confirmed results are kept in `data/store-details.json` without expiry, so later refreshes request only new games and earlier failures; a game Steam Store does not list is checked again after a week. The **Uninstalled game size** switch in Settings turns off size requests and pauses genre loading. Descriptions are requested only for the current result and a small set of shuffle frames. Games and Steam may make their own network requests independently.
 
 The downloadable ZIP excludes personal data, Steam files, game artwork and logs. It is not digitally signed. A `.zip.sha256` file is supplied to check that your download matches the published archive; a checksum is not a substitute for a security review.
 

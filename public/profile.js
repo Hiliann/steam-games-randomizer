@@ -1,4 +1,5 @@
 import { cleanDrawState } from './randomizer.js';
+import { validatePresets } from './filter-presets.js';
 
 const CATEGORY_COLORS = new Set(['lime', 'gold', 'blue', 'mint', 'orange', 'violet', 'rose', 'slate']);
 
@@ -10,14 +11,16 @@ function validate(result) {
     categoryIds.add(item.id);
   }
   for (const [appId, ids] of Object.entries(result.assignments)) if (!/^\d{1,10}$/.test(appId) || Number(appId) > 0xffffffff || !Array.isArray(ids) || ids.some(id => !categoryIds.has(id))) throw new Error('Приложение вернуло некорректные категории. Обнови страницу.');
-  return { initialized: result.initialized, revision: result.revision, categories: result.categories.map(item => ({ id: item.id, name: item.name, color: item.color })), assignments: Object.fromEntries(Object.entries(result.assignments).map(([id, values]) => [id, [...new Set(values)]])), draw: cleanDrawState(result.draw) };
+  let presets;
+  try { presets = validatePresets(result.presets, categoryIds); } catch { throw new Error('Приложение вернуло некорректные категории. Обнови страницу.'); }
+  return { initialized: result.initialized, revision: result.revision, categories: result.categories.map(item => ({ id: item.id, name: item.name, color: item.color })), assignments: Object.fromEntries(Object.entries(result.assignments).map(([id, values]) => [id, [...new Set(values)]])), draw: cleanDrawState(result.draw), presets };
 }
 
 export function createProfileClient(send = globalThis.fetch) {
   async function request(body) {
     const response = await send('/api/profile', body === undefined ? { cache: 'no-store', signal: AbortSignal.timeout(10000) } : {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Randomizer': '1' },
-      body: JSON.stringify(body), keepalive: ['set-category', 'rename-category', 'add-category', 'delete-category'].includes(body.action), signal: AbortSignal.timeout(10000),
+      body: JSON.stringify(body), keepalive: ['set-category', 'rename-category', 'add-category', 'delete-category', 'add-preset', 'delete-preset'].includes(body.action), signal: AbortSignal.timeout(10000),
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error ?? 'Не удалось сохранить категории или историю.');
@@ -34,5 +37,7 @@ export function createProfileClient(send = globalThis.fetch) {
     deleteCategory(revision, id) { return request({ action: 'delete-category', revision, id }); },
     setCategory(revision, appId, categoryId, assigned) { return request({ action: 'set-category', revision, appId, categoryId, assigned }); },
     setCategoryGames(revision, categoryId, appIds, scopeAppIds) { return request({ action: 'set-category-games', revision, categoryId, appIds, scopeAppIds }); },
+    addPreset(revision, name, filters) { return request({ action: 'add-preset', revision, name, filters }); },
+    deletePreset(revision, id) { return request({ action: 'delete-preset', revision, id }); },
   };
 }

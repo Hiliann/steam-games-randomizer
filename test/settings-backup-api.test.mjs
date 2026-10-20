@@ -41,7 +41,7 @@ test('appearance and backup APIs are local-only, bounded and restore a valid exp
   const inspect=structuredClone(backup); inspect.data.exclusions=['10'];
   const preview=await fetch(url+'/api/backup/preview',{method:'POST',headers,body:JSON.stringify(inspect)});
   assert.equal(preview.status,200);
-  assert.deepEqual(await preview.json(),{createdAt:backup.createdAt,appVersion:backup.appVersion,categories:backup.data.profile.categories.length,assignedGames:0,history:0,exclusions:1,customPaths:1});
+  assert.deepEqual(await preview.json(),{createdAt:backup.createdAt,appVersion:backup.appVersion,categories:backup.data.profile.categories.length,assignedGames:0,history:0,presets:0,exclusions:1,customPaths:1});
   assert.deepEqual((await fetch(url+'/api/backup').then(r=>r.json())).data,beforePreview);
   assert.equal((await fetch(url+'/api/backup/preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(inspect)})).status,403);
   assert.equal((await fetch(url+'/api/backup/preview',{method:'POST',headers,body:'{}'})).status,400);

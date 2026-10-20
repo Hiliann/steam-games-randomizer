@@ -1,11 +1,12 @@
 export const STORAGE_KEY = 'steam-randomizer.v1';
 
-export const DRAW_MODES = Object.freeze(['all', 'installed', 'uninstalled', 'unplayed', 'dormant']);
+export const DRAW_MODES = Object.freeze(['all', 'installed', 'uninstalled', 'unplayed', 'dormant', 'recent', 'single', 'multi', 'coop']);
+export const RECENT_DAYS = 30;
 const validSteamId = id => typeof id === 'string' && /^\d{1,10}$/.test(id) && Number(id) <= 0xffffffff;
 export function cleanDrawState(input = {}) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) input = {};
   const ids = list => [...new Set((Array.isArray(list) ? list : []).filter(validSteamId))].slice(0, 20000);
-  const mode = typeof input.mode === 'string' && (DRAW_MODES.includes(input.mode) || /^category:[a-z][a-z0-9-]{0,31}$/.test(input.mode)) ? input.mode : 'all';
+  const mode = typeof input.mode === 'string' && (DRAW_MODES.includes(input.mode) || /^category:[a-z][a-z0-9-]{0,31}$/.test(input.mode) || /^genre:[1-9]\d{0,3}$/.test(input.mode)) ? input.mode : 'all';
   return {
     seen: ids(input.seen),
     history: (Array.isArray(input.history) ? input.history : []).filter(entry => entry && validSteamId(entry.id) && typeof entry.at === 'string' && Number.isFinite(Date.parse(entry.at))).slice(0, 30).map(entry => ({ id: entry.id, at: entry.at })),
@@ -31,8 +32,17 @@ export function matchesMode(game, mode = 'all', assignments = {}, nowSeconds = D
   if (mode === 'uninstalled') return game.installed === false;
   if (mode === 'unplayed') return !Number.isFinite(game.lastPlayed) || game.lastPlayed <= 0;
   if (mode === 'dormant') return !Number.isFinite(game.lastPlayed) || game.lastPlayed <= 0 || nowSeconds - game.lastPlayed >= 90 * 86400;
+  // Only a confirmed local Steam launch time counts; unknown dates never qualify.
+  if (mode === 'recent') return hasPlayed(game) && nowSeconds - game.lastPlayed < RECENT_DAYS * 86400;
+  // Store genres and play modes count only when Steam Store confirmed them.
+  if (['single', 'multi', 'coop'].includes(mode)) return game.store?.features?.[mode] === true;
+  if (mode.startsWith('genre:')) return !!game.store?.genres?.includes(mode.slice(6));
   if (mode.startsWith('category:')) return (assignments[game.id] ?? []).includes(mode.slice(9));
   return true;
+}
+
+export function hasPlayed(game) {
+  return Number.isFinite(game?.lastPlayed) && game.lastPlayed > 0;
 }
 
 export function eligibleGames(games, state, assignments = {}) {

@@ -16,7 +16,7 @@ telemetry, invented game metadata or weighted random draws.
 - [x] Add synthetic regression fixtures for incomplete, corrupt and older Steam caches, without copying personal cache data.
 - [x] Add a manual diagnostic export with an exact contents preview and no personal data or automatic upload.
 - [x] Verify release integrity, the clean Windows build process and preserved personal stores during updates.
-- Configure publisher signing when an appropriate signing identity is available.
+- Sign the Windows launcher through the SignPath Foundation open-source program. The release workflow is ready; signing starts once the project is accepted.
 - Prepare an installer, then verified winget and optional Scoop distribution.
 
 ## Game discovery

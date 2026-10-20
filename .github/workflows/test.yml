@@ -10,7 +10,7 @@ permissions:
 jobs:
   test:
     runs-on: windows-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
         with:
@@ -28,3 +28,33 @@ jobs:
           Invoke-WebRequest -Uri 'https://api.nuget.org/v3-flatcontainer/microsoft.web.webview2/1.0.4258.31/microsoft.web.webview2.1.0.4258.31.nupkg' -OutFile 'downloads/microsoft.web.webview2.1.0.4258.31.nupkg'
           powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-desktop.ps1 -PackageDirectory "$pwd/dist/desktop-ci"
           if ($LASTEXITCODE -ne 0) { throw 'Desktop build failed.' }
+      - name: Package a release with a throwaway signature
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Invoke-WebRequest -Uri 'https://nodejs.org/dist/v24.20.0/node-v24.20.0-win-x64.zip' -OutFile 'downloads/node-v24.20.0-win-x64.zip'
+          Invoke-WebRequest -Uri 'https://nodejs.org/dist/v24.20.0/SHASUMS256.txt' -OutFile 'downloads/SHASUMS256.txt'
+          $output = "$pwd/dist/release-ci"
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-release.ps1 -OutputDirectory $output -Prepare
+          if ($LASTEXITCODE -ne 0) { throw 'Preparing the release failed.' }
+          # Stands in for SignPath, which signs the uploaded launcher in the release workflow.
+          $certificate = New-SelfSignedCertificate -Type CodeSigningCert -Subject 'CN=Play Next CI test' -CertStoreLocation Cert:\CurrentUser\My -KeyAlgorithm RSA -KeyLength 3072 -NotAfter (Get-Date).AddDays(1)
+          try {
+            $launcher = Get-Item "$output/PlayNext-*-win-x64/Play Next.exe"
+            New-Item -ItemType Directory -Path signed -Force | Out-Null
+            Copy-Item -LiteralPath $launcher.FullName -Destination 'signed/Play Next.exe'
+            $null = Set-AuthenticodeSignature -LiteralPath 'signed/Play Next.exe' -Certificate $certificate -HashAlgorithm SHA256
+            'Two expected refusals follow: a missing signed launcher, then an untrusted signature without -TestCertificate.'
+            powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-release.ps1 -OutputDirectory $output -SignedLauncher signed/missing.exe
+            if ($LASTEXITCODE -eq 0) { throw 'A missing signed launcher was accepted.' }
+            powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-release.ps1 -OutputDirectory $output -SignedLauncher 'signed/Play Next.exe'
+            if ($LASTEXITCODE -eq 0) { throw 'An untrusted signature was accepted without -TestCertificate.' }
+            powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-release.ps1 -OutputDirectory $output -SignedLauncher 'signed/Play Next.exe' -TestCertificate
+            if ($LASTEXITCODE -ne 0) { throw 'Finishing the signed release failed.' }
+          } finally {
+            Remove-Item -LiteralPath "Cert:\CurrentUser\My\$($certificate.Thumbprint)" -DeleteKey
+          }
+          $archive = Get-Item "$output/PlayNext-*-win-x64.zip"
+          Expand-Archive -LiteralPath $archive.FullName -DestinationPath "$pwd/dist/release-check"
+          node scripts/verify-release.mjs (Get-Item "$pwd/dist/release-check/PlayNext-*-win-x64").FullName --files-only
+          if ($LASTEXITCODE -ne 0) { throw 'The signed release did not pass verification.' }

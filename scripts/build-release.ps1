@@ -2,9 +2,16 @@ param(
     [string]$NodeZip = '',
     [string]$ChecksumFile = '',
     [string]$RuntimeDirectory = '',
-    [string]$OutputDirectory = ''
+    [string]$OutputDirectory = '',
+    # A signed build runs twice: -Prepare builds the package, the launcher is signed
+    # outside this script (SignPath in the release workflow), then -SignedLauncher finishes it.
+    [switch]$Prepare,
+    [string]$SignedLauncher = '',
+    # Accepts a self-signed trial signature. Such a package must never be published.
+    [switch]$TestCertificate
 )
 $ErrorActionPreference = 'Stop'
+if ($Prepare -and $SignedLauncher) { throw 'Run -Prepare and -SignedLauncher as two separate steps.' }
 $sourceDirectory = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $nodeVersion = '24.20.0'
 $nodeFolder = "node-v$nodeVersion-win-x64"
@@ -17,71 +24,89 @@ $package = Get-Content -LiteralPath (Join-Path $sourceDirectory 'package.json') 
 $releaseName = "PlayNext-$($package.version)-win-x64"
 $packageDirectory = Join-Path $OutputDirectory $releaseName
 $zipPath = Join-Path $OutputDirectory "$releaseName.zip"
-if ((Test-Path -LiteralPath $packageDirectory) -or (Test-Path -LiteralPath $zipPath)) { throw 'This release already exists. Choose an empty output directory; existing releases are never overwritten.' }
+if ($SignedLauncher) {
+    if (-not (Test-Path -LiteralPath $packageDirectory -PathType Container) -or (Test-Path -LiteralPath $zipPath) -or (Test-Path -LiteralPath (Join-Path $packageDirectory 'release-manifest.json'))) { throw 'Prepare the package with -Prepare first. A finished release is never changed.' }
+} elseif ((Test-Path -LiteralPath $packageDirectory) -or (Test-Path -LiteralPath $zipPath)) { throw 'This release already exists. Choose an empty output directory; existing releases are never overwritten.' }
 
 $pinnedArchiveHash = '6cac9ffbca8f6a47091e4b5c772e0606049c3871cb67d900c0cedde630e545ba'
-if ($RuntimeDirectory) {
-    # Reuse only the exact runtime previously extracted from the official archive.
-    $RuntimeDirectory = [IO.Path]::GetFullPath($RuntimeDirectory)
-    $pinnedFiles = @{
-        'node.exe' = '5c976096e04e5c2c1f091938926234cc9fbebfe9787ddd149351b3b0ecc707b5'
-        'LICENSE' = 'ed34dd8e3f0a78dbaf00d0444ce8e285b015b765379c2e17880455f70370f8e9'
-    }
-    foreach ($name in $pinnedFiles.Keys) {
-        $hash = (Get-FileHash -LiteralPath (Join-Path $RuntimeDirectory $name) -Algorithm SHA256).Hash.ToLowerInvariant()
-        if ($hash -ne $pinnedFiles[$name]) { throw "Verified runtime checksum mismatch: $name" }
-    }
+$packagedRuntimeDirectory = Join-Path $packageDirectory 'runtime'
+$launcher = Join-Path $packageDirectory 'Play Next.exe'
+if ($SignedLauncher) {
+    $signature = Get-AuthenticodeSignature -LiteralPath $SignedLauncher
+    if (-not $signature.SignerCertificate) { throw 'The file passed with -SignedLauncher is not signed.' }
+    if (-not $TestCertificate -and ($signature.Status -ne 'Valid' -or -not $signature.TimeStamperCertificate)) { throw "Windows does not trust the launcher signature or it has no timestamp: $($signature.StatusMessage)" }
+    if ((Get-Item -LiteralPath $SignedLauncher).VersionInfo.FileVersion -ne "$($package.version).0") { throw 'The signed launcher was built for another version.' }
+    Copy-Item -LiteralPath $SignedLauncher -Destination $launcher -Force
+    Copy-Item -LiteralPath $SignedLauncher -Destination (Join-Path $packageDirectory 'scripts\PlayNextLauncher.exe') -Force
+    # -Prepare already verified the runtime against this pinned archive hash.
     $actualHash = $pinnedArchiveHash
 } else {
-    $expectedHash = $null
-    foreach ($line in (Get-Content -LiteralPath $ChecksumFile)) {
-        if ($line -match ('^([a-fA-F0-9]{64})\s+\*?' + [regex]::Escape($nodeArchiveName) + '$')) { $expectedHash = $Matches[1].ToLowerInvariant() }
+    if ($RuntimeDirectory) {
+        # Reuse only the exact runtime previously extracted from the official archive.
+        $RuntimeDirectory = [IO.Path]::GetFullPath($RuntimeDirectory)
+        $pinnedFiles = @{
+            'node.exe' = '5c976096e04e5c2c1f091938926234cc9fbebfe9787ddd149351b3b0ecc707b5'
+            'LICENSE' = 'ed34dd8e3f0a78dbaf00d0444ce8e285b015b765379c2e17880455f70370f8e9'
+        }
+        foreach ($name in $pinnedFiles.Keys) {
+            $hash = (Get-FileHash -LiteralPath (Join-Path $RuntimeDirectory $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($hash -ne $pinnedFiles[$name]) { throw "Verified runtime checksum mismatch: $name" }
+        }
+        $actualHash = $pinnedArchiveHash
+    } else {
+        $expectedHash = $null
+        foreach ($line in (Get-Content -LiteralPath $ChecksumFile)) {
+            if ($line -match ('^([a-fA-F0-9]{64})\s+\*?' + [regex]::Escape($nodeArchiveName) + '$')) { $expectedHash = $Matches[1].ToLowerInvariant() }
+        }
+        if ($expectedHash -ne $pinnedArchiveHash) { throw 'The official checksum does not match the pinned Node.js release.' }
+        $actualHash = (Get-FileHash -LiteralPath $NodeZip -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($actualHash -ne $expectedHash) { throw 'Node.js archive SHA-256 verification failed.' }
     }
-    if ($expectedHash -ne $pinnedArchiveHash) { throw 'The official checksum does not match the pinned Node.js release.' }
-    $actualHash = (Get-FileHash -LiteralPath $NodeZip -Algorithm SHA256).Hash.ToLowerInvariant()
-    if ($actualHash -ne $expectedHash) { throw 'Node.js archive SHA-256 verification failed.' }
-}
 
-New-Item -ItemType Directory -Path $packageDirectory -Force | Out-Null
-$packagedRuntimeDirectory = Join-Path $packageDirectory 'runtime'
-New-Item -ItemType Directory -Path $packagedRuntimeDirectory | Out-Null
-if ($RuntimeDirectory) {
-    foreach ($name in @('node.exe', 'LICENSE')) { Copy-Item -LiteralPath (Join-Path $RuntimeDirectory $name) -Destination (Join-Path $packagedRuntimeDirectory $name) }
-} else {
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    $archive = [IO.Compression.ZipFile]::OpenRead([IO.Path]::GetFullPath($NodeZip))
-    try {
-    # Extract only named official files, never arbitrary ZIP entries.
-    foreach ($entryName in @('node.exe', 'LICENSE')) {
-        $entry = $archive.GetEntry("$nodeFolder/$entryName")
-        if (-not $entry) { throw "Node.js archive is missing $entryName" }
-        $destination = Join-Path $packagedRuntimeDirectory $entryName
-        [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $destination, $false)
+    New-Item -ItemType Directory -Path $packageDirectory -Force | Out-Null
+    New-Item -ItemType Directory -Path $packagedRuntimeDirectory | Out-Null
+    if ($RuntimeDirectory) {
+        foreach ($name in @('node.exe', 'LICENSE')) { Copy-Item -LiteralPath (Join-Path $RuntimeDirectory $name) -Destination (Join-Path $packagedRuntimeDirectory $name) }
+    } else {
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        $archive = [IO.Compression.ZipFile]::OpenRead([IO.Path]::GetFullPath($NodeZip))
+        try {
+        # Extract only named official files, never arbitrary ZIP entries.
+        foreach ($entryName in @('node.exe', 'LICENSE')) {
+            $entry = $archive.GetEntry("$nodeFolder/$entryName")
+            if (-not $entry) { throw "Node.js archive is missing $entryName" }
+            $destination = Join-Path $packagedRuntimeDirectory $entryName
+            [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $destination, $false)
+        }
+        } finally { $archive.Dispose() }
     }
-    } finally { $archive.Dispose() }
-}
 
-# This allowlist excludes process records, logs, Steam data, local paths, tests,
-# cached covers, settings, source archives and any other machine-specific files.
-$releaseFiles = @(
-    'package.json', 'server.mjs', 'start.ps1',
-    'LICENSE', 'THIRD_PARTY_NOTICES.md', 'public\update-controller.js', 'public\library-view.js', 'public\settings-controller.js', 'public\appearance-controller.js',
-    'lib\steam.mjs', 'lib\owned.mjs', 'lib\steam-cache.mjs', 'lib\exclusions.mjs', 'lib\profile.mjs', 'public\index.html', 'public\app.js', 'public\exclusions.js', 'public\profile.js',
-    'lib\install-size.mjs', 'lib\display-settings.mjs', 'public\display.js',
-    'lib\online-sizes.mjs', 'lib\request-gate.mjs', 'lib\store-details.mjs', 'public\online-sizes.js', 'public\descriptions.js',
-    'lib\windows-integration.mjs', 'lib\update-check.mjs', 'lib\update-installer.mjs', 'lib\steam-launch.mjs', 'lib\app-settings.mjs', 'lib\ui-settings.mjs', 'lib\backup.mjs',
-    'lib\browser-sessions.mjs', 'lib\desktop-owner.mjs', 'lib\session-frames.mjs', 'lib\update-state.mjs', 'lib\diagnostics.mjs', 'public\diagnostics.js', 'public\diagnostics-controller.js',
-    'scripts\windows-integration.ps1', 'scripts\launch-steam.ps1', 'scripts\apply-update.ps1', 'scripts\update-common.ps1', 'public\update-flow.js', 'public\system.js', 'public\app-settings.js', 'public\ui-settings.js', 'public\i18n.js', 'public\i18n-en.js', 'public\i18n-uk.js', 'public\i18n-es.js', 'public\i18n-pt-br.js', 'public\i18n-de.js', 'public\backup.js', 'public\browser-session.js',
-    'public\randomizer.js', 'public\workspace.js', 'public\filter-presets.js', 'public\store-details.js', 'public\collections.js', 'public\toast.js', 'public\game-details.js', 'public\draw-animation.js', 'public\decision.js', 'public\scroll-activity.js', 'public\startup.js', 'public\style.css', 'public\responsive.css', 'public\desktop.css', 'public\icon.svg', 'public\icon.png', 'public\icon.ico'
-)
-foreach ($relativeFile in $releaseFiles) {
-    $destination = Join-Path $packageDirectory $(if ($relativeFile -eq 'LICENSE') { 'runtime\PlayNext-LICENSE.txt' } else { $relativeFile })
-    $parent = Split-Path -Parent $destination
-    if (-not (Test-Path -LiteralPath $parent)) { New-Item -ItemType Directory -Path $parent | Out-Null }
-    Copy-Item -LiteralPath (Join-Path $sourceDirectory $relativeFile) -Destination $destination -ErrorAction Stop
+    # This allowlist excludes process records, logs, Steam data, local paths, tests,
+    # cached covers, settings, source archives and any other machine-specific files.
+    $releaseFiles = @(
+        'package.json', 'server.mjs', 'start.ps1',
+        'LICENSE', 'THIRD_PARTY_NOTICES.md', 'public\update-controller.js', 'public\library-view.js', 'public\settings-controller.js', 'public\appearance-controller.js',
+        'lib\steam.mjs', 'lib\owned.mjs', 'lib\steam-cache.mjs', 'lib\exclusions.mjs', 'lib\profile.mjs', 'public\index.html', 'public\app.js', 'public\exclusions.js', 'public\profile.js',
+        'lib\install-size.mjs', 'lib\display-settings.mjs', 'public\display.js',
+        'lib\online-sizes.mjs', 'lib\request-gate.mjs', 'lib\store-details.mjs', 'public\online-sizes.js', 'public\descriptions.js',
+        'lib\windows-integration.mjs', 'lib\update-check.mjs', 'lib\update-installer.mjs', 'lib\steam-launch.mjs', 'lib\app-settings.mjs', 'lib\ui-settings.mjs', 'lib\backup.mjs',
+        'lib\browser-sessions.mjs', 'lib\desktop-owner.mjs', 'lib\session-frames.mjs', 'lib\update-state.mjs', 'lib\diagnostics.mjs', 'public\diagnostics.js', 'public\diagnostics-controller.js',
+        'scripts\windows-integration.ps1', 'scripts\launch-steam.ps1', 'scripts\apply-update.ps1', 'scripts\update-common.ps1', 'public\update-flow.js', 'public\system.js', 'public\app-settings.js', 'public\ui-settings.js', 'public\i18n.js', 'public\i18n-en.js', 'public\i18n-uk.js', 'public\i18n-es.js', 'public\i18n-pt-br.js', 'public\i18n-de.js', 'public\backup.js', 'public\browser-session.js',
+        'public\randomizer.js', 'public\workspace.js', 'public\filter-presets.js', 'public\store-details.js', 'public\collections.js', 'public\toast.js', 'public\game-details.js', 'public\draw-animation.js', 'public\decision.js', 'public\scroll-activity.js', 'public\startup.js', 'public\style.css', 'public\responsive.css', 'public\desktop.css', 'public\icon.svg', 'public\icon.png', 'public\icon.ico'
+    )
+    foreach ($relativeFile in $releaseFiles) {
+        $destination = Join-Path $packageDirectory $(if ($relativeFile -eq 'LICENSE') { 'runtime\PlayNext-LICENSE.txt' } else { $relativeFile })
+        $parent = Split-Path -Parent $destination
+        if (-not (Test-Path -LiteralPath $parent)) { New-Item -ItemType Directory -Path $parent | Out-Null }
+        Copy-Item -LiteralPath (Join-Path $sourceDirectory $relativeFile) -Destination $destination -ErrorAction Stop
+    }
+    & (Join-Path $PSScriptRoot 'build-desktop.ps1') -PackageDirectory $packageDirectory
+    if ($Prepare) {
+        [PSCustomObject]@{ Package = $packageDirectory; Launcher = $launcher } | ConvertTo-Json
+        return
+    }
 }
-& (Join-Path $PSScriptRoot 'build-desktop.ps1') -PackageDirectory $packageDirectory
-$launcher = Join-Path $packageDirectory 'Play Next.exe'
+$signature = Get-AuthenticodeSignature -LiteralPath $launcher
 $release = [ordered]@{
     app = 'Play Next'
     version = $package.version
@@ -107,4 +132,4 @@ $manifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $packa
 Compress-Archive -LiteralPath $packageDirectory -DestinationPath $zipPath -CompressionLevel Optimal
 $zipHash = (Get-FileHash -LiteralPath $zipPath).Hash.ToLowerInvariant()
 "$zipHash  $releaseName.zip" | Set-Content -LiteralPath "$zipPath.sha256" -Encoding ASCII
-[PSCustomObject]@{ Archive = $zipPath; Bytes = (Get-Item -LiteralPath $zipPath).Length; Sha256 = $zipHash; Runtime = $nodeVersion } | ConvertTo-Json
+[PSCustomObject]@{ Archive = $zipPath; Bytes = (Get-Item -LiteralPath $zipPath).Length; Sha256 = $zipHash; Runtime = $nodeVersion; Signature = [string]$signature.Status; Publisher = $(if ($signature.SignerCertificate) { $signature.SignerCertificate.Subject } else { $null }) } | ConvertTo-Json

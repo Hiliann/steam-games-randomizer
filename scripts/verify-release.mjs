@@ -42,6 +42,18 @@ async function packagedFiles(folder = directory, prefix = '') {
 }
 assert.deepEqual([...listed].sort(), (await packagedFiles()).sort());
 assert.equal(createHash('sha256').update(await readFile(path.join(directory, 'Play Next.exe'))).digest('hex'), createHash('sha256').update(await readFile(path.join(directory, 'scripts/PlayNextLauncher.exe'))).digest('hex'));
+// Reports the launcher signature; --signed also requires one that Windows trusts, with a timestamp.
+const signatureCheck = await execFileAsync(powershell, ['-NoProfile', '-NonInteractive', '-Command', '$s = Get-AuthenticodeSignature -LiteralPath $env:PLAYNEXT_LAUNCHER; [ordered]@{ status = [string]$s.Status; signer = $s.SignerCertificate.Subject; timestamp = [bool]$s.TimeStamperCertificate } | ConvertTo-Json -Compress'], {
+  windowsHide: true, timeout: 30000, env: { ...process.env, PLAYNEXT_LAUNCHER: path.join(directory, 'Play Next.exe') },
+});
+const signature = JSON.parse(signatureCheck.stdout.replace(/^\uFEFF/, '').trim());
+console.log(`Launcher signature: ${signature.status}${signature.signer ? `, ${signature.signer}` : ''}${signature.timestamp ? ', timestamped' : ''}.`);
+if (process.argv.includes('--signed')) {
+  assert.equal(signature.status, 'Valid', 'Windows must trust the launcher signature');
+  assert.equal(signature.timestamp, true, 'The launcher signature needs a timestamp');
+}
+// --files-only checks the package without starting it, as CI does for a trial signed build.
+if (process.argv.includes('--files-only')) process.exit(0);
 const cleanEnvironment = { ...process.env };
 for (const key of Object.keys(cleanEnvironment)) {
   if (['PATH', 'NODE_OPTIONS', 'NODE_PATH', 'STEAM_PATH', 'PORT'].includes(key.toUpperCase())) delete cleanEnvironment[key];

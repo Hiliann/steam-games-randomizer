@@ -89,6 +89,17 @@ The downloadable ZIP excludes personal data, Steam files, game artwork and logs.
 
 Responsive layout does not make Play Next a phone app or expose it to your home network. Steam handles game ownership, updates, launchers and installation. Local installation files alone do not guarantee that the current account can launch a game.
 
+## Code signing policy
+
+Windows releases are built from this repository by the [Release build](.github/workflows/release.yml) workflow on GitHub-hosted runners. Once the project is accepted into the SignPath Foundation program for open-source projects, the workflow sends only `Play Next.exe` for signing, and every signing request is approved by hand.
+
+Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
+
+- Committers and reviewers: [Hiliann](https://github.com/Hiliann)
+- Approvers: [Hiliann](https://github.com/Hiliann)
+
+Privacy: Play Next has no telemetry. It connects to other systems only as described in [Privacy and limitations](#privacy-and-limitations): Steam Store lookups with public game IDs and checks of this repository's public GitHub releases. Account data, licenses, file paths and exclusions are never sent.
+
 ## Development and packaging
 
 The source uses HTML, CSS, JavaScript and Node.js built-ins, with no third-party npm packages. To run source code without the bundled runtime, install Node.js 22.2 or newer:
@@ -120,5 +131,7 @@ node scripts/set-version.mjs --release dist/PlayNext-2.7.0-win-x64.zip
 ```
 
 The first command updates `package.json`, `release.json`, the server, the app window and the desktop host. The second reads the archive's size and SHA-256 and updates both website pages and `RELEASE_HISTORY.md`. A test fails if any of these files name a different version.
+
+Published archives come from the **Release build** workflow (Actions > Release build > Run workflow). It runs the checks and tests, builds the ZIP on a GitHub-hosted runner and attaches it with its `.sha256` file to the workflow run. When the repository has the SignPath settings (variables `SIGNPATH_ORGANIZATION_ID`, `SIGNPATH_PROJECT_SLUG` and `SIGNPATH_SIGNING_POLICY_SLUG`, secret `SIGNPATH_API_TOKEN` and the SignPath GitHub App), the workflow builds the package with `-Prepare`, sends `Play Next.exe` to SignPath and finishes the package with `-SignedLauncher`, so the release manifest lists the signed file. `node scripts/verify-release.mjs <folder> --signed` fails unless Windows trusts the launcher signature and it has a timestamp.
 
 Play Next is an independent project, not affiliated with Valve. Steam and game artwork belong to their respective owners. The bundled Node.js license is included in `runtime/LICENSE`; see [third-party notices](THIRD_PARTY_NOTICES.md).

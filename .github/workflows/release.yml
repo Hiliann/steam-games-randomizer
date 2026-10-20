@@ -1,0 +1,87 @@
+name: Release build
+
+# Builds the Windows ZIP from the selected branch on a GitHub-hosted runner. When SignPath
+# is set up (repository variables SIGNPATH_ORGANIZATION_ID, SIGNPATH_PROJECT_SLUG and
+# SIGNPATH_SIGNING_POLICY_SLUG, secret SIGNPATH_API_TOKEN), SignPath Foundation signs
+# Play Next.exe before the manifest and ZIP are made. Without it the ZIP is unsigned.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      SIGNED: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.20.0'
+          package-manager-cache: false
+      - run: npm run check
+      - run: npm test
+      - name: Download the pinned runtime and WebView2 SDK
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path downloads -Force | Out-Null
+          Invoke-WebRequest -Uri 'https://nodejs.org/dist/v24.20.0/node-v24.20.0-win-x64.zip' -OutFile 'downloads/node-v24.20.0-win-x64.zip'
+          Invoke-WebRequest -Uri 'https://nodejs.org/dist/v24.20.0/SHASUMS256.txt' -OutFile 'downloads/SHASUMS256.txt'
+          Invoke-WebRequest -Uri 'https://api.nuget.org/v3-flatcontainer/microsoft.web.webview2/1.0.4258.31/microsoft.web.webview2.1.0.4258.31.nupkg' -OutFile 'downloads/microsoft.web.webview2.1.0.4258.31.nupkg'
+      - name: Build the package
+        id: build
+        shell: pwsh
+        run: |
+          $version = node -p "require('./package.json').version"
+          "version=$version" >> $env:GITHUB_OUTPUT
+          # A signed build stops before the manifest so the signed launcher can be hashed into it.
+          $flags = if ($env:SIGNED -eq 'true') { @('-Prepare') } else { @() }
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-release.ps1 @flags
+          if ($LASTEXITCODE -ne 0) { throw 'Building the release failed.' }
+      - name: Upload the unsigned launcher
+        id: unsigned
+        if: env.SIGNED == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-launcher
+          path: dist/PlayNext-${{ steps.build.outputs.version }}-win-x64/Play Next.exe
+          if-no-files-found: error
+      - name: Sign the launcher with SignPath
+        if: env.SIGNED == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+      - name: Finish the package with the signed launcher
+        if: env.SIGNED == 'true'
+        shell: pwsh
+        run: |
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-release.ps1 -SignedLauncher 'signed/Play Next.exe'
+          if ($LASTEXITCODE -ne 0) { throw 'Finishing the signed release failed.' }
+      - name: Check the package
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.build.outputs.version }}
+        run: |
+          Expand-Archive -LiteralPath "dist/PlayNext-$env:VERSION-win-x64.zip" -DestinationPath dist/check
+          $flags = @('--files-only')
+          if ($env:SIGNED -eq 'true') { $flags += '--signed' }
+          node scripts/verify-release.mjs "dist/check/PlayNext-$env:VERSION-win-x64" @flags
+          if ($LASTEXITCODE -ne 0) { throw 'The release did not pass verification.' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PlayNext-${{ steps.build.outputs.version }}-win-x64
+          path: |
+            dist/PlayNext-${{ steps.build.outputs.version }}-win-x64.zip
+            dist/PlayNext-${{ steps.build.outputs.version }}-win-x64.zip.sha256
+          if-no-files-found: error
